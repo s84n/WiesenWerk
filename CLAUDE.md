@@ -137,13 +137,11 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 
 - Der Schattenbereich ist auf 70 Felder begrenzt (weit herausgezoomt keine Schatten).
 - Das Gelände hat leichte Unebenheiten (±0,04) auch auf baubaren Feldern; Gebäude sitzen auf Höhe 0 und können minimal einsinken/schweben (durch den Sockel kaum sichtbar).
-- Bandoberflächen laufen noch nicht sichtbar mit (nur die Items bewegen sich; Phase 7).
 - Kurven werden als zwei gerade Hälften dargestellt; Items knicken in der Feldmitte ab.
 - Spielstände aus Phase 3/4 (Version 1) werden umgewandelt; deren Maschinen haben danach keinen Strom, bis Brenner und Masten gebaut sind.
-- Dekoration (Wege, Laternen, Beete, Zäune, Bänke, Zierbäume, Ziegelwege) gibt es schon als einfache Platzhalter, damit die Forschungsknoten „Verschönerung“ etwas freischalten; die schönen Modelle kommen mit Phase 7.
+- Dekoration (Wege, Laternen, Beete, Zäune, Bänke, Zierbäume, Ziegelwege) ist noch schlicht modelliert (Laternen mit Lichtschein); liebevollere Modelle wären ein möglicher Feinschliff.
 - Die Bandbrücke hat feste Laufrichtungen (unten Nord → Süd, oben West → Ost, vor dem Drehen); passende Richtungen per R wählen. Die Vorschau zeigt die Pfeile.
 - Arbeiter laufen feste Wege durch alles hindurch (keine Wegfindung um andere Gebäude).
-- Lautstärke lässt sich bisher nur ein- und ausschalten; ein Regler kommt mit den Einstellungen in Phase 7.
 - Die Kopfzeile wird mit vielen Item-Arten mehrzeilig.
 - Geschwindigkeits-Verbesserungen runden je Durchlauf auf ganze Ticks ab (4 Stufen ergeben etwa +17 % statt +20 %).
 - Der Stromverlauf wird nicht gespeichert und beginnt nach Bauänderungen im Netz neu.
