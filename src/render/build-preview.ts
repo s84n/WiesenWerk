@@ -1,6 +1,11 @@
 import {
+  BufferAttribute,
+  BufferGeometry,
   Color,
   ConeGeometry,
+  LineBasicMaterial,
+  LineSegments,
+  RingGeometry,
   Group,
   InstancedMesh,
   Matrix4,
@@ -22,6 +27,8 @@ const tint = new Color();
 const m = new Matrix4();
 const off = { x: 0, y: 0 };
 const MAX_ARROWS = 12;
+/** Höchstzahl gezeigter Verbindungslinien beim Bauen eines Mastes. */
+const MAX_LINKS = 48;
 
 /**
  * Bauvorschau (halbtransparentes Gebäude, grün/rot), Anschlusspfeile und Markierungen
@@ -57,6 +64,21 @@ export class BuildPreview {
     new PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
     this.rangeMaterial,
   );
+  /** Mast: Kreis der Verbindungsreichweite und Linien zu Masten, die sich verbinden würden. */
+  private readonly reachMaterial = new MeshBasicMaterial({
+    color: PALETTE.poleReach,
+    transparent: true,
+    opacity: 0.85,
+    depthWrite: false,
+    depthTest: false,
+  });
+  private readonly reach = new Mesh(undefined, this.reachMaterial);
+  private readonly reachRings = new Map<number, RingGeometry>();
+  private readonly linkPos = new Float32Array(MAX_LINKS * 6);
+  private readonly links = new LineSegments(
+    new BufferGeometry().setAttribute('position', new BufferAttribute(this.linkPos, 3)),
+    new LineBasicMaterial({ color: PALETTE.poleReach, depthTest: false, transparent: true }),
+  );
   private readonly beltGhosts: InstancedMesh;
   private readonly inMaterial = new MeshBasicMaterial({ color: PALETTE.portIn, depthTest: false });
   private readonly outMaterial = new MeshBasicMaterial({
@@ -85,7 +107,10 @@ export class BuildPreview {
     this.beltGhosts.renderOrder = 2;
     this.beltGhosts.setColorAt(0, tint.setHex(0xffffff));
     this.range.renderOrder = 3;
-    this.group.add(this.ghost, this.area, this.beltGhosts, this.range);
+    this.reach.renderOrder = 4;
+    this.links.renderOrder = 4;
+    this.links.frustumCulled = false;
+    this.group.add(this.ghost, this.area, this.beltGhosts, this.range, this.reach, this.links);
     this.hide();
   }
 
@@ -157,6 +182,8 @@ export class BuildPreview {
     for (const mesh of this.blueprintGhosts.values()) mesh.count = 0;
     this.ghost.visible = false;
     if (this.range) this.range.visible = false;
+    if (this.reach) this.reach.visible = false;
+    if (this.links) this.links.visible = false;
     if (this.beltGhosts) this.beltGhosts.count = 0;
     this.area.visible = false;
     for (const a of this.arrows) a.visible = false;
@@ -193,6 +220,35 @@ export class BuildPreview {
       a.visible = true;
     }
     for (let i = n; i < MAX_ARROWS; i++) this.arrows[i].visible = false;
+  }
+
+  /**
+   * Mast: Kreis mit der Verbindungsreichweite um den Mittelpunkt (`cx`, `cz` in Feldern) und
+   * Linien zu den Masten, mit denen sich der neue verbinden würde (`targets`: x, z im Wechsel).
+   */
+  showPoleReach(cx: number, cz: number, radius: number, targets: readonly number[]): void {
+    let ring = this.reachRings.get(radius);
+    if (!ring) {
+      ring = new RingGeometry(radius - 0.22, radius, 128).rotateX(-Math.PI / 2);
+      this.reachRings.set(radius, ring);
+    }
+    this.reach.geometry = ring;
+    this.reach.position.set(cx, 0.09, cz);
+    this.reach.visible = true;
+    const n = Math.min(targets.length / 2, MAX_LINKS);
+    for (let i = 0; i < n; i++) {
+      const o = i * 6;
+      this.linkPos[o] = cx;
+      this.linkPos[o + 1] = 1.2;
+      this.linkPos[o + 2] = cz;
+      this.linkPos[o + 3] = targets[i * 2];
+      this.linkPos[o + 4] = 1.2;
+      this.linkPos[o + 5] = targets[i * 2 + 1];
+    }
+    const g = this.links.geometry;
+    g.setDrawRange(0, n * 2);
+    g.getAttribute('position').needsUpdate = true;
+    this.links.visible = n > 0;
   }
 
   /** Zeigt zusätzlich einen Versorgungsbereich (Strommast). */

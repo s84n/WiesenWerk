@@ -81,6 +81,29 @@ export class PowerSystem {
     if (this.dirty) this.rebuild();
   }
 
+  /**
+   * Bauvorschau: IDs aller Masten, mit denen sich ein Mast vom Typ `type` an (x, y) verbinden
+   * würde (gleiche Regel wie beim Aufbau der Netze). Schreibt in `out` und gibt es zurück.
+   */
+  linksFor(type: number, x: number, y: number, rot: number, out: number[]): number[] {
+    out.length = 0;
+    this.ensure();
+    const def = BUILDINGS[type];
+    const own = poleRange(type);
+    if (own <= 0) return out;
+    const cx = 2 * x + footprintW(def, rot);
+    const cy = 2 * y + footprintH(def, rot);
+    for (const list of this.poles) {
+      for (const id of list) {
+        const range = 2 * Math.max(own, poleRange(this.store.type[id]));
+        const ddx = cx - this.center2(id, true);
+        const ddy = cy - this.center2(id, false);
+        if (ddx * ddx + ddy * ddy <= range * range) out.push(id);
+      }
+    }
+    return out;
+  }
+
   /** Tempo-Faktor (0..1000) für ein Gebäude. */
   factorOf(id: number): number {
     const g = this.gridOf[id];

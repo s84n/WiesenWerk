@@ -128,6 +128,8 @@ export const PALETTE = {
   powerLow: 0xf6d04d,
   powerNone: 0xf0806a,
   powerArea: 0x7fc3f0,
+  /** Bauvorschau Mast: Verbindungsreichweite und künftige Kabel. */
+  poleReach: 0x2f8fd8,
   cable: 0x3d3430,
   hintGood: 0x8fe08a,
   hintBad: 0xf0806a,

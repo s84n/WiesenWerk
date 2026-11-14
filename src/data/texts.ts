@@ -60,7 +60,7 @@ export const TEXTS = {
     pole: {
       name: 'Strommast',
       description:
-        'Versorgt Gebäude im Umkreis und verbindet sich mit Masten in bis zu 8 Feldern Entfernung.',
+        'Versorgt Gebäude im Umkreis und verbindet sich mit Masten in bis zu 14 Feldern Entfernung.',
     },
     beltMk1: {
       name: 'Förderband',
@@ -138,7 +138,7 @@ export const TEXTS = {
     bigPole: {
       name: 'Großer Strommast',
       description:
-        'Überbrückt weite Strecken: verbindet sich mit Masten in bis zu 20 Feldern Entfernung.',
+        'Überbrückt weite Strecken: verbindet sich mit Masten in bis zu 32 Feldern Entfernung.',
     },
     path: { name: 'Weg', description: 'Ein heller Steinweg. Mit gedrückter Maustaste ziehen.' },
     lantern: { name: 'Laterne', description: 'Eine kleine Laterne für gemütliche Ecken.' },
@@ -332,7 +332,8 @@ export const TEXTS = {
     modeBelt:
       'Förderband: mit gedrückter Maustaste ziehen · R dreht bzw. wechselt die Ecke · Rechtsklick oder Esc beendet',
     perTile: 'je Feld',
-    modePole: 'Strommast bauen · zeigt die versorgten Felder · Rechtsklick oder Esc beendet',
+    modePole:
+      'Strommast bauen · Fläche = versorgte Felder · Kreis = Reichweite, Linien = neue Verbindungen · Rechtsklick oder Esc beendet',
     modeLine: (name: string) =>
       `${name}: mit gedrückter Maustaste ziehen · R wechselt die Ecke · Rechtsklick oder Esc beendet`,
     modeDemolish: 'Abrissmodus · Klick oder Rahmen ziehen · Rechtsklick oder Esc beendet',

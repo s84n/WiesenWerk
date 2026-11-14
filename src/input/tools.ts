@@ -31,6 +31,9 @@ export class ToolController {
   selected = -1;
   /** Rezept, das neu gebaute Maschinen bekommen (Pipette; −1 = keins). */
   recipe = -1;
+  /** Bauvorschau Mast: Masten in Reichweite und ihre Mittelpunkte (wiederverwendet, keine Zuweisungen pro Bild). */
+  private readonly poleLinks: number[] = [];
+  private readonly poleTargets: number[] = [];
   /** Wird aufgerufen, wenn sich Modus oder Auswahl ändern (für die Oberfläche). */
   onChange: () => void = () => {};
   /** Kurze Meldung an den Spieler (wird von außen gesetzt). */
@@ -197,7 +200,7 @@ export class ToolController {
         this.rot,
         result === PlaceResult.Ok,
       );
-      // Strommast: Versorgungsbereich zeigen
+      // Strommast: Versorgungsbereich, Verbindungsreichweite und künftige Kabel zeigen
       if (def.behavior.kind === 'pole') {
         const r = def.behavior.supplyRadius;
         this.preview.showRange(
@@ -205,6 +208,22 @@ export class ToolController {
           this.placeY - r,
           this.placeX + w - 1 + r,
           this.placeY + h - 1 + r,
+        );
+        sim.power.linksFor(this.buildType, this.placeX, this.placeY, this.rot, this.poleLinks);
+        const b = sim.buildings;
+        this.poleTargets.length = 0;
+        for (const id of this.poleLinks) {
+          const d = BUILDINGS[b.type[id]];
+          this.poleTargets.push(
+            b.x[id] + footprintW(d, b.rot[id]) / 2,
+            b.y[id] + footprintH(d, b.rot[id]) / 2,
+          );
+        }
+        this.preview.showPoleReach(
+          this.placeX + w / 2,
+          this.placeY + h / 2,
+          def.behavior.connectRange,
+          this.poleTargets,
         );
       }
     } else if (this.mode === 'copy') {

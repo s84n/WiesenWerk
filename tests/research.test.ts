@@ -188,14 +188,14 @@ describe('Strom-Ausbau', () => {
     expect(maxJump).toBeLessThan(50); // keine Sprünge (höchstens 0,05 kW je Tick)
   });
 
-  it('großer Strommast verbindet sich über 20 Felder, der kleine nur über 8', () => {
+  it('großer Strommast verbindet sich über 32 Felder, der kleine nur über 14', () => {
     const sim = unlockAll(makeSim(64));
     build(sim, B.pole, 4, 4);
-    build(sim, B.pole, 14, 4);
+    build(sim, B.pole, 50, 4);
     sim.power.ensure();
     expect(sim.power.gridCount).toBe(2);
-    build(sim, B.bigPole, 30, 4);
-    build(sim, B.bigPole, 11, 8); // Mitte (12, 9): 5,4 Felder bis zum ersten Mast
+    build(sim, B.bigPole, 11, 8); // Mitte (12, 9): 8,7 Felder bis zum ersten Mast
+    build(sim, B.bigPole, 42, 8); // Mitte (43, 9): 31 Felder bis zum anderen großen Mast
     sim.power.ensure();
     expect(sim.power.gridCount).toBe(1);
   });

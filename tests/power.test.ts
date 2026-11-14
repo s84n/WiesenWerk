@@ -123,12 +123,12 @@ describe('Stromnetz', () => {
   });
 
   it('Brenner holen sich Brennstoff selbst aus dem Vorrat (abschaltbar)', () => {
-    const sim = makeSim();
-    // ohne Verbraucher: nichts holen
-    build(sim, B.pole, 16, 4);
-    build(sim, B.burner, 17, 4);
+    const sim = makeSim(64);
+    // ohne Verbraucher (eigenes Netz, außer Reichweite): nichts holen
+    build(sim, B.pole, 40, 4);
+    build(sim, B.burner, 41, 4);
     run(sim, 60);
-    expect(sim.machines.inBuf[sim.buildingAt(17, 4) * 2]).toBe(0);
+    expect(sim.machines.inBuf[sim.buildingAt(41, 4) * 2]).toBe(0);
     build(sim, B.furnace, 4, 4);
     build(sim, B.pole, 6, 4);
     build(sim, B.burner, 7, 4);
@@ -166,19 +166,34 @@ describe('Stromnetz', () => {
     expect(sim.power.demand[0]).toBe(400);
   });
 
-  it('Masten verbinden sich bis 8 Felder weit zu einem Netz', () => {
-    const sim = makeSim();
+  it('Masten verbinden sich bis 14 Felder weit zu einem Netz', () => {
+    const sim = makeSim(64);
     build(sim, B.pole, 2, 2);
-    build(sim, B.pole, 10, 2); // genau 8 Felder
-    build(sim, B.pole, 19, 2); // 9 Felder vom zweiten
+    build(sim, B.pole, 16, 2); // genau 14 Felder
+    build(sim, B.pole, 31, 2); // 15 Felder vom zweiten
     sim.power.ensure();
     expect(sim.power.gridCount).toBe(2);
     expect(sim.power.cables.length / 2).toBe(1);
-    build(sim, B.pole, 15, 2);
+    build(sim, B.pole, 24, 2);
     sim.power.ensure();
     expect(sim.power.gridCount).toBe(1);
-    sim.enqueue({ type: 'demolish', x: 15, y: 2 });
+    sim.enqueue({ type: 'demolish', x: 24, y: 2 });
     sim.flushCommands();
+    sim.power.ensure();
+    expect(sim.power.gridCount).toBe(2);
+  });
+
+  it('Bauvorschau kennt die Masten, mit denen sich ein neuer Mast verbinden würde', () => {
+    const sim = makeSim(64);
+    build(sim, B.pole, 2, 2);
+    build(sim, B.pole, 40, 2);
+    const out: number[] = [];
+    sim.power.linksFor(B.pole, 16, 2, 0, out);
+    expect(out).toEqual([sim.buildingAt(2, 2)]);
+    sim.power.linksFor(B.pole, 17, 2, 0, out);
+    expect(out).toEqual([]);
+    // die Vorschau sagt dasselbe wie das echte Netz
+    build(sim, B.pole, 16, 2);
     sim.power.ensure();
     expect(sim.power.gridCount).toBe(2);
   });
