@@ -277,6 +277,13 @@ export class MachineSystem {
     return true;
   }
 
+  /** Ausgabestellen, die gerade `item` ausgeben (für Hinweise in der Oberfläche). */
+  dispensersOf(item: number): number {
+    let n = 0;
+    for (const id of this.dispensers) if (this.recipe[id] === item) n++;
+    return n;
+  }
+
   /** Ausgabestelle: Item wählen (−1 = keins). Was schon bereitlag, geht zurück in den Vorrat. */
   private setDispenserItem(id: number, item: number): boolean {
     if (item < -1 || item >= ITEMS.length) return false;

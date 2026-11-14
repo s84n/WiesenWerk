@@ -287,6 +287,12 @@ export const TEXTS = {
 
   itemTip: {
     stock: (n: string) => `Vorrat: ${n}`,
+    flowLabel: 'Vorrat:',
+    perMinute: 'pro Minute',
+    dispensers: (n: number) =>
+      n === 1
+        ? '1 Ausgabestelle nimmt es aus dem Vorrat'
+        : `${n} Ausgabestellen nehmen es aus dem Vorrat`,
     howTo: 'So bekommst du es',
     usedFor: 'Wird gebraucht für',
     fuel: 'Brennstoff für Brenner',

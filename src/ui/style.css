@@ -1774,3 +1774,49 @@ img.tip-use-icon {
   width: 18px;
   height: 18px;
 }
+
+.tip-flow {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(140, 100, 60, 0.08);
+  font-variant-numeric: tabular-nums;
+}
+
+.tip-flow-label,
+.tip-flow-unit,
+.tip-flow-sep {
+  color: var(--text-soft);
+}
+
+.tip-flow-in,
+.tip-flow-out {
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.tip-flow-in {
+  color: #4f8f2f;
+}
+
+.tip-flow-out {
+  color: #c0533a;
+}
+
+.tip-flow-in.zero,
+.tip-flow-out.zero {
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+.tip-flow-note {
+  margin-top: 4px;
+  font-weight: 700;
+  color: #c0533a;
+}
+
+.tip-flow-note[hidden] {
+  display: none;
+}

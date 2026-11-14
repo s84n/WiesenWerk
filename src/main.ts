@@ -357,7 +357,7 @@ function start(): void {
       research.update(sim, now);
       stats.update(sim, now);
       inventory.update(sim, now);
-      itemTip.update();
+      itemTip.update(now);
       goals.update(sim, inGame);
       minimap.update(now, view.rig.groundCorners(corners) ? corners : null, inGame && !menu.isOpen);
       view.showPower = powerView || tools.placingPower;

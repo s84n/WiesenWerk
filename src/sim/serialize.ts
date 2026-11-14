@@ -407,6 +407,8 @@ function restore(d: SaveData): Simulation {
   sim.inventory.amounts.fill(0);
   for (let i = 0; i < Math.min(ITEM_COUNT, d.inventory.length); i++)
     sim.inventory.amounts[i] = d.inventory[i];
+  sim.inventory.flowIn.fill(0); // Laden ist kein Zufluss
+  sim.inventory.flowOut.fill(0);
   sim.inventory.version++;
 
   // Bäume

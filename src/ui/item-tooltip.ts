@@ -20,6 +20,12 @@ export class ItemTooltip {
   private item = -1;
   private anchor: HTMLElement | null = null;
   private shownVersion = -1;
+  /** Zeile „+x / −y pro Minute“ und Vorrat, werden live aktualisiert. */
+  private flowIn: HTMLElement | null = null;
+  private flowOut: HTMLElement | null = null;
+  private flowNote: HTMLElement | null = null;
+  private stock: HTMLElement | null = null;
+  private lastFlow = 0;
 
   constructor(
     parent: HTMLElement,
@@ -40,9 +46,30 @@ export class ItemTooltip {
     document.addEventListener('wheel', () => this.hide(), { passive: true, capture: true });
   }
 
-  /** Einmal pro Bild: verschwindet das Element (Fenster zu, neu aufgebaut), geht der Tooltip mit. */
-  update(): void {
+  /**
+   * Einmal pro Bild: verschwindet das Element (Fenster zu, neu aufgebaut), geht der Tooltip mit.
+   * Sonst Vorrat und Fluss alle 250 ms auffrischen.
+   */
+  update(now: number): void {
     if (this.anchor && !this.anchor.isConnected) this.hide();
+    if (this.item < 0 || now - this.lastFlow < 250) return;
+    this.lastFlow = now;
+    this.updateFlow(this.getSim(), this.item);
+  }
+
+  private updateFlow(sim: Simulation, item: number): void {
+    if (!this.flowIn || !this.flowOut || !this.flowNote || !this.stock) return;
+    const t = TEXTS.itemTip;
+    const inMin = Math.round(sim.stats.perMinute(sim.stats.stockIn, item));
+    const outMin = Math.round(sim.stats.perMinute(sim.stats.stockOut, item));
+    this.stock.textContent = t.stock(formatNumber(sim.inventory.get(item)));
+    this.flowIn.textContent = `+${formatNumber(inMin)}`;
+    this.flowOut.textContent = `−${formatNumber(outMin)}`;
+    this.flowIn.classList.toggle('zero', inMin === 0);
+    this.flowOut.classList.toggle('zero', outMin === 0);
+    const n = sim.machines.dispensersOf(item);
+    this.flowNote.textContent = n > 0 ? t.dispensers(n) : '';
+    this.flowNote.hidden = n === 0;
   }
 
   private hide(): void {
@@ -55,7 +82,7 @@ export class ItemTooltip {
   private show(anchor: HTMLElement, item: number): void {
     if (!Number.isInteger(item) || item < 0 || item >= ITEMS.length) return;
     const sim = this.getSim();
-    const version = sim.research.version * 100_000 + sim.inventory.get(item);
+    const version = sim.research.version;
     if (item !== this.item || version !== this.shownVersion) this.build(sim, item);
     this.item = item;
     this.anchor = anchor;
@@ -80,12 +107,21 @@ export class ItemTooltip {
   private build(sim: Simulation, item: number): void {
     const t = TEXTS.itemTip;
     const head = el('div', 'tip-head');
-    head.append(
-      plainIcon(item, 'tip-icon'),
-      el('span', 'tip-name', itemName(item)),
-      el('span', 'tip-stock', t.stock(formatNumber(sim.inventory.get(item)))),
+    this.stock = el('span', 'tip-stock');
+    head.append(plainIcon(item, 'tip-icon'), el('span', 'tip-name', itemName(item)), this.stock);
+    // Zu- und Abfluss des Vorrats in der letzten Minute
+    const flow = el('div', 'tip-flow');
+    this.flowIn = el('span', 'tip-flow-in');
+    this.flowOut = el('span', 'tip-flow-out');
+    flow.append(
+      el('span', 'tip-flow-label', t.flowLabel),
+      this.flowIn,
+      el('span', 'tip-flow-sep', '/'),
+      this.flowOut,
+      el('span', 'tip-flow-unit', t.perMinute),
     );
-    const parts: HTMLElement[] = [head];
+    this.flowNote = el('div', 'tip-flow-note');
+    const parts: HTMLElement[] = [head, flow, this.flowNote];
 
     // Woher?
     parts.push(el('div', 'tip-label', t.howTo));
@@ -153,6 +189,7 @@ export class ItemTooltip {
       parts.push(list);
     }
     this.el.replaceChildren(...parts);
+    this.updateFlow(sim, item);
   }
 }
 

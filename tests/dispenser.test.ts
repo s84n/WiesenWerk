@@ -87,6 +87,25 @@ describe('Ausgabestelle', () => {
     expect(sim.inventory.get(ITEM_ID.stone)).toBe(stone + 2 + 10); // Puffer + Baukosten
   });
 
+  it('Vorrats-Fluss: Ausgabestelle −60/min, Lieferung ins Depot als Zufluss', () => {
+    const sim = makeSim();
+    build(sim, B.dispenser, 4, 4);
+    const id = sim.buildingAt(4, 4);
+    sim.enqueue({ type: 'setRecipe', building: id, recipe: WOOD });
+    belt(sim, line(4, 6, 2, 3)); // (4,6)–(4,8) ins Depot
+    build(sim, B.depot, 4, 9);
+    run(sim, 20 * 70); // etwas mehr als eine Minute
+    const s = sim.stats;
+    const out = s.perMinute(s.stockOut, WOOD);
+    const inn = s.perMinute(s.stockIn, WOOD); // kommt im Kreis zurück
+    expect(out).toBeGreaterThanOrEqual(58);
+    expect(out).toBeLessThanOrEqual(61);
+    expect(inn).toBeGreaterThanOrEqual(56);
+    expect(inn).toBeLessThanOrEqual(61);
+    expect(sim.machines.dispensersOf(WOOD)).toBe(1);
+    expect(s.perMinute(s.stockIn, PLANK)).toBe(0);
+  });
+
   it('Blaupause übernimmt das gewählte Item', () => {
     const { sim } = setup(100);
     const bp = copyArea(sim, 4, 4, 5, 5);

@@ -59,6 +59,7 @@ export class Simulation {
     this.machines.setResearch(this.research, this.stats);
     this.power.setResearch(this.research, this.stats);
     this.inventory.refund(toAmounts(START_INVENTORY));
+    this.inventory.flowIn.fill(0); // Startvorrat ist kein Zufluss
   }
 
   get buildingCount(): number {
@@ -97,7 +98,7 @@ export class Simulation {
     this.logistics.update();
     this.belts.tick();
     this.trees.update(this.tick, this.onRegrow);
-    this.stats.tick(this.tick);
+    this.stats.tick(this.tick, this.inventory);
     this.goals.update(this, this.tick, this.onGoal);
   }
 
