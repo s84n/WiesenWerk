@@ -162,16 +162,22 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 - Dorfhäuser stehen nur optisch auf Feldern; wer dort baut, verdrängt sie (sie ziehen weiter).
 - Messwerte Phase 3 (Referenzfabrik, 1280 × 800): Tick 0,11 ms (Node) bzw. 0,05 ms (Browser); Zeichenaufrufe 26 (nah), 35 (Ringe), 71 (ganz heraus); Dreiecke 250 000–470 000. Zehnfach: Tick 0,74 ms.
 
+## Offene Punkte (Stand 2026-11-14)
+
+- **GitHub Pages:** erst, wenn das Projekt einen noch besseren Stand hat (Auftraggeber). Workflow und Anleitung (README) sind fertig.
+- **Musik:** liefert der Auftraggeber noch (`public/audio/musik`, Liste in `src/data/music.ts`).
+- **Rückmeldung zu den hohen Stufen** (Solarfeld, Akku-Haus, Stahl, Glas), sobald der Auftraggeber sie im Spiel erreicht.
+
 ## Stand der Phasen
 
-| Phase                         | Stand                                                                                                                                                        |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0. Fundament                  | Umgesetzt und lokal geprüft. GitHub Pages wird auf Wunsch des Auftraggebers erst später eingerichtet.                                                        |
-| 1. Welt und Kamera            | Abgenommen (Auftraggeber: „Sieht gut aus“).                                                                                                                  |
-| 2. Bauen und Vorrat           | Abgenommen (Auftraggeber: „mache mit der nächsten Phase weiter“).                                                                                            |
-| 3. Produktion und Bänder      | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                                                     |
-| 4. Speichern                  | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                                                     |
-| 5. Strom                      | Abgenommen (Auftraggeber: „Go“, testet parallel eine eingefrorene Testversion).                                                                              |
-| 6. Forschung und Ausbau       | Abgenommen (Auftraggeber: „ja fahre fort“), inklusive der Änderungen danach (Holzfäller ohne Strom, Brenner aus dem Vorrat, Verteiler ab Start, 50er-Lager). |
-| 7. Atmosphäre und Feinschliff | Umgesetzt (mit Ultra-Stufe auf Wunsch). Budgets gemessen, siehe Messwerte Phase 7. Wartet auf Abnahme.                                                       |
-| Erweiterung nach Phase 7      | Eisen/Kohle/Sand mit Stahl und Glas, Wasserrad, Solarfeld, Akku-Haus, Blaupausen, Minikarte, Dorf (Auswahl des Auftraggebers). Wartet auf Rückmeldung.       |
+| Phase                         | Stand                                                                                                                                                                                                                                                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0. Fundament                  | Umgesetzt und lokal geprüft. GitHub Pages wird auf Wunsch des Auftraggebers erst später eingerichtet.                                                                                                                                                                                                      |
+| 1. Welt und Kamera            | Abgenommen (Auftraggeber: „Sieht gut aus“).                                                                                                                                                                                                                                                                |
+| 2. Bauen und Vorrat           | Abgenommen (Auftraggeber: „mache mit der nächsten Phase weiter“).                                                                                                                                                                                                                                          |
+| 3. Produktion und Bänder      | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                                                                                                                                                                                                   |
+| 4. Speichern                  | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                                                                                                                                                                                                   |
+| 5. Strom                      | Abgenommen (Auftraggeber: „Go“, testet parallel eine eingefrorene Testversion).                                                                                                                                                                                                                            |
+| 6. Forschung und Ausbau       | Abgenommen (Auftraggeber: „ja fahre fort“), inklusive der Änderungen danach (Holzfäller ohne Strom, Brenner aus dem Vorrat, Verteiler ab Start, 50er-Lager).                                                                                                                                               |
+| 7. Atmosphäre und Feinschliff | Abgenommen (Auftraggeber: „Phase 7 passt erstmal“), mit Ultra-Stufe auf Wunsch. Budgets siehe Messwerte Phase 7.                                                                                                                                                                                           |
+| Erweiterung nach Phase 7      | Eisen/Kohle/Sand, Stahl, Glas, Wasserrad, Solarfeld, Akku-Haus, Blaupausen, Minikarte, Dorf, Ausgabestelle, Forschungsreiter, Rezeptvorschau u. a. Balancing fühlt sich laut Auftraggeber „ok“ an; die hohen Stufen (Solar, Akku, Stahl) hat er noch nicht erreicht – Rückmeldung dazu folgt beim Spielen. |

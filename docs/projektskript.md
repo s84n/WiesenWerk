@@ -557,6 +557,8 @@ Die folgenden Punkte wurden im Gespräch nicht ausdrücklich festgelegt. Sie sin
 **Nachträglich festgelegt:**
 
 - Name des Spiels: Wiesenwerk. Name des Repositories: wiesenwerk.
-- Musik wird von dem Nutzer selbst noch zur Verfügung gestellt
+- Musik wird von dem Nutzer selbst noch zur Verfügung gestellt (**offener Punkt**, Stand 14.11.2026: Musikspieler fertig, Dateien fehlen noch)
+- GitHub Pages wird erst eingerichtet, wenn das Projekt einen noch besseren Stand hat (**offener Punkt**, Wunsch des Auftraggebers; Workflow und Anleitung liegen bereit)
+- Phase 7 abgenommen (14.11.2026). Balancing fühlt sich gut an; die hohen Stufen (Solar, Akku, Stahl) werden beim weiteren Spielen bewertet.
 - Farbstimmung: sonnig-warm, festgelegt in Abschnitt 10. Claude Code schlägt in Phase 1 eine Palette vor.
 - Alle Zahlenwerte (Rezepte, Kosten, Tempo, Strom) sind aufeinander abgestimmt gewählt (Abschnitte 4 bis 8) und werden in Phase 7 beim Spielen nur noch feinjustiert.
