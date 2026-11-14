@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BUILDING_ID } from '../src/data/buildings';
 import { ITEM_ID } from '../src/data/items';
-import { TileType } from '../src/data/world';
+import { DEPOSITS, TileType, WORLD_GEN_VERSION } from '../src/data/world';
 import { createStressSimulation } from '../src/dev/stress';
 import {
   SAVE_VERSION,
@@ -102,9 +102,10 @@ describe('Speichern und Laden', () => {
     expect(state(loaded)).toBe(state(original));
   });
 
-  it('wandelt Spielstände der Versionen 1 bis 4 korrekt um', () => {
-    // Eine Fabrik ohne Brenner mit vollem Tempo ergibt Werte, die sich verlustfrei zurückrechnen lassen
-    const sim = new Simulation(generateWorld(4711));
+  it('wandelt Spielstände der Versionen 1 bis 5 korrekt um', () => {
+    // Eine Fabrik ohne Brenner mit vollem Tempo ergibt Werte, die sich verlustfrei zurückrechnen lassen.
+    // Alte Spielstände stammen aus der Weltgenerierung Fassung 1.
+    const sim = new Simulation(generateWorld(4711, undefined, DEPOSITS, 1));
     sim.power.factorOf = () => 1000;
     for (let i = 0; i < 14; i++) sim.inventory.add(i, 1000);
     const w = sim.world;
@@ -125,8 +126,15 @@ describe('Speichern und Laden', () => {
     sim.machines.accept(furnace, ITEM_ID.copperOre);
     sim.machines.accept(furnace, ITEM_ID.copperOre);
     for (let t = 0; t < 57; t++) sim.step(); // mitten in Durchläufen anhalten
-    const v5 = serialize(sim, META, CAM);
+    const v6 = serialize(sim, META, CAM);
     expect(sim.machines.progress[furnace]).toBeGreaterThan(0);
+    expect(v6.worldGen).toBe(1);
+
+    // Version 5 von Hand herstellen: ohne Fassung der Weltgenerierung
+    const v5 = JSON.parse(JSON.stringify(v6));
+    v5.version = 5;
+    delete v5.worldGen;
+    expect(migrate(v5)).toEqual(migrate(v6));
 
     // Version 4 von Hand herstellen: ohne Angabe der Vorkommen
     const v4 = JSON.parse(JSON.stringify(v5));
@@ -179,6 +187,23 @@ describe('Speichern und Laden', () => {
     expect(JSON.stringify(plain(serialize(loaded, META, CAM)))).toBe(
       JSON.stringify(plain(serialize(sim, META, CAM))),
     );
+  });
+
+  it('alte Spielstände behalten ihre Landschaft, neue Spiele haben weniger Wasser', () => {
+    const water = (sim: Simulation): number =>
+      sim.world.tiles.reduce((n, t) => n + (t === TileType.Water ? 1 : 0), 0);
+    const old = new Simulation(generateWorld(4711, undefined, DEPOSITS, 1));
+    const data = JSON.parse(JSON.stringify(serialize(old, META, CAM)));
+    data.version = 5;
+    delete data.worldGen;
+    const loaded = deserialize(migrate(data));
+    expect(loaded.world.genVersion).toBe(1);
+    expect(water(loaded)).toBe(water(old));
+    const fresh = new Simulation(generateWorld(4711));
+    expect(fresh.world.genVersion).toBe(WORLD_GEN_VERSION);
+    expect(water(fresh)).toBeLessThan(water(old) * 0.8);
+    const again = deserialize(migrate(JSON.parse(JSON.stringify(serialize(fresh, META, CAM)))));
+    expect(water(again)).toBe(water(fresh));
   });
 
   it('übersteht Export und Import als gepackte Datei', async () => {

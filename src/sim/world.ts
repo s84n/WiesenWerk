@@ -26,6 +26,8 @@ export class World {
   readonly changedTiles = new Set<number>();
   /** Aus einem Seed erzeugt (sonst z. B. Stresstest-Welt, die nicht gespeichert werden kann). */
   generated = false;
+  /** Fassung der Weltgenerierung (`WORLD_GEN_VERSION`), steht im Spielstand. */
+  genVersion = 1;
 
   constructor(
     readonly seed: number,

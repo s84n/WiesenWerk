@@ -61,17 +61,27 @@ const KEYS: readonly Key[] = [
     glow: 1,
   },
   {
-    t: 0.22,
+    t: 0.205,
     sun: PALETTE.dawnSun,
-    sunI: 1.4,
+    sunI: 1.25,
     sky: PALETTE.dawnSky,
     ground: PALETTE.dawnGround,
     hemiI: 1.3,
     fog: PALETTE.dawnFog,
-    glow: 0.4,
+    glow: 0.5,
   },
   {
-    t: 0.3,
+    t: 0.245,
+    sun: PALETTE.sunriseSun,
+    sunI: 1.8,
+    sky: PALETTE.sunriseSky,
+    ground: PALETTE.dawnGround,
+    hemiI: 1.3,
+    fog: PALETTE.sunriseFog,
+    glow: 0.1,
+  },
+  {
+    t: 0.32,
     sun: PALETTE.morningSun,
     sunI: 2.1,
     sky: PALETTE.hemiSky,
@@ -81,7 +91,7 @@ const KEYS: readonly Key[] = [
     glow: 0,
   },
   {
-    t: 0.55,
+    t: 0.5,
     sun: PALETTE.sun,
     sunI: 2.3,
     sky: PALETTE.hemiSky,
@@ -91,24 +101,34 @@ const KEYS: readonly Key[] = [
     glow: 0,
   },
   {
-    t: 0.7,
+    t: 0.62,
     sun: PALETTE.goldenSun,
-    sunI: 2.1,
+    sunI: 2.2,
     sky: PALETTE.goldenSky,
     ground: PALETTE.hemiGround,
-    hemiI: 1.4,
+    hemiI: 1.45,
     fog: PALETTE.goldenFog,
     glow: 0,
   },
   {
-    t: 0.79,
+    t: 0.74,
     sun: PALETTE.sunsetSun,
-    sunI: 1.35,
+    sunI: 1.75,
     sky: PALETTE.sunsetSky,
-    ground: PALETTE.dawnGround,
-    hemiI: 1.25,
+    ground: PALETTE.hemiGround,
+    hemiI: 1.4,
     fog: PALETTE.sunsetFog,
-    glow: 0.5,
+    glow: 0.2,
+  },
+  {
+    t: 0.8,
+    sun: PALETTE.duskSun,
+    sunI: 1.2,
+    sky: PALETTE.duskSky,
+    ground: PALETTE.nightGround,
+    hemiI: 1.45,
+    fog: PALETTE.duskFog,
+    glow: 0.6,
   },
   {
     t: 0.86,
@@ -202,7 +222,7 @@ export class Atmosphere {
     this.rainLines.visible = false;
 
     // Glühwürmchen
-    this.flyPos = new Float32Array(90 * 3);
+    this.flyPos = new Float32Array(WEATHER_CONFIG.fireflies * 3);
     const fg = new BufferGeometry();
     fg.setAttribute('position', new BufferAttribute(this.flyPos, 3));
     this.flies = new Points(
@@ -393,7 +413,7 @@ ${NOISE}
     this.rainLines.visible = show;
     if (!show) return;
     const mat = this.rainLines.material as Material & { opacity: number };
-    mat.opacity = 0.5 * this.rain;
+    mat.opacity = 0.3 * this.rain;
     const n = WEATHER_CONFIG.drops;
     const period = anchorPeriod(view * 2.2);
     const top = 14;
@@ -408,9 +428,9 @@ ${NOISE}
       pos[o] = x;
       pos[o + 1] = y;
       pos[o + 2] = z;
-      pos[o + 3] = x - 0.06;
-      pos[o + 4] = y - 0.45;
-      pos[o + 5] = z + 0.03;
+      pos[o + 3] = x - 0.04;
+      pos[o + 4] = y - 0.3;
+      pos[o + 5] = z + 0.02;
     }
     this.rainLines.geometry.getAttribute('position').needsUpdate = true;
   }

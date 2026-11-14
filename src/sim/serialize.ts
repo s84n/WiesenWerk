@@ -18,7 +18,7 @@ import { generateWorld } from './worldgen';
 
 export const SAVE_FORMAT = 'wiesenwerk';
 /** Bei jeder Änderung am Format erhöhen und eine Migration in `MIGRATIONS` ergänzen. */
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 /**
  * Werte pro Maschine in `machines.data`:
@@ -47,6 +47,8 @@ export interface SaveData {
    * Vorkommen werden unter bestehenden Gebäuden beim Laden wieder zu Wiese.
    */
   depositLayers: number;
+  /** Ab Version 6: Fassung der Weltgenerierung (`WORLD_GEN_VERSION`), ältere Stände: 1. */
+  worldGen: number;
   tick: number;
   /** Kamera: x, z, sichtbare Höhe, Winkel. */
   camera: number[];
@@ -163,6 +165,7 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
     seed: world.seed,
     size: world.size,
     depositLayers: DEPOSITS.length,
+    worldGen: world.genVersion,
     tick: sim.tick,
     camera,
     inventory: Array.from(sim.inventory.amounts),
@@ -201,7 +204,16 @@ const MIGRATIONS: Record<number, (data: Record<string, unknown>) => Record<strin
   2: migrate2to3,
   3: migrate3to4,
   4: migrate4to5,
+  5: migrate5to6,
 };
+
+/**
+ * Version 5 → 6: Die Weltgenerierung hat Fassungen (weniger Wasser ab Fassung 2). Ältere
+ * Spielstände wurden mit Fassung 1 erzeugt und behalten so ihre Landschaft.
+ */
+function migrate5to6(d: Record<string, unknown>): Record<string, unknown> {
+  return { ...d, worldGen: 1 };
+}
 
 /**
  * Version 4 → 5: neue Vorkommen (Eisen, Kohle, Sand). Ältere Spielstände kannten nur Stein und
@@ -314,6 +326,7 @@ function validate(d: Record<string, unknown>): void {
     num(d.seed) &&
     num(d.size) &&
     num(d.depositLayers) &&
+    num(d.worldGen) &&
     (d.size as number) % 16 === 0 &&
     (d.size as number) >= 16 &&
     (d.size as number) <= 2048 &&
@@ -372,7 +385,7 @@ export function deserialize(data: SaveData): Simulation {
 }
 
 function restore(d: SaveData): Simulation {
-  const world = generateWorld(d.seed, d.size);
+  const world = generateWorld(d.seed, d.size, DEPOSITS, d.worldGen);
   const n = world.size * world.size;
   const tileOk = (t: number): boolean => Number.isInteger(t) && t >= 0 && t < n;
 

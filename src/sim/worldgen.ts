@@ -1,4 +1,11 @@
-import { DEPOSITS, TileType, WORLD_CONFIG, type DepositDef } from '../data/world';
+import {
+  DEPOSITS,
+  TileType,
+  WORLD_CONFIG,
+  WORLD_GEN,
+  WORLD_GEN_VERSION,
+  type DepositDef,
+} from '../data/world';
 import { SimplexNoise } from './noise';
 import { Rng, deriveSeed } from './rng';
 import { World } from './world';
@@ -13,8 +20,11 @@ export function generateWorld(
   seed: number,
   size: number = C.size,
   deposits: readonly DepositDef[] = DEPOSITS,
+  genVersion: number = WORLD_GEN_VERSION,
 ): World {
   const world = new World(seed, size);
+  world.genVersion = genVersion;
+  const G = WORLD_GEN[Math.min(WORLD_GEN.length, Math.max(1, genVersion)) - 1];
   const relief = new SimplexNoise(deriveSeed(seed, 'relief'));
   const lakes = new SimplexNoise(deriveSeed(seed, 'lakes'));
   const edgeKind = new SimplexNoise(deriveSeed(seed, 'edge'));
@@ -37,7 +47,7 @@ export function generateWorld(
           tiles[i] = TileType.Rock;
           height[i] = toByte((edgeValue - C.edgeThreshold) * 0.9 + 0.25 + r * 0.2);
         }
-      } else if (lakes.fbm(x * C.lakeScale, y * C.lakeScale, 3) < C.waterLevel) {
+      } else if (lakes.fbm(x * G.lakeScale, y * G.lakeScale, 3) < G.waterLevel) {
         tiles[i] = TileType.Water;
       } else if (r > C.rockLevel) {
         tiles[i] = TileType.Rock;
@@ -49,6 +59,9 @@ export function generateWorld(
       }
     }
   }
+
+  // 1b. Kleine Tümpel im Inland zu Wiese (Gewässer, die den Rand berühren, bleiben)
+  if (G.minLakeTiles > 0) removeSmallLakes(world, G.minLakeTiles);
 
   // 2. Vorkommen, jedes mit eigener Noise-Ebene. Frühere Einträge haben Vorrang.
   for (let d = 0; d < deposits.length; d++) {
@@ -247,4 +260,36 @@ function countInRadius(
     if (test(i)) n++;
   });
   return n;
+}
+
+/** Macht zusammenhängende Wasserflächen mit weniger als `min` Feldern zu Wiese. */
+function removeSmallLakes(world: World, min: number): void {
+  const { size, tiles } = world;
+  const seen = new Uint8Array(size * size);
+  const stack: number[] = [];
+  const body: number[] = [];
+  for (let start = 0; start < tiles.length; start++) {
+    if (seen[start] || tiles[start] !== TileType.Water) continue;
+    body.length = 0;
+    let touchesEdge = false;
+    stack.push(start);
+    seen[start] = 1;
+    while (stack.length > 0) {
+      const i = stack.pop()!;
+      body.push(i);
+      const x = i % size;
+      const y = (i - x) / size;
+      if (x === 0 || y === 0 || x === size - 1 || y === size - 1) touchesEdge = true;
+      if (x > 0) visit(i - 1);
+      if (x < size - 1) visit(i + 1);
+      if (y > 0) visit(i - size);
+      if (y < size - 1) visit(i + size);
+    }
+    if (!touchesEdge && body.length < min) for (const i of body) tiles[i] = TileType.Meadow;
+  }
+  function visit(j: number): void {
+    if (seen[j] || tiles[j] !== TileType.Water) return;
+    seen[j] = 1;
+    stack.push(j);
+  }
 }

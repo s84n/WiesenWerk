@@ -110,6 +110,27 @@ export const WORLD_SIZES = [
   { key: 'huge', size: 512 },
 ] as const;
 
+/**
+ * Fassung der Weltgenerierung. Steht im Spielstand, damit alte Spiele ihre Landschaft behalten,
+ * wenn sich die Erzeugung ändert (die Welt wird beim Laden aus dem Seed neu erzeugt).
+ * Neue Fassung → Eintrag in `WORLD_GEN` anhängen und Nummer erhöhen.
+ */
+export const WORLD_GEN_VERSION = 2;
+
+/** Einstellungen, die sich zwischen den Fassungen unterscheiden (Index = Fassung − 1). */
+export const WORLD_GEN: readonly {
+  /** Seen: Größe und Schwelle (niedriger = weniger Wasser). */
+  lakeScale: number;
+  waterLevel: number;
+  /** Gewässer im Inland mit weniger Feldern werden zu Wiese (0 = alle behalten). */
+  minLakeTiles: number;
+}[] = [
+  // 1: bis Herbst 2026
+  { lakeScale: 1 / 38, waterLevel: -0.42, minLakeTiles: 0 },
+  // 2: etwa halb so viel Wasser, weniger und größere Seen, keine kleinen Tümpel (Auftraggeber)
+  { lakeScale: 1 / 46, waterLevel: -0.49, minLakeTiles: 24 },
+];
+
 export const WORLD_CONFIG = {
   /** Kantenlänge der Karte in Feldern. */
   size: 256,
@@ -124,10 +145,6 @@ export const WORLD_CONFIG = {
   /** Gelände-Relief: Größe der Strukturen und Schwelle für Felsen im Inland. */
   reliefScale: 1 / 46,
   rockLevel: 0.5,
-
-  /** Seen: Größe und Schwelle (niedriger = weniger Wasser). */
-  lakeScale: 1 / 38,
-  waterLevel: -0.42,
 
   /** Wälder: Größe und Schwelle (höher = weniger Wald). */
   forestScale: 1 / 24,

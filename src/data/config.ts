@@ -174,9 +174,11 @@ export const WEATHER_CONFIG = {
   /** Länge eines Wetterabschnitts in Sekunden Spielzeit. */
   slotSeconds: 150,
   /** Anteil der Abschnitte mit Regen. */
-  rainChance: 0.22,
+  rainChance: 0.08,
   /** Regentropfen im Bild. */
-  drops: 1400,
+  drops: 650,
+  /** Glühwürmchen in der Nacht (Auftraggeber: deutlich weniger). */
+  fireflies: 10,
 } as const;
 
 /** Dorf rund um die Zentrale (rein optisch): wächst mit der Zahl der Gebäude. */
