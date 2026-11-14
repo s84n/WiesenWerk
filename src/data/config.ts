@@ -130,10 +130,10 @@ export const QUALITY_PRESETS: Record<Quality, QualityPreset> = {
     details: true,
     sway: true,
     particles: 1,
-    clouds: false,
+    clouds: true,
     bloom: false,
     weather: false,
-    fireflies: false,
+    fireflies: true,
   },
   ultra: {
     shadows: true,

@@ -219,9 +219,9 @@ export const TEXTS = {
     qualityHints: {
       low: 'Für schwache Rechner: keine echten Schatten, weniger Kleinkram, geringere Auflösung.',
       medium: 'Schatten, Blumen und Gras, Bäume wiegen sich im Wind.',
-      high: 'Schärfere Schatten und volle Auflösung.',
+      high: 'Schärfere Schatten, volle Auflösung, Wolkenschatten und Glühwürmchen.',
       ultra:
-        'Alles aus „Hoch“ plus Wolkenschatten, leichter Regen, Glühwürmchen, weiche Schatten und sanftes Leuchten. Braucht eine kräftige Grafikkarte.',
+        'Alles aus „Hoch“ plus leichter Regen, weiche Schatten und sanftes Leuchten. Braucht eine kräftige Grafikkarte.',
     } as Record<string, string>,
     autoChosen:
       'Die Stufe wurde beim ersten Start automatisch passend zu deinem Rechner gewählt. Kantenglättung ändert sich erst nach dem Neuladen der Seite.',

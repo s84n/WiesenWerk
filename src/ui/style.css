@@ -45,6 +45,13 @@ body {
   pointer-events: auto;
 }
 
+#ui > .vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 58%, rgba(70, 45, 30, 0.2) 100%);
+}
+
 /* Reine Anzeigen dürfen keine Klicks auf das Spielfeld abfangen */
 #ui > .toast-stack,
 #ui > .float-text,

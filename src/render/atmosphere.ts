@@ -167,6 +167,7 @@ export class Atmosphere {
     uLeafB: { value: new Color(PALETTE.leafLight) },
     uLeafC: { value: new Color(PALETTE.leafDark) },
     uLeafD: { value: new Color(PALETTE.meadowDark) },
+    uFlag: { value: new Color(PALETTE.flag) },
   };
   /** Aktuelle Tageszeit (0..1) und Regenstärke (0..1) – für Klang und Anzeige. */
   dayTime = 0;
@@ -227,6 +228,7 @@ export class Atmosphere {
         /* glsl */ `
 uniform float uTime; uniform float uSway;
 uniform vec3 uLeafA; uniform vec3 uLeafB; uniform vec3 uLeafC; uniform vec3 uLeafD;
+uniform vec3 uFlag;
 varying vec3 vWPos;
 ` +
         shader.vertexShader
@@ -243,6 +245,9 @@ varying vec3 vWPos;
     float sw = sin(uTime * 1.6 + ph) * 0.6 + sin(uTime * 2.7 + ph * 1.7) * 0.4;
     transformed.x += leaf * uSway * sw * 0.05 * transformed.y;
     transformed.z += leaf * uSway * sw * 0.03 * transformed.y;
+    // Fahne weht: Welle entlang der Fahne, am Mast fest
+    float flag = step(distance(c, uFlag), 0.01);
+    transformed.z += flag * sin(uTime * 7.0 + transformed.x * 14.0 + ph) * 0.12 * max(0.0, transformed.x);
   }
 #endif`,
           )

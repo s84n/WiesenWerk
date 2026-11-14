@@ -128,6 +128,12 @@ export const PALETTE = {
   rainFog: 0xb8c8d2,
   firefly: 0xe0ff8a,
   lanternLight: 0xffc070,
+  bird: 0x4a4048,
+  butterflyA: 0xf6d04d,
+  butterflyB: 0xfaf4e6,
+  duck: 0xf3ecdc,
+  duckHead: 0x3f7a4a,
+  beak: 0xf2a33a,
   blobShadow: 0x3a3040,
 } as const;
 

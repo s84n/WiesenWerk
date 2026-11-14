@@ -394,6 +394,11 @@ function start(): void {
 
 /** Baut Titel, Version und Hinweiszeile. Gibt die linke obere Spalte zurück. */
 function buildStaticUi(ui: HTMLElement): HTMLElement {
+  // Sanfte Abdunklung am Bildrand (reines CSS, kostet praktisch nichts)
+  const vignette = document.createElement('div');
+  vignette.className = 'vignette';
+  ui.appendChild(vignette);
+
   const column = document.createElement('div');
   column.className = 'top-left';
 

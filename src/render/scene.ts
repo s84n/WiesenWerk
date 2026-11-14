@@ -26,6 +26,7 @@ import { PALETTE } from '../data/palette';
 import { footprintH, footprintW } from '../sim/buildings';
 import type { SimEvent } from '../sim/events';
 import type { Simulation } from '../sim/simulation';
+import { AmbientLife } from './ambient-life';
 import { Atmosphere } from './atmosphere';
 import { Effects } from './effects';
 import { BeltView } from './belt-view';
@@ -63,6 +64,7 @@ export class GameRenderer {
   private readonly fog: Fog;
   readonly atmosphere = new Atmosphere();
   readonly effects: Effects;
+  private readonly life: AmbientLife;
   private preset: QualityPreset;
   /** Tag-Nacht-Wechsel an (sonst fester goldener Nachmittag). */
   dayNight = true;
@@ -143,6 +145,8 @@ export class GameRenderer {
 
     this.animations = new MachineAnimations(this.material);
     this.effects = new Effects(this.material);
+    this.life = new AmbientLife(this.material);
+    this.scene.add(this.life.group);
     this.effects.amount = preset.particles;
     this.animations.particles = preset.particles;
     this.scene.add(this.animations.group, this.atmosphere.group, this.effects.group);
@@ -207,6 +211,7 @@ export class GameRenderer {
     this.nature = new Nature(world, heights, this.material);
     this.buildings = new BuildingsView(world, this.material);
     this.buildings.setBlobShadows(!this.preset.shadows);
+    this.life.setWorld(world);
     this.belts = new BeltView(world, this.material);
     this.ports = new PortMarkers(world, this.material);
     this.visibility = new ChunkVisibility(world);
@@ -400,6 +405,14 @@ export class GameRenderer {
         this.buildings.updatePop(this.sim, now);
         this.buildings.setNightGlow(this.atmosphere.glow);
         this.effects.update(now);
+        this.life.update(
+          now,
+          this.viewRect,
+          rig.viewHeight,
+          1 - this.atmosphere.glow,
+          this.atmosphere.rain,
+          this.preset.details,
+        );
         this.animations.update(
           this.sim,
           now,

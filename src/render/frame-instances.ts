@@ -33,6 +33,7 @@ export class FrameInstances {
   }
 
   end(): void {
+    this.mesh.visible = this.n > 0; // leere Gruppen kosten keinen Zeichenaufruf
     if (this.mesh.count === 0 && this.n === 0) return;
     this.mesh.count = this.n;
     this.mesh.instanceMatrix.needsUpdate = true;
