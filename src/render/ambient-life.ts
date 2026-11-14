@@ -17,6 +17,7 @@ import type { World } from '../sim/world';
 import { FrameInstances } from './frame-instances';
 import { colored, merge } from './geometry';
 import type { ViewRect } from './machine-animations';
+import { anchored, anchorPeriod } from './world-anchor';
 
 const m = new Matrix4();
 const pos = new Vector3();
@@ -26,7 +27,7 @@ const UP = new Vector3(0, 1, 0);
 
 const FLOCKS = 2;
 const BIRDS_PER_FLOCK = 5;
-const BUTTERFLIES = 10;
+const BUTTERFLIES = 16;
 /** Höchstens so viele Enten auf der ganzen Karte. */
 const MAX_DUCKS = 48;
 
@@ -77,6 +78,12 @@ export class AmbientLife {
   /** Entenplätze (Feldmitten auf Wasser, gleichmäßig verteilt aus dem Seed). */
   private duckX = new Float32Array(0);
   private duckZ = new Float32Array(0);
+  /** Laufender Zug je Schwarm und seine feste Flugbahn (Start, Länge, Ausschlag). */
+  private readonly flockPass = new Float64Array(FLOCKS).fill(-1);
+  private readonly flockX = new Float32Array(FLOCKS);
+  private readonly flockZ = new Float32Array(FLOCKS);
+  private readonly flockLen = new Float32Array(FLOCKS);
+  private readonly flockWave = new Float32Array(FLOCKS);
 
   constructor(material: Material) {
     this.birds = new FrameInstances(bird(), material, this.group, 16);
@@ -131,15 +138,24 @@ export class AmbientLife {
     const w = view.maxX - view.minX;
     const h = view.maxY - view.minY;
 
-    // Vogelschwärme: alle 40 s ein Zug quer durchs Bild, etwas versetzt
+    // Vogelschwärme: alle 40 s ein Zug quer durchs Bild, etwas versetzt. Die Flugbahn wird zu
+    // Beginn jedes Zugs in Weltkoordinaten festgelegt (danach bewegt die Kamera sie nicht mehr).
     if (daylight > 0.5 && rain < 0.3) {
       for (let f = 0; f < FLOCKS; f++) {
         const period = 40 + f * 13;
         const p = ((t + f * 21) % period) / period;
         if (p > 0.55) continue; // Pause zwischen den Zügen
+        const pass = Math.floor((t + f * 21) / period);
+        if (this.flockPass[f] !== pass) {
+          this.flockPass[f] = pass;
+          this.flockX[f] = cx - w * 0.7;
+          this.flockZ[f] = cz + h * (f === 0 ? -0.25 : 0.2);
+          this.flockLen[f] = w * 1.4;
+          this.flockWave[f] = h * 0.05;
+        }
         const u = p / 0.55;
-        const sx = cx - w * 0.7 + u * w * 1.4;
-        const sz = cz + h * (f === 0 ? -0.25 : 0.2) + Math.sin(u * 3 + f) * h * 0.05;
+        const sx = this.flockX[f] + u * this.flockLen[f];
+        const sz = this.flockZ[f] + Math.sin(u * 3 + f) * this.flockWave[f];
         const yaw = Math.PI / 2 + Math.sin(u * 3 + f) * 0.15;
         for (let b = 0; b < BIRDS_PER_FLOCK; b++) {
           const row = Math.ceil(b / 2);
@@ -154,11 +170,12 @@ export class AmbientLife {
       }
     }
 
-    // Schmetterlinge in der Nähe des Blickpunkts (nur nah herangezoomt)
+    // Schmetterlinge um den Blickpunkt (nur nah herangezoomt), fest in der Welt verankert
     if (near && details && daylight > 0.5 && rain < 0.1) {
+      const period = anchorPeriod(Math.max(w, h) * 1.2 + 3);
       for (let i = 0; i < BUTTERFLIES; i++) {
-        const bx = cx + (hash3Float(i, 1, 5) - 0.5) * w * 0.8;
-        const bz = cz + (hash3Float(i, 2, 5) - 0.5) * h * 0.8;
+        const bx = anchored(hash3Float(i, 1, 5), cx, period);
+        const bz = anchored(hash3Float(i, 2, 5), cz, period);
         const ph = hash3Float(i, 3, 5) * 6.28;
         pos.set(
           bx + Math.sin(t * 0.5 + ph) * 1.2,

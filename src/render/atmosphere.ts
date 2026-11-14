@@ -20,6 +20,7 @@ import { SIM_CONFIG, WEATHER_CONFIG, type QualityPreset } from '../data/config';
 import { PALETTE } from '../data/palette';
 import { dayTimeAt } from '../sim/daylight';
 import { hash3Float } from '../sim/rng';
+import { anchored, anchorPeriod } from './world-anchor';
 
 /** Ein Stützpunkt im Tagesverlauf (Tageszeit 0..1, 0 = Mitternacht). */
 interface Key {
@@ -394,14 +395,14 @@ ${NOISE}
     const mat = this.rainLines.material as Material & { opacity: number };
     mat.opacity = 0.5 * this.rain;
     const n = WEATHER_CONFIG.drops;
-    const ext = view * 1.1;
+    const period = anchorPeriod(view * 2.2);
     const top = 14;
     const t = now / 1000;
     const pos = this.rainPos;
     const s = this.rainSeed;
     for (let i = 0; i < n; i++) {
-      const x = cx + (s[i * 3] * 2 - 1) * ext;
-      const z = cz + (s[i * 3 + 1] * 2 - 1) * ext;
+      const x = anchored(s[i * 3], cx, period);
+      const z = anchored(s[i * 3 + 1], cz, period);
       const y = top - ((t * 16 + s[i * 3 + 2] * top) % top);
       const o = i * 6;
       pos[o] = x;
@@ -420,16 +421,14 @@ ${NOISE}
     if (!show) return;
     (this.flies.material as PointsMaterial).opacity = amount * (0.7 + 0.3 * Math.sin(now / 300));
     const t = now / 1000;
-    const ext = view * 0.7;
+    const period = anchorPeriod(view * 1.6);
     const pos = this.flyPos;
     const s = this.rainSeed;
     for (let i = 0; i < pos.length / 3; i++) {
-      const bx = (s[i * 3] * 2 - 1) * ext;
-      const bz = (s[i * 3 + 1] * 2 - 1) * ext;
       const ph = s[i * 3 + 2] * 6.28;
-      pos[i * 3] = cx + bx + Math.sin(t * 0.4 + ph) * 0.8;
+      pos[i * 3] = anchored(s[i * 3], cx, period) + Math.sin(t * 0.4 + ph) * 0.8;
       pos[i * 3 + 1] = 0.4 + Math.sin(t * 0.9 + ph * 2) * 0.3 + 0.4 * s[i * 3 + 2];
-      pos[i * 3 + 2] = cz + bz + Math.cos(t * 0.33 + ph) * 0.8;
+      pos[i * 3 + 2] = anchored(s[i * 3 + 1], cz, period) + Math.cos(t * 0.33 + ph) * 0.8;
     }
     this.flies.geometry.getAttribute('position').needsUpdate = true;
   }
