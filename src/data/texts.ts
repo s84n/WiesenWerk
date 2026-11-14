@@ -40,6 +40,10 @@ export const TEXTS = {
       description: 'Schmilzt Erz zu Barren, brennt Ziegel und Holzkohle.',
     },
     workshop: { name: 'Werkstatt', description: 'Sägt Bretter, zieht Draht und walzt Blech.' },
+    beltMk1: {
+      name: 'Förderband',
+      description: 'Transportiert 60 Items pro Minute. Mit gedrückter Maustaste ziehen.',
+    },
   } as Record<string, { name: string; description: string }>,
 
   categories: {
@@ -55,6 +59,9 @@ export const TEXTS = {
     free: 'kostenlos',
     hotkey: (n: number) => `Taste ${n}`,
     modeBuild: (name: string) => `${name} bauen · R drehen · Rechtsklick oder Esc beendet`,
+    modeBelt:
+      'Förderband: mit gedrückter Maustaste ziehen · R dreht bzw. wechselt die Ecke · Rechtsklick oder Esc beendet',
+    perTile: 'je Feld',
     modeDemolish: 'Abrissmodus · Klick oder Rahmen ziehen · Rechtsklick oder Esc beendet',
     demolishButton: 'Abreißen (X)',
   },
@@ -67,6 +74,34 @@ export const TEXTS = {
     missing: (list: string) => `Es fehlt noch: ${list}`,
     built: (name: string) => `${name} gebaut`,
     refunded: (list: string) => `Erstattet: ${list}`,
+  },
+
+  info: {
+    close: 'Schließen (Esc)',
+    states: [
+      'Bereit',
+      'Arbeitet',
+      'Wartet auf Nachschub',
+      'Ausgang blockiert',
+      'Kein Rezept gewählt',
+      'Kein Strom',
+    ],
+    recipe: 'Rezept',
+    recipeHint: 'Kommt das erste passende Item an, wird das Rezept automatisch gewählt.',
+    input: 'Eingang',
+    output: 'Ausgang',
+    utilization: 'Auslastung',
+    extracts: 'Abbau',
+    perMinute: (n: number) => `${n.toLocaleString('de-DE')}/min`,
+    seconds: (n: number) => `${n.toLocaleString('de-DE')} s`,
+    purity: ['', 'armes Vorkommen', 'normales Vorkommen', 'reiches Vorkommen'],
+    trees: (ready: number, total: number) => `Bäume in Reichweite: ${ready} von ${total} gewachsen`,
+    noDeposit: 'Kein Vorkommen unter dem Bergwerk',
+    hq: 'Alle angelieferten Items landen im Vorrat.',
+    delivered: (n: number) => `Bisher angeliefert: ${n.toLocaleString('de-DE')} Items`,
+    belt: (perMinute: number) => `Transportiert bis zu ${perMinute} Items pro Minute.`,
+    beltItems: (n: number, tiles: number) =>
+      `Auf diesem Abschnitt: ${n} Items auf ${tiles} Feldern`,
   },
 
   hud: {
@@ -102,5 +137,5 @@ export const TEXTS = {
     details: 'Technische Details',
     reload: 'Seite neu laden',
   },
-  hint: 'Klick auf Bäume und Vorkommen sammelt Rohstoffe · WASD: bewegen · Mausrad: zoomen · Q/E: drehen · Leertaste: Pause',
+  hint: 'Klick auf Bäume und Vorkommen sammelt Rohstoffe · Klick auf Gebäude zeigt Infos · WASD: bewegen · Mausrad: zoomen · Q/E: drehen · Leertaste: Pause',
 } as const;

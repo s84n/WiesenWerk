@@ -6,6 +6,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import { PALETTE } from '../data/palette';
+import { beltStraight } from './belt-models';
 import { colored, merge } from './geometry';
 
 /**
@@ -160,7 +161,14 @@ function workshop(): BufferGeometry {
   return merge(parts);
 }
 
-const MODELS: Record<string, () => BufferGeometry> = { hq, lumberjack, miner, furnace, workshop };
+const MODELS: Record<string, () => BufferGeometry> = {
+  hq,
+  lumberjack,
+  miner,
+  furnace,
+  workshop,
+  belt: beltStraight,
+};
 
 /** Erzeugt das Modell zu einem Namen; unbekannte Namen ergeben einen einfachen Block. */
 export function buildingModel(name: string, w: number, h: number): BufferGeometry {

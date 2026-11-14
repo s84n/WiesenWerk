@@ -100,7 +100,7 @@ body {
 
 .debug-overlay {
   position: absolute;
-  top: 16px;
+  bottom: 16px;
   right: 16px;
   min-width: 200px;
   padding: 8px 12px;
@@ -476,4 +476,197 @@ body {
     opacity: 0;
     transform: translateY(-28px);
   }
+}
+
+/* ---------- Item-Bilder ---------- */
+.item-icon.image {
+  width: 18px;
+  height: 18px;
+  border-radius: 0;
+  box-shadow: none;
+  object-fit: contain;
+}
+
+.cost-chip .item-icon.image {
+  width: 15px;
+  height: 15px;
+}
+
+/* ---------- Infofenster ---------- */
+.info-panel {
+  position: absolute;
+  top: 80px;
+  right: 16px;
+  width: 290px;
+  padding: 12px 14px 14px;
+  font-size: 0.88rem;
+  animation: toast-in 0.15s ease-out;
+}
+
+.info-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.info-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.info-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.info-close {
+  font: inherit;
+  font-size: 1.3rem;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+.info-close:hover {
+  background: rgba(217, 139, 78, 0.15);
+}
+
+.info-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.state-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #bbb;
+}
+
+.state-dot.working {
+  background: #7cc46a;
+}
+
+.state-dot.waiting {
+  background: #f6d04d;
+}
+
+.state-dot.blocked {
+  background: #f0806a;
+}
+
+.state-dot.norecipe {
+  background: #9fb4d8;
+}
+
+.info-section {
+  margin-top: 10px;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-soft);
+  margin-bottom: 4px;
+}
+
+.buffer-row .info-label {
+  margin: 0;
+  width: 64px;
+}
+
+.info-text {
+  margin: 4px 0;
+}
+
+.info-text.soft {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+
+.recipe {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.recipe:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.recipe.selected {
+  border-color: var(--accent);
+  background: #fff;
+}
+
+.recipe-arrow {
+  color: var(--text-soft);
+}
+
+.recipe-time {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+
+.buffer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+}
+
+.buffer-name {
+  flex: 1;
+}
+
+.buffer-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.util-bar {
+  position: relative;
+  height: 16px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+}
+
+.util-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #a8d68a, #7cc46a);
+  transition: width 0.25s;
+}
+
+.util-text {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 16px;
 }

@@ -21,6 +21,7 @@ export class DynamicChunkedInstances {
     private readonly geometry: BufferGeometry,
     private readonly material: Material,
     chunkCount: number,
+    private readonly castShadow = true,
   ) {
     this.chunks = Array.from({ length: chunkCount }, () => ({ ids: [], matrices: [] }));
     this.mesh = this.createMesh(64);
@@ -80,7 +81,7 @@ export class DynamicChunkedInstances {
     const mesh = new InstancedMesh(this.geometry, this.material, capacity);
     mesh.count = 0;
     mesh.frustumCulled = false;
-    mesh.castShadow = true;
+    mesh.castShadow = this.castShadow;
     mesh.receiveShadow = true;
     this.group.add(mesh);
     return mesh;

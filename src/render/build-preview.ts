@@ -1,6 +1,8 @@
 import {
+  Color,
   ConeGeometry,
   Group,
+  InstancedMesh,
   Matrix4,
   Mesh,
   MeshBasicMaterial,
@@ -10,7 +12,12 @@ import {
 import { BUILDINGS } from '../data/buildings';
 import { PALETTE } from '../data/palette';
 import { DIR_X, DIR_Y, footprintH, footprintW, rotateDir, rotateOffset } from '../sim/buildings';
+import type { BeltStep } from '../sim/commands';
+import { beltStraight } from './belt-models';
 import { buildingGeometries, buildingMatrix } from './buildings-view';
+
+const MAX_BELT_PREVIEW = 600;
+const tint = new Color();
 
 const m = new Matrix4();
 const off = { x: 0, y: 0 };
@@ -39,6 +46,7 @@ export class BuildPreview {
     this.areaMaterial,
   );
   private readonly arrows: Mesh[] = [];
+  private readonly beltGhosts: InstancedMesh;
   private readonly inMaterial = new MeshBasicMaterial({ color: PALETTE.portIn, depthTest: false });
   private readonly outMaterial = new MeshBasicMaterial({
     color: PALETTE.portOut,
@@ -57,12 +65,33 @@ export class BuildPreview {
       this.arrows.push(a);
       this.group.add(a);
     }
-    this.group.add(this.ghost, this.area);
+    this.beltGhosts = new InstancedMesh(beltStraight(), this.ghostMaterial, MAX_BELT_PREVIEW);
+    this.beltGhosts.count = 0;
+    this.beltGhosts.frustumCulled = false;
+    this.beltGhosts.renderOrder = 2;
+    this.beltGhosts.setColorAt(0, tint.setHex(0xffffff));
+    this.group.add(this.ghost, this.area, this.beltGhosts);
     this.hide();
+  }
+
+  /** Vorschau eines Bandweges; `valid[i]` färbt jedes Feld grün oder rot. */
+  showBeltPath(type: number, path: readonly BeltStep[], valid: readonly boolean[]): void {
+    this.hide();
+    const n = Math.min(path.length, MAX_BELT_PREVIEW);
+    for (let i = 0; i < n; i++) {
+      const p = path[i];
+      this.beltGhosts.setMatrixAt(i, buildingMatrix(type, p.x, p.y, p.dir, m));
+      this.beltGhosts.setColorAt(i, tint.setHex(valid[i] ? 0xc8ffc0 : 0xff9a8a));
+    }
+    this.beltGhosts.count = n;
+    this.beltGhosts.instanceMatrix.needsUpdate = true;
+    if (this.beltGhosts.instanceColor) this.beltGhosts.instanceColor.needsUpdate = true;
+    this.ghostMaterial.color.setHex(0xffffff);
   }
 
   hide(): void {
     this.ghost.visible = false;
+    if (this.beltGhosts) this.beltGhosts.count = 0;
     this.area.visible = false;
     for (const a of this.arrows) a.visible = false;
   }

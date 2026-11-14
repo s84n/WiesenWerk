@@ -9,4 +9,14 @@ export type Command =
   /** Reißt alle Gebäude ab, die das Rechteck berühren (Ecken einschließlich). */
   | { type: 'demolishArea'; x0: number; y0: number; x1: number; y1: number }
   /** Abbau von Hand auf Feld (x, y). */
-  | { type: 'harvest'; x: number; y: number };
+  | { type: 'harvest'; x: number; y: number }
+  /** Baut Bandfelder entlang eines Weges; vorhandene Bänder werden nur gedreht. */
+  | { type: 'buildBelt'; building: number; path: readonly BeltStep[] }
+  /** Wählt das Rezept einer Maschine (−1 = keins). */
+  | { type: 'setRecipe'; building: number; recipe: number };
+
+export interface BeltStep {
+  x: number;
+  y: number;
+  dir: number;
+}

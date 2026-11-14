@@ -5,6 +5,7 @@
 export type SimEvent =
   | { type: 'buildingAdded'; id: number }
   | { type: 'buildingRemoved'; id: number; buildingType: number; x: number; y: number; rot: number }
+  | { type: 'buildingRotated'; id: number }
   | { type: 'treeChanged'; tile: number }
   | { type: 'harvested'; item: number; amount: number }
   | { type: 'commandFailed'; reason: number; buildingType: number };

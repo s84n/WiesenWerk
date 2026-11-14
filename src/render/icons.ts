@@ -11,15 +11,18 @@ import {
   type Material,
   type WebGLRenderer,
 } from 'three';
+import type { BufferGeometry } from 'three';
 import { PALETTE } from '../data/palette';
-import { buildingGeometries } from './buildings-view';
-
-const SIZE = 96;
 
 /**
- * Rendert für jedes Gebäude einmalig ein kleines Bild für die Bauleiste (als Daten-URL).
+ * Rendert für jede Geometrie einmalig ein kleines Bild (als Daten-URL), z. B. für die Bauleiste.
  */
-export function renderBuildingIcons(renderer: WebGLRenderer, material: Material): string[] {
+export function renderIcons(
+  renderer: WebGLRenderer,
+  material: Material,
+  geometries: readonly BufferGeometry[],
+  SIZE = 96,
+): string[] {
   const scene = new Scene();
   scene.add(new HemisphereLight(PALETTE.hemiSky, PALETTE.hemiGround, 1.6));
   const sun = new DirectionalLight(PALETTE.sun, 2.4);
@@ -38,7 +41,7 @@ export function renderBuildingIcons(renderer: WebGLRenderer, material: Material)
   const center = new Vector3();
   const urls: string[] = [];
 
-  for (const geometry of buildingGeometries()) {
+  for (const geometry of geometries) {
     const mesh = new Mesh(geometry, material);
     scene.add(mesh);
     box.setFromObject(mesh);

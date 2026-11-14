@@ -1,0 +1,93 @@
+import {
+  BoxGeometry,
+  CylinderGeometry,
+  DodecahedronGeometry,
+  IcosahedronGeometry,
+  TorusGeometry,
+  type BufferGeometry,
+} from 'three';
+import { ITEMS, type ItemShape } from '../data/items';
+import { PALETTE } from '../data/palette';
+import { colored, merge } from './geometry';
+
+/**
+ * Kleine Item-Formen für Bänder und Symbole. Unterkante auf y = 0, etwa 0,3 Felder groß.
+ */
+function box(
+  w: number,
+  h: number,
+  d: number,
+  x: number,
+  y: number,
+  z: number,
+  color: number,
+): BufferGeometry {
+  return colored(new BoxGeometry(w, h, d).translate(x, y + h / 2, z), color);
+}
+
+const SHAPES: Record<ItemShape, (c: number) => BufferGeometry[]> = {
+  log: (c) => [
+    colored(new CylinderGeometry(0.08, 0.08, 0.3, 6).rotateZ(Math.PI / 2).translate(0, 0.08, 0), c),
+    colored(
+      new CylinderGeometry(0.06, 0.06, 0.31, 6).rotateZ(Math.PI / 2).translate(0, 0.08, 0),
+      PALETTE.wood,
+    ),
+  ],
+  chunk: (c) => [
+    colored(new DodecahedronGeometry(0.12, 0).scale(1, 0.75, 1).translate(0, 0.09, 0), c),
+  ],
+  ore: (c) => [
+    colored(new IcosahedronGeometry(0.12, 0).translate(0, 0.11, 0), PALETTE.rockDark),
+    colored(new IcosahedronGeometry(0.07, 0).translate(0.06, 0.15, 0.04), c),
+    colored(new IcosahedronGeometry(0.06, 0).translate(-0.06, 0.08, -0.05), c),
+  ],
+  ingot: (c) => [box(0.26, 0.09, 0.13, 0, 0, 0, c), box(0.2, 0.03, 0.08, 0, 0.09, 0, c)],
+  brick: (c) => [box(0.26, 0.11, 0.14, 0, 0, 0, c)],
+  charcoal: (c) => [colored(new DodecahedronGeometry(0.1, 0).translate(0, 0.08, 0), c)],
+  plank: (c) => [
+    box(0.32, 0.04, 0.12, 0, 0, 0, c),
+    box(0.3, 0.04, 0.12, 0.01, 0.04, 0.01, PALETTE.wood),
+  ],
+  wire: (c) => [
+    colored(new TorusGeometry(0.09, 0.035, 4, 8).rotateX(Math.PI / 2).translate(0, 0.04, 0), c),
+  ],
+  sheet: (c) => [box(0.28, 0.03, 0.22, 0, 0, 0, c), box(0.26, 0.03, 0.2, 0, 0.03, 0, c)],
+  frame: (c) => [
+    box(0.26, 0.05, 0.05, 0, 0, 0.11, c),
+    box(0.26, 0.05, 0.05, 0, 0, -0.11, c),
+    box(0.05, 0.05, 0.26, 0.11, 0, 0, c),
+    box(0.05, 0.05, 0.26, -0.11, 0, 0, c),
+    box(0.06, 0.06, 0.06, 0, 0, 0, PALETTE.itemBrick),
+  ],
+  coil: (c) => [
+    colored(new CylinderGeometry(0.1, 0.1, 0.14, 8).translate(0, 0.07, 0), c),
+    colored(new CylinderGeometry(0.12, 0.12, 0.03, 8).translate(0, 0.015, 0), PALETTE.woodDark),
+    colored(new CylinderGeometry(0.12, 0.12, 0.03, 8).translate(0, 0.14, 0), PALETTE.woodDark),
+  ],
+  circuit: (c) => [
+    box(0.26, 0.04, 0.2, 0, 0, 0, c),
+    box(0.1, 0.04, 0.08, 0.04, 0.04, 0, PALETTE.itemCharcoal),
+  ],
+  motor: (c) => [
+    colored(
+      new CylinderGeometry(0.09, 0.09, 0.22, 8).rotateZ(Math.PI / 2).translate(0, 0.12, 0),
+      c,
+    ),
+    box(0.18, 0.04, 0.16, 0, 0, 0, PALETTE.itemFrame),
+    colored(
+      new CylinderGeometry(0.025, 0.025, 0.08, 6).rotateZ(Math.PI / 2).translate(0.14, 0.12, 0),
+      PALETTE.copper,
+    ),
+  ],
+  control: (c) => [
+    box(0.22, 0.16, 0.18, 0, 0, 0, c),
+    box(0.06, 0.04, 0.02, 0.04, 0.09, 0.09, PALETTE.windowLight),
+  ],
+};
+
+let cache: BufferGeometry[] | null = null;
+/** Geometrie je Item (Index = Item-ID), einmal erzeugt und geteilt. */
+export function itemGeometries(): BufferGeometry[] {
+  cache ??= ITEMS.map((item) => merge(SHAPES[item.shape](PALETTE[item.color])));
+  return cache;
+}

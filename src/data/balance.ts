@@ -24,3 +24,23 @@ export const TREES = {
   /** Sekunden, bis ein gefällter Baum nachwächst. */
   regrowSeconds: 120,
 } as const;
+
+export const MACHINES = {
+  /** Eingangspuffer fasst die Menge für so viele Durchläufe. */
+  inputBufferCycles: 2,
+  /** Ausgangspuffer fasst die Menge für so viele Durchläufe. */
+  outputBufferCycles: 2,
+  /** Ausgangspuffer von Bergwerk und Holzfäller (Items). */
+  extractorBuffer: 2,
+  /** Glättung der angezeigten Auslastung (Anteil pro Tick). */
+  utilizationSmoothing: 0.005,
+  /** Ein Problem wird erst nach so vielen Ticks als Symbol angezeigt. */
+  problemDelayTicks: 30,
+} as const;
+
+export const BELTS = {
+  /** Interne Längeneinheiten pro Feld. Ganze Zahlen halten die Bänder exakt. */
+  unitsPerTile: 120,
+  /** Mindestabstand zweier Items (halbes Feld). */
+  minSpacing: 60,
+} as const;

@@ -66,6 +66,7 @@ export class BuildBar {
       const cost = el('div', 'build-cost');
       const costs = BUILDING_COSTS[type];
       if (costs.length === 0) cost.textContent = TEXTS.build.free;
+      if (def.behavior.kind === 'belt') cost.title = TEXTS.build.perTile;
       for (const c of costs) {
         const chip = el('span', 'cost-chip');
         chip.append(itemIcon(c.item), document.createTextNode(formatNumber(c.amount)));
@@ -99,9 +100,11 @@ export class BuildBar {
         this.category = cat;
         this.refreshCategory();
       }
-      this.modeHint.textContent = TEXTS.build.modeBuild(
-        TEXTS.buildings[BUILDINGS[t.buildType].key].name,
-      );
+      const def = BUILDINGS[t.buildType];
+      this.modeHint.textContent =
+        def.behavior.kind === 'belt'
+          ? TEXTS.build.modeBelt
+          : TEXTS.build.modeBuild(TEXTS.buildings[def.key].name);
       this.modeHint.style.display = '';
     } else if (t.mode === 'demolish') {
       this.modeHint.textContent = TEXTS.build.modeDemolish;

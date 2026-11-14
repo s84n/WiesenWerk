@@ -2,10 +2,12 @@ import { START_INVENTORY, HAND_MINING, TREES } from '../data/balance';
 import { BUILDINGS, BUILDING_COSTS } from '../data/buildings';
 import { ITEM_ID, toAmounts } from '../data/items';
 import { DEPOSITS, TileType } from '../data/world';
+import { BeltSystem } from './belts';
 import { BuildingStore, footprintH, footprintW } from './buildings';
-import type { Command } from './commands';
+import type { BeltStep, Command } from './commands';
 import type { SimEvent } from './events';
 import { Inventory } from './inventory';
+import { MachineSystem } from './machines';
 import { PlaceResult, checkPlacement } from './placement';
 import { TreeSystem } from './trees';
 import type { World } from './world';
@@ -20,23 +22,42 @@ export class Simulation {
   readonly inventory = new Inventory();
   readonly buildings = new BuildingStore();
   readonly trees: TreeSystem;
+  readonly machines: MachineSystem;
+  readonly belts: BeltSystem;
   /** Anzahl lebender Gebäude je Typ. */
   readonly typeCount = new Int32Array(BUILDINGS.length);
   /** Ereignisse seit dem letzten Abholen. */
   readonly events: SimEvent[] = [];
   private readonly pending: Command[] = [];
 
-  // Zähler für die Debug-Anzeige; werden in späteren Phasen befüllt.
-  segmentCount = 0;
-  itemCount = 0;
-
   constructor(readonly world: World) {
     this.trees = new TreeSystem(world);
+    this.machines = new MachineSystem(
+      world,
+      this.buildings,
+      this.inventory,
+      this.trees,
+      this.onRegrow,
+    );
+    this.belts = new BeltSystem(world, this.buildings, (id, item) =>
+      this.machines.accept(id, item),
+    );
+    this.machines.setBelts(this.belts);
     this.inventory.refund(toAmounts(START_INVENTORY));
   }
 
   get buildingCount(): number {
     return this.buildings.count;
+  }
+  get segmentCount(): number {
+    return this.belts.segmentCount;
+  }
+  get itemCount(): number {
+    return this.belts.itemCount;
+  }
+
+  isBelt(id: number): boolean {
+    return BUILDINGS[this.buildings.type[id]].behavior.kind === 'belt';
   }
 
   enqueue(command: Command): void {
@@ -49,9 +70,12 @@ export class Simulation {
     this.pending.length = 0;
   }
 
+  /** Ein Simulationsschritt. Reihenfolge: Befehle → (Strom, ab Phase 5) → Abbau und Maschinen → Bänder → Bäume. */
   step(): void {
     this.flushCommands();
     this.tick++;
+    this.machines.update(this.tick);
+    this.belts.tick();
     this.trees.update(this.tick, this.onRegrow);
   }
 
@@ -74,6 +98,7 @@ export class Simulation {
     return t === TileType.Deposit || (t === TileType.Forest && this.trees.hasTree(i));
   }
 
+  /** Meldet ein geändertes Baumfeld an die Darstellung. */
   private readonly onRegrow = (tile: number): void => {
     this.events.push({ type: 'treeChanged', tile });
   };
@@ -94,7 +119,36 @@ export class Simulation {
       case 'harvest':
         this.harvest(cmd.x, cmd.y);
         break;
+      case 'buildBelt':
+        this.buildBelt(cmd.building, cmd.path);
+        break;
+      case 'setRecipe':
+        if (this.buildings.alive[cmd.building]) this.machines.setRecipe(cmd.building, cmd.recipe);
+        break;
     }
+  }
+
+  private buildBelt(type: number, path: readonly BeltStep[]): void {
+    if (BUILDINGS[type]?.behavior.kind !== 'belt') return;
+    let failed = -1;
+    for (const step of path) {
+      const id = this.buildingAt(step.x, step.y);
+      if (id >= 0 && this.isBelt(id)) {
+        // Vorhandenes Band: nur drehen
+        if (this.buildings.rot[id] !== (step.dir & 3)) {
+          this.buildings.rot[id] = step.dir & 3;
+          this.belts.beltChanged(this.world.index(step.x, step.y));
+          this.events.push({ type: 'buildingRotated', id });
+        }
+        continue;
+      }
+      const result = checkPlacement(this, type, step.x, step.y, step.dir);
+      if (result === PlaceResult.Ok) this.build(type, step.x, step.y, step.dir);
+      else if (failed < 0 || result === PlaceResult.Cost) failed = result;
+    }
+    // Nur bei fehlendem Material melden; blockierte Felder werden still übersprungen.
+    if (failed === PlaceResult.Cost)
+      this.events.push({ type: 'commandFailed', reason: failed, buildingType: type });
   }
 
   private build(type: number, x: number, y: number, rot: number): void {
@@ -119,6 +173,12 @@ export class Simulation {
       }
     }
     this.typeCount[type]++;
+    if (def.behavior.kind === 'belt') {
+      this.belts.beltAdded(world.index(x, y));
+    } else {
+      this.machines.added(id);
+      this.belts.buildingChanged();
+    }
     this.events.push({ type: 'buildingAdded', id });
   }
 
@@ -132,8 +192,14 @@ export class Simulation {
     const rot = b.rot[id];
     const w = footprintW(def, rot);
     const h = footprintH(def, rot);
+    if (def.behavior.kind !== 'belt') this.inventory.refund(this.machines.removed(id));
     for (let ty = y; ty < y + h; ty++) {
       for (let tx = x; tx < x + w; tx++) this.world.building[this.world.index(tx, ty)] = 0;
+    }
+    if (def.behavior.kind === 'belt') {
+      this.belts.beltRemoved(this.world.index(x, y), (item) => this.inventory.add(item, 1));
+    } else {
+      this.belts.buildingChanged();
     }
     this.inventory.refund(BUILDING_COSTS[type]);
     b.remove(id);

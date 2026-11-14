@@ -1,0 +1,446 @@
+import { MACHINES, TREES } from '../data/balance';
+import { BUILDINGS, type BuildingDef } from '../data/buildings';
+import { SIM_CONFIG } from '../data/config';
+import { ITEM_ID, type ItemAmount } from '../data/items';
+import {
+  MAX_RECIPE_INPUTS,
+  MAX_RECIPE_OUTPUTS,
+  RECIPES,
+  RECIPE_INPUTS,
+  RECIPE_OUTPUTS,
+  RECIPE_TICKS,
+} from '../data/recipes';
+import { DEPOSITS, PURITY, TileType } from '../data/world';
+import type { BeltSystem } from './belts';
+import {
+  DIR_X,
+  DIR_Y,
+  footprintH,
+  footprintW,
+  rotateDir,
+  rotateOffset,
+  type BuildingStore,
+} from './buildings';
+import type { Inventory } from './inventory';
+import type { TreeSystem } from './trees';
+import type { World } from './world';
+
+/** Zustand einer Maschine (für Anzeige und Symbole). */
+export const MachineState = {
+  Idle: 0,
+  Working: 1,
+  WaitingInput: 2,
+  OutputBlocked: 3,
+  NoRecipe: 4,
+  NoPower: 5,
+} as const;
+export type MachineState = (typeof MachineState)[keyof typeof MachineState];
+
+const off = { x: 0, y: 0 };
+const WOOD = ITEM_ID[TREES.item];
+
+/**
+ * Alle produzierenden Gebäude: Abbau (Bergwerk, Holzfäller), Verarbeitung (Rezepte) und Zentrale.
+ * Daten als typisierte Arrays, Index = Gebäude-ID. Pro Art eine Liste, die in einer Schleife läuft.
+ */
+export class MachineSystem {
+  private cap = 0;
+  recipe = new Int16Array(0);
+  progress = new Int32Array(0);
+  state = new Uint8Array(0);
+  stateSince = new Int32Array(0);
+  utilization = new Float32Array(0);
+  inBuf = new Int32Array(0);
+  outBuf = new Int32Array(0);
+  /** Bergwerk/Holzfäller: erzeugtes Item und Ticks pro Item. */
+  extractItem = new Int16Array(0);
+  extractTicks = new Int32Array(0);
+  /** Ausgang: Bandfeld davor und Richtung (−1 = kein Ausgang). */
+  outTile = new Int32Array(0);
+  outDir = new Uint8Array(0);
+  /** Holzfäller: Bäume in Reichweite und aktueller Baum. */
+  readonly treeLists: (Int32Array | null)[] = [];
+  treeCursor = new Int32Array(0);
+
+  readonly crafters: number[] = [];
+  readonly extractors: number[] = [];
+  /** Gelieferte Items je Typ (für Statistik und Tests). */
+  delivered = 0;
+
+  tick = 0;
+
+  constructor(
+    private readonly world: World,
+    private readonly store: BuildingStore,
+    private readonly inventory: Inventory,
+    private readonly trees: TreeSystem,
+    private readonly onTreeChanged: (tile: number) => void,
+  ) {}
+
+  setBelts(belts: BeltSystem): void {
+    this.belts = belts;
+  }
+  private belts!: BeltSystem;
+
+  // ---------------------------------------------------------------- Lebenszyklus
+
+  added(id: number): void {
+    this.ensureCapacity(this.store.capacity);
+    const def = BUILDINGS[this.store.type[id]];
+    const b = def.behavior;
+    this.recipe[id] = -1;
+    this.progress[id] = 0;
+    this.utilization[id] = 0;
+    this.inBuf.fill(0, id * MAX_RECIPE_INPUTS, (id + 1) * MAX_RECIPE_INPUTS);
+    this.outBuf.fill(0, id * MAX_RECIPE_OUTPUTS, (id + 1) * MAX_RECIPE_OUTPUTS);
+    this.treeLists[id] = null;
+    this.setupOutput(id, def);
+    this.setState(id, MachineState.Idle);
+
+    if (b.kind === 'crafter') {
+      this.crafters.push(id);
+      this.setState(id, MachineState.NoRecipe);
+    } else if (b.kind === 'miner') {
+      this.setupMiner(id, def, b.itemsPerMinute);
+      this.extractors.push(id);
+    } else if (b.kind === 'lumberjack') {
+      this.extractItem[id] = WOOD;
+      this.extractTicks[id] = Math.round((60 * SIM_CONFIG.ticksPerSecond) / b.itemsPerMinute);
+      this.treeLists[id] = this.treesInRange(id, def, b.radius);
+      this.treeCursor[id] = 0;
+      this.extractors.push(id);
+    }
+  }
+
+  /** Vor dem Abriss: gibt den Inhalt der Puffer zurück (wird erstattet). */
+  removed(id: number): ItemAmount[] {
+    const result: ItemAmount[] = [];
+    const def = BUILDINGS[this.store.type[id]];
+    const kind = def.behavior.kind;
+    if (kind === 'crafter') {
+      remove(this.crafters, id);
+      const r = this.recipe[id];
+      if (r >= 0) this.collectBuffers(id, r, result);
+    } else if (kind === 'miner' || kind === 'lumberjack') {
+      remove(this.extractors, id);
+      const n = this.outBuf[id * MAX_RECIPE_OUTPUTS];
+      if (n > 0) result.push({ item: this.extractItem[id], amount: n });
+    }
+    this.treeLists[id] = null;
+    return result;
+  }
+
+  /** Wählt ein Rezept. Der bisherige Pufferinhalt geht in den Vorrat. */
+  setRecipe(id: number, recipe: number): boolean {
+    const def = BUILDINGS[this.store.type[id]];
+    if (def.behavior.kind !== 'crafter') return false;
+    if (recipe >= 0 && RECIPES[recipe]?.machine !== def.behavior.machine) return false;
+    const old = this.recipe[id];
+    if (old === recipe) return true;
+    if (old >= 0) {
+      const back: ItemAmount[] = [];
+      this.collectBuffers(id, old, back);
+      // laufender Durchlauf: Zutaten zurückgeben
+      if (this.progress[id] > 0) for (const a of RECIPE_INPUTS[old]) back.push({ ...a });
+      this.inventory.refund(back);
+    }
+    this.recipe[id] = recipe;
+    this.progress[id] = 0;
+    this.inBuf.fill(0, id * MAX_RECIPE_INPUTS, (id + 1) * MAX_RECIPE_INPUTS);
+    this.outBuf.fill(0, id * MAX_RECIPE_OUTPUTS, (id + 1) * MAX_RECIPE_OUTPUTS);
+    this.setState(id, recipe < 0 ? MachineState.NoRecipe : MachineState.WaitingInput);
+    return true;
+  }
+
+  // ---------------------------------------------------------------- Übergabe vom Band
+
+  /** Nimmt ein Item am Eingang an. Rückgabe: angenommen? */
+  accept(id: number, item: number): boolean {
+    const b = BUILDINGS[this.store.type[id]].behavior;
+    if (b.kind === 'hq') {
+      this.inventory.add(item, 1);
+      this.delivered++;
+      return true;
+    }
+    if (b.kind !== 'crafter') return false;
+    let r = this.recipe[id];
+    if (r < 0) {
+      // Noch kein Rezept: passt das Item zu genau einem freigeschalteten Rezept, wird es gewählt.
+      r = this.autoRecipe(b.machine, item);
+      if (r < 0) return false;
+      this.setRecipe(id, r);
+    }
+    const inputs = RECIPE_INPUTS[r];
+    for (let j = 0; j < inputs.length; j++) {
+      if (inputs[j].item !== item) continue;
+      const slot = id * MAX_RECIPE_INPUTS + j;
+      if (this.inBuf[slot] >= inputs[j].amount * MACHINES.inputBufferCycles) return false;
+      this.inBuf[slot]++;
+      return true;
+    }
+    return false;
+  }
+
+  private autoRecipe(machine: string, item: number): number {
+    let found = -1;
+    for (let r = 0; r < RECIPES.length; r++) {
+      if (RECIPES[r].machine !== machine || !RECIPES[r].availableFromStart) continue;
+      if (!RECIPE_INPUTS[r].some((a) => a.item === item)) continue;
+      if (found >= 0) return -1; // mehrdeutig
+      found = r;
+    }
+    return found;
+  }
+
+  // ---------------------------------------------------------------- Tick
+
+  update(tick: number): void {
+    this.tick = tick;
+    const smooth = MACHINES.utilizationSmoothing;
+
+    // Abbau
+    for (let n = 0; n < this.extractors.length; n++) {
+      const id = this.extractors[n];
+      const slot = id * MAX_RECIPE_OUTPUTS;
+      let working = false;
+      if (this.outBuf[slot] >= MACHINES.extractorBuffer) {
+        this.setState(id, MachineState.OutputBlocked);
+      } else if (this.extractItem[id] < 0) {
+        this.setState(id, MachineState.WaitingInput);
+      } else {
+        this.progress[id]++;
+        working = true;
+        if (this.progress[id] >= this.extractTicks[id]) {
+          if (this.treeLists[id] === null || this.chopTree(id)) {
+            this.outBuf[slot]++;
+            this.progress[id] = 0;
+            this.setState(id, MachineState.Working);
+          } else {
+            this.progress[id] = this.extractTicks[id];
+            working = false;
+            this.setState(id, MachineState.WaitingInput);
+          }
+        } else {
+          this.setState(id, MachineState.Working);
+        }
+      }
+      this.utilization[id] += ((working ? 1 : 0) - this.utilization[id]) * smooth;
+      this.pushOutput(id);
+    }
+
+    // Verarbeitung
+    for (let n = 0; n < this.crafters.length; n++) {
+      const id = this.crafters[n];
+      const r = this.recipe[id];
+      let working = false;
+      if (r < 0) {
+        this.setState(id, MachineState.NoRecipe);
+      } else if (this.progress[id] > 0) {
+        // progress läuft von 1 (Start) bis Dauer + 1 (fertig): genau `Dauer` Ticks pro Durchlauf
+        if (this.progress[id] <= RECIPE_TICKS[r]) {
+          this.progress[id]++;
+          working = true;
+          this.setState(id, MachineState.Working);
+        }
+        if (this.progress[id] > RECIPE_TICKS[r]) {
+          if (this.hasOutputSpace(id, r)) {
+            const outs = RECIPE_OUTPUTS[r];
+            for (let j = 0; j < outs.length; j++)
+              this.outBuf[id * MAX_RECIPE_OUTPUTS + j] += outs[j].amount;
+            this.progress[id] = 0;
+          } else {
+            working = false;
+            this.setState(id, MachineState.OutputBlocked);
+          }
+        }
+      }
+      if (r >= 0 && this.progress[id] === 0) {
+        if (!this.hasOutputSpace(id, r)) {
+          this.setState(id, MachineState.OutputBlocked);
+        } else if (this.hasInputs(id, r)) {
+          const ins = RECIPE_INPUTS[r];
+          for (let j = 0; j < ins.length; j++)
+            this.inBuf[id * MAX_RECIPE_INPUTS + j] -= ins[j].amount;
+          this.progress[id] = 1;
+          working = true;
+          this.setState(id, MachineState.Working);
+        } else if (!working) {
+          this.setState(id, MachineState.WaitingInput);
+        }
+      }
+      this.utilization[id] += ((working ? 1 : 0) - this.utilization[id]) * smooth;
+      this.pushOutput(id);
+    }
+  }
+
+  private hasInputs(id: number, r: number): boolean {
+    const ins = RECIPE_INPUTS[r];
+    for (let j = 0; j < ins.length; j++)
+      if (this.inBuf[id * MAX_RECIPE_INPUTS + j] < ins[j].amount) return false;
+    return true;
+  }
+
+  private hasOutputSpace(id: number, r: number): boolean {
+    const outs = RECIPE_OUTPUTS[r];
+    for (let j = 0; j < outs.length; j++) {
+      const limit = outs[j].amount * MACHINES.outputBufferCycles;
+      if (this.outBuf[id * MAX_RECIPE_OUTPUTS + j] + outs[j].amount > limit) return false;
+    }
+    return true;
+  }
+
+  /** Legt höchstens ein Item pro Tick aus dem Ausgangspuffer auf das Band davor. */
+  private pushOutput(id: number): void {
+    const tile = this.outTile[id];
+    if (tile < 0) return;
+    const r = this.recipe[id];
+    const slots = r >= 0 ? RECIPE_OUTPUTS[r].length : 1;
+    for (let j = 0; j < slots; j++) {
+      const slot = id * MAX_RECIPE_OUTPUTS + j;
+      if (this.outBuf[slot] === 0) continue;
+      const seg = this.belts.insertFromBuilding(tile, this.outDir[id]);
+      if (!seg) return;
+      const item = r >= 0 ? RECIPE_OUTPUTS[r][j].item : this.extractItem[id];
+      this.belts.push(seg, item);
+      this.outBuf[slot]--;
+      return;
+    }
+  }
+
+  /** Nimmt 1 Holz von einem Baum in Reichweite. */
+  private chopTree(id: number): boolean {
+    const list = this.treeLists[id]!;
+    if (list.length === 0) return false;
+    for (let k = 0; k < list.length; k++) {
+      const c = (this.treeCursor[id] + k) % list.length;
+      const tile = list[c];
+      if (this.world.tiles[tile] !== TileType.Forest || !this.trees.hasTree(tile)) continue;
+      this.trees.take(tile, 1, this.tick);
+      if (!this.trees.hasTree(tile)) {
+        this.onTreeChanged(tile);
+        this.treeCursor[id] = (c + 1) % list.length;
+      } else {
+        this.treeCursor[id] = c;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private setState(id: number, s: MachineState): void {
+    if (this.state[id] === s) return;
+    this.state[id] = s;
+    this.stateSince[id] = this.tick;
+  }
+
+  private collectBuffers(id: number, r: number, out: ItemAmount[]): void {
+    RECIPE_INPUTS[r].forEach((a, j) => {
+      const n = this.inBuf[id * MAX_RECIPE_INPUTS + j];
+      if (n > 0) out.push({ item: a.item, amount: n });
+    });
+    RECIPE_OUTPUTS[r].forEach((a, j) => {
+      const n = this.outBuf[id * MAX_RECIPE_OUTPUTS + j];
+      if (n > 0) out.push({ item: a.item, amount: n });
+    });
+  }
+
+  private setupOutput(id: number, def: BuildingDef): void {
+    this.outTile[id] = -1;
+    const rot = this.store.rot[id];
+    for (const port of def.ports) {
+      if (port.kind !== 'out') continue;
+      rotateOffset(def, rot, port.x, port.y, off);
+      const d = rotateDir(port.dir, rot);
+      const x = this.store.x[id] + off.x + DIR_X[d];
+      const y = this.store.y[id] + off.y + DIR_Y[d];
+      this.outTile[id] = this.world.inBounds(x, y) ? this.world.index(x, y) : -1;
+      this.outDir[id] = d;
+      return;
+    }
+  }
+
+  /** Bergwerk: Rohstoff mit den meisten Feldern darunter, beste Reinheit davon bestimmt das Tempo. */
+  private setupMiner(id: number, def: BuildingDef, perMinute: number): void {
+    const counts = new Map<number, { n: number; purity: number }>();
+    const x0 = this.store.x[id];
+    const y0 = this.store.y[id];
+    const rot = this.store.rot[id];
+    for (let y = y0; y < y0 + footprintH(def, rot); y++) {
+      for (let x = x0; x < x0 + footprintW(def, rot); x++) {
+        const i = this.world.index(x, y);
+        const res = this.world.resource[i];
+        if (res === 0) continue;
+        const e = counts.get(res) ?? { n: 0, purity: 0 };
+        e.n++;
+        e.purity = Math.max(e.purity, this.world.purity[i]);
+        counts.set(res, e);
+      }
+    }
+    let best = 0;
+    let bestN = 0;
+    let purity = 0;
+    for (const [res, e] of counts) {
+      if (e.n > bestN || (e.n === bestN && res < best)) {
+        best = res;
+        bestN = e.n;
+        purity = e.purity;
+      }
+    }
+    if (best === 0) {
+      this.extractItem[id] = -1;
+      return;
+    }
+    this.extractItem[id] = ITEM_ID[DEPOSITS[best - 1].item];
+    const rate = perMinute * PURITY[purity].factor;
+    this.extractTicks[id] = Math.round((60 * SIM_CONFIG.ticksPerSecond) / rate);
+  }
+
+  /** Waldfelder im Umkreis des Holzfällers (quadratisch um die Grundfläche). */
+  private treesInRange(id: number, def: BuildingDef, radius: number): Int32Array {
+    const x0 = this.store.x[id];
+    const y0 = this.store.y[id];
+    const rot = this.store.rot[id];
+    const list: number[] = [];
+    for (let y = y0 - radius; y < y0 + footprintH(def, rot) + radius; y++) {
+      for (let x = x0 - radius; x < x0 + footprintW(def, rot) + radius; x++) {
+        if (!this.world.inBounds(x, y)) continue;
+        const i = this.world.index(x, y);
+        if (this.world.tiles[i] === TileType.Forest) list.push(i);
+      }
+    }
+    return Int32Array.from(list);
+  }
+
+  private ensureCapacity(cap: number): void {
+    if (cap <= this.cap) return;
+    const grow = <T extends Int16Array | Int32Array | Uint8Array | Float32Array>(
+      old: T,
+      n: number,
+    ): T => {
+      const next = new (old.constructor as new (n: number) => T)(n);
+      next.set(old);
+      return next;
+    };
+    this.recipe = grow(this.recipe, cap);
+    this.progress = grow(this.progress, cap);
+    this.state = grow(this.state, cap);
+    this.stateSince = grow(this.stateSince, cap);
+    this.utilization = grow(this.utilization, cap);
+    this.inBuf = grow(this.inBuf, cap * MAX_RECIPE_INPUTS);
+    this.outBuf = grow(this.outBuf, cap * MAX_RECIPE_OUTPUTS);
+    this.extractItem = grow(this.extractItem, cap);
+    this.extractTicks = grow(this.extractTicks, cap);
+    this.outTile = grow(this.outTile, cap);
+    this.outDir = grow(this.outDir, cap);
+    this.treeCursor = grow(this.treeCursor, cap);
+    this.cap = cap;
+  }
+}
+
+function remove(list: number[], id: number): void {
+  const i = list.indexOf(id);
+  if (i >= 0) {
+    list[i] = list[list.length - 1];
+    list.pop();
+  }
+}

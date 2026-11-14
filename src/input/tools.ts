@@ -5,6 +5,7 @@ import { PALETTE } from '../data/palette';
 import type { BuildPreview } from '../render/build-preview';
 import type { CameraRig } from '../render/camera-rig';
 import { footprintH, footprintW } from '../sim/buildings';
+import type { BeltStep } from '../sim/commands';
 import { PlaceResult, checkPlacement } from '../sim/placement';
 import type { Simulation } from '../sim/simulation';
 
@@ -13,15 +14,19 @@ export type ToolMode = 'select' | 'build' | 'demolish';
 const tmp = new Vector3();
 /** Höhen, in denen der Sichtstrahl nach Bäumen abgesucht wird (Baumkronen zuerst). */
 const PICK_HEIGHTS = [1.3, 0.9, 0.5, 0.15];
+const DX = [0, 1, 0, -1];
+const DY = [-1, 0, 1, 0];
 
 /**
- * Bauwerkzeuge: Auswahl/Abbau von Hand, Bauen mit Vorschau, Abriss mit Rahmen.
+ * Bauwerkzeuge: Auswahl und Abbau von Hand, Bauen mit Vorschau, Bänder ziehen, Abriss mit Rahmen.
  * Übersetzt Maus und Tastatur in Befehle an die Simulation.
  */
 export class ToolController {
   mode: ToolMode = 'select';
   buildType = -1;
   rot = 0;
+  /** Ausgewähltes Gebäude für das Infofenster (−1 = keins). */
+  selected = -1;
   /** Wird aufgerufen, wenn sich Modus oder Auswahl ändern (für die Oberfläche). */
   onChange: () => void = () => {};
 
@@ -37,6 +42,9 @@ export class ToolController {
   private placeY = 0;
   private harvestTimer = 0;
   private cursor = '';
+  /** Bänder: zuerst waagerecht (x) oder senkrecht (y) laufen; wird beim ersten Ziehen festgelegt. */
+  private beltAxis: 'x' | 'y' | null = null;
+  private beltPath: BeltStep[] = [];
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -53,6 +61,10 @@ export class ToolController {
     window.addEventListener('keydown', this.onKeyDown);
   }
 
+  private get isBelt(): boolean {
+    return this.mode === 'build' && BUILDINGS[this.buildType].behavior.kind === 'belt';
+  }
+
   selectBuilding(type: number): void {
     if (this.mode === 'build' && this.buildType === type) {
       this.cancel();
@@ -60,6 +72,8 @@ export class ToolController {
     }
     this.mode = 'build';
     this.buildType = type;
+    this.leftDown = false;
+    this.selected = -1;
     this.onChange();
   }
 
@@ -68,14 +82,23 @@ export class ToolController {
     else {
       this.mode = 'demolish';
       this.leftDown = false;
+      this.selected = -1;
       this.onChange();
     }
+  }
+
+  /** Wählt ein Gebäude für das Infofenster aus (−1 = nichts). */
+  select(id: number): void {
+    if (this.selected === id) return;
+    this.selected = id;
+    this.onChange();
   }
 
   cancel(): void {
     this.mode = 'select';
     this.buildType = -1;
     this.leftDown = false;
+    this.selected = -1;
     this.preview.hide();
     this.onChange();
   }
@@ -83,11 +106,14 @@ export class ToolController {
   /** Pro Bild nach der Kamera aufrufen. `dt` in Sekunden. */
   update(dt: number): void {
     const sim = this.getSim();
+    if (this.selected >= 0 && !sim.buildings.alive[this.selected]) this.select(-1);
     this.updateHover();
     let cursor = 'default';
 
     if (!this.inside || this.hoverX < 0) {
       this.preview.hide();
+    } else if (this.isBelt) {
+      this.updateBeltPreview(sim);
     } else if (this.mode === 'build') {
       const def = BUILDINGS[this.buildType];
       const w = footprintW(def, this.rot);
@@ -142,7 +168,9 @@ export class ToolController {
           }
         }
       } else {
-        this.preview.hide();
+        const id = sim.buildingAt(this.hoverX, this.hoverY);
+        if (id >= 0) cursor = 'pointer';
+        this.showSelection(sim);
       }
     }
 
@@ -150,6 +178,82 @@ export class ToolController {
       this.canvas.style.cursor = cursor;
       this.cursor = cursor;
     }
+  }
+
+  /** Markiert das ausgewählte Gebäude. */
+  private showSelection(sim: Simulation): void {
+    const id = this.selected;
+    if (id < 0) {
+      this.preview.hide();
+      return;
+    }
+    const b = sim.buildings;
+    const def = BUILDINGS[b.type[id]];
+    const x = b.x[id];
+    const y = b.y[id];
+    this.preview.showOnlyArea(
+      x,
+      y,
+      x + footprintW(def, b.rot[id]) - 1,
+      y + footprintH(def, b.rot[id]) - 1,
+      PALETTE.highlight,
+    );
+  }
+
+  private updateBeltPreview(sim: Simulation): void {
+    const path = this.leftDown
+      ? this.computeBeltPath(sim, this.dragX, this.dragY, this.hoverX, this.hoverY)
+      : [{ x: this.hoverX, y: this.hoverY, dir: this.rot }];
+    const valid = path.map((p) => {
+      const id = sim.buildingAt(p.x, p.y);
+      if (id >= 0) return sim.isBelt(id);
+      return checkPlacement(sim, this.buildType, p.x, p.y, p.dir) === PlaceResult.Ok;
+    });
+    this.beltPath = path;
+    this.preview.showBeltPath(this.buildType, path, valid);
+  }
+
+  /** Weg in L-Form vom Startfeld zum Feld unter der Maus. */
+  private computeBeltPath(
+    sim: Simulation,
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+  ): BeltStep[] {
+    if (x0 === x1 && y0 === y1) {
+      const into = sim.belts.inputDirFor(sim.world.index(x0, y0));
+      return [{ x: x0, y: y0, dir: into >= 0 ? into : this.rot }];
+    }
+    if (this.beltAxis === null) this.beltAxis = Math.abs(x1 - x0) >= Math.abs(y1 - y0) ? 'x' : 'y';
+    const points: [number, number][] = [];
+    let x = x0;
+    let y = y0;
+    points.push([x, y]);
+    const stepAxis = (axis: 'x' | 'y'): void => {
+      if (axis === 'x') while (x !== x1) points.push([(x += Math.sign(x1 - x)), y]);
+      else while (y !== y1) points.push([x, (y += Math.sign(y1 - y))]);
+    };
+    stepAxis(this.beltAxis);
+    stepAxis(this.beltAxis === 'x' ? 'y' : 'x');
+
+    const path: BeltStep[] = [];
+    for (let i = 0; i < points.length; i++) {
+      const [px, py] = points[i];
+      let dir: number;
+      if (i < points.length - 1) {
+        dir = dirBetween(px, py, points[i + 1][0], points[i + 1][1]);
+      } else {
+        dir = dirBetween(points[i - 1][0], points[i - 1][1], px, py);
+        // Endet das Band neben einem passenden Gebäudeeingang, zeigt es hinein.
+        if (sim.world.inBounds(px, py)) {
+          const into = sim.belts.inputDirFor(sim.world.index(px, py));
+          if (into >= 0 && into !== ((dir + 2) & 3)) dir = into;
+        }
+      }
+      if (sim.world.inBounds(px, py)) path.push({ x: px, y: py, dir });
+    }
+    return path;
   }
 
   private updateHover(): void {
@@ -161,7 +265,7 @@ export class ToolController {
     }
   }
 
-  /** Sucht entlang des Sichtstrahls ein Feld zum Abbauen (auch über Baumkronen). Gibt −1 zurück, wenn keins da ist. */
+  /** Sucht entlang des Sichtstrahls ein Feld zum Abbauen (auch über Baumkronen). −1 = keins. */
   private pickHarvestTile(sim: Simulation): number {
     for (const h of PICK_HEIGHTS) {
       if (!this.rig.pointAtHeight(this.ndcX, this.ndcY, h, tmp)) continue;
@@ -190,7 +294,12 @@ export class ToolController {
     this.updateHover();
     if (this.hoverX < 0) return;
 
-    if (this.mode === 'build') {
+    if (this.isBelt) {
+      this.leftDown = true;
+      this.dragX = this.hoverX;
+      this.dragY = this.hoverY;
+      this.beltAxis = null;
+    } else if (this.mode === 'build') {
       sim.enqueue({
         type: 'build',
         building: this.buildType,
@@ -210,17 +319,26 @@ export class ToolController {
           x: tile % sim.world.size,
           y: Math.floor(tile / sim.world.size),
         });
+        this.leftDown = true;
+        this.harvestTimer = HAND_MINING.holdIntervalMs;
+      } else {
+        this.select(sim.buildingAt(this.hoverX, this.hoverY));
       }
-      this.leftDown = true;
-      this.harvestTimer = HAND_MINING.holdIntervalMs;
     }
   };
 
   private readonly onPointerUp = (e: PointerEvent): void => {
     if (e.button !== 0 || !this.leftDown) return;
     this.leftDown = false;
-    if (this.mode === 'demolish' && this.hoverX >= 0) {
-      this.getSim().enqueue({
+    const sim = this.getSim();
+    if (this.isBelt) {
+      if (this.beltPath.length > 0) {
+        sim.enqueue({ type: 'buildBelt', building: this.buildType, path: this.beltPath });
+        // Richtung des letzten Feldes merken, damit Einzelklicks danach passend weiterbauen
+        this.rot = this.beltPath[this.beltPath.length - 1].dir;
+      }
+    } else if (this.mode === 'demolish' && this.hoverX >= 0) {
+      sim.enqueue({
         type: 'demolishArea',
         x0: this.dragX,
         y0: this.dragY,
@@ -234,7 +352,8 @@ export class ToolController {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     if (e.repeat) return;
     if (e.code === 'KeyR' && this.mode === 'build') {
-      this.rot = (this.rot + (e.shiftKey ? 3 : 1)) % 4;
+      if (this.isBelt && this.leftDown) this.beltAxis = this.beltAxis === 'x' ? 'y' : 'x';
+      else this.rot = (this.rot + (e.shiftKey ? 3 : 1)) % 4;
     } else if (e.code === 'KeyX') {
       this.toggleDemolish();
     } else if (e.code === 'Escape') {
@@ -244,4 +363,9 @@ export class ToolController {
       if (type !== undefined) this.selectBuilding(type);
     }
   };
+}
+
+function dirBetween(x0: number, y0: number, x1: number, y1: number): number {
+  for (let d = 0; d < 4; d++) if (x0 + DX[d] === x1 && y0 + DY[d] === y1) return d;
+  return 0;
 }

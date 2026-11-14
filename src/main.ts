@@ -4,6 +4,7 @@ import { BUILDINGS } from './data/buildings';
 import { SIM_CONFIG } from './data/config';
 import { TEXTS } from './data/texts';
 import { DebugOverlay } from './dev/debug-overlay';
+import { createStressSimulation } from './dev/stress';
 import { InputController } from './input/controls';
 import { ToolController } from './input/tools';
 import { GameRenderer } from './render/scene';
@@ -11,8 +12,10 @@ import { randomSeed } from './sim/rng';
 import { Simulation } from './sim/simulation';
 import { generateWorld } from './sim/worldgen';
 import { BuildBar } from './ui/build-bar';
+import { setItemIcons } from './ui/dom';
 import { showErrorScreen } from './ui/error-screen';
 import { Hud } from './ui/hud';
+import { InfoPanel } from './ui/info-panel';
 import { SeedPanel } from './ui/seed-panel';
 import { Toasts } from './ui/toasts';
 
@@ -42,6 +45,7 @@ function start(): void {
   );
 
   // Oberfläche
+  setItemIcons(view.itemIcons());
   const top = buildStaticUi(ui);
   const hotbar = BUILDINGS.map((_, i) => i)
     .filter((i) => BUILDINGS[i].availableFromStart)
@@ -54,15 +58,20 @@ function start(): void {
     setSpeed: (s) => (loop.speed = s),
   });
   const buildBar = new BuildBar(ui, tools, view.buildingIcons());
+  const info = new InfoPanel(ui, tools, view.buildingIcons());
   tools.onChange = () => buildBar.refreshMode();
   const toasts = new Toasts(ui);
 
-  const newWorld = (seed: number): void => {
-    sim = new Simulation(generateWorld(seed));
+  const useSimulation = (next: Simulation): void => {
+    sim = next;
     view.setSimulation(sim);
     tools.cancel();
     hud.invalidate();
     buildBar.invalidate();
+  };
+
+  const newWorld = (seed: number): void => {
+    useSimulation(new Simulation(generateWorld(seed)));
     // Seed in die Adresse schreiben, damit Neuladen dieselbe Welt zeigt
     const url = new URL(location.href);
     url.searchParams.set('seed', String(seed));
@@ -70,7 +79,10 @@ function start(): void {
   };
 
   const seed = initialSeed();
-  newWorld(seed);
+  // Entwicklerhilfe: ?stress=1 (Referenzfabrik) oder ?stress=10 (zehnfach) statt einer normalen Welt
+  const stress = urlNumber('stress');
+  if (stress > 0) useSimulation(createStressSimulation(stress).sim);
+  else newWorld(seed);
   // Entwicklerhilfe: ?zoom=<sichtbare Höhe> startet mit anderer Zoomstufe
   const devZoom = urlNumber('zoom');
   if (devZoom > 0) view.rig.zoomAt(devZoom / view.rig.viewHeight, 0, 0);
@@ -130,7 +142,8 @@ function start(): void {
 
       hud.update(sim, now);
       buildBar.update(sim, now);
-      view.render();
+      info.update(sim, now);
+      view.render(loop.paused ? 0 : loop.alpha, now);
       debug.frame(now, tickMs, ticks, view, sim, loop.paused);
       requestAnimationFrame(frame);
     } catch (err) {

@@ -60,7 +60,14 @@ export const PALETTE = {
   itemMotor: 0x7f93ad,
   itemControl: 0x4fb3b0,
 
+  // Bänder
+  beltFrame: 0x9a6a3c,
+  beltSurface: 0x5f5048,
+  beltArrow: 0xe6c27a,
+
   // Hinweise
+  hintWait: 0xf6d04d,
+  hintIdle: 0x9fb4d8,
   hintGood: 0x8fe08a,
   hintBad: 0xf0806a,
   highlight: 0xfff6d8,

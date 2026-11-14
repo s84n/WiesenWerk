@@ -11,23 +11,41 @@ export interface ItemDef {
   color: PaletteKey;
   /** Energie in kJ beim Verbrennen (0 = kein Brennstoff). */
   fuelValue: number;
+  /** Form auf dem Band (siehe `src/render/item-models.ts`). */
+  shape: ItemShape;
 }
 
+export type ItemShape =
+  | 'log'
+  | 'chunk'
+  | 'ore'
+  | 'ingot'
+  | 'brick'
+  | 'charcoal'
+  | 'plank'
+  | 'wire'
+  | 'sheet'
+  | 'frame'
+  | 'coil'
+  | 'circuit'
+  | 'motor'
+  | 'control';
+
 export const ITEMS = [
-  { key: 'wood', kind: 'solid', color: 'itemWood', fuelValue: 120 },
-  { key: 'stone', kind: 'solid', color: 'itemStone', fuelValue: 0 },
-  { key: 'copperOre', kind: 'solid', color: 'itemCopperOre', fuelValue: 0 },
-  { key: 'copperIngot', kind: 'solid', color: 'itemCopperIngot', fuelValue: 0 },
-  { key: 'stoneBrick', kind: 'solid', color: 'itemBrick', fuelValue: 0 },
-  { key: 'charcoal', kind: 'solid', color: 'itemCharcoal', fuelValue: 360 },
-  { key: 'plank', kind: 'solid', color: 'itemPlank', fuelValue: 0 },
-  { key: 'copperWire', kind: 'solid', color: 'itemWire', fuelValue: 0 },
-  { key: 'copperSheet', kind: 'solid', color: 'itemSheet', fuelValue: 0 },
-  { key: 'frame', kind: 'solid', color: 'itemFrame', fuelValue: 0 },
-  { key: 'coil', kind: 'solid', color: 'itemCoil', fuelValue: 0 },
-  { key: 'circuit', kind: 'solid', color: 'itemCircuit', fuelValue: 0 },
-  { key: 'motor', kind: 'solid', color: 'itemMotor', fuelValue: 0 },
-  { key: 'controlUnit', kind: 'solid', color: 'itemControl', fuelValue: 0 },
+  { key: 'wood', kind: 'solid', color: 'itemWood', fuelValue: 120, shape: 'log' },
+  { key: 'stone', kind: 'solid', color: 'itemStone', fuelValue: 0, shape: 'chunk' },
+  { key: 'copperOre', kind: 'solid', color: 'itemCopperOre', fuelValue: 0, shape: 'ore' },
+  { key: 'copperIngot', kind: 'solid', color: 'itemCopperIngot', fuelValue: 0, shape: 'ingot' },
+  { key: 'stoneBrick', kind: 'solid', color: 'itemBrick', fuelValue: 0, shape: 'brick' },
+  { key: 'charcoal', kind: 'solid', color: 'itemCharcoal', fuelValue: 360, shape: 'charcoal' },
+  { key: 'plank', kind: 'solid', color: 'itemPlank', fuelValue: 0, shape: 'plank' },
+  { key: 'copperWire', kind: 'solid', color: 'itemWire', fuelValue: 0, shape: 'wire' },
+  { key: 'copperSheet', kind: 'solid', color: 'itemSheet', fuelValue: 0, shape: 'sheet' },
+  { key: 'frame', kind: 'solid', color: 'itemFrame', fuelValue: 0, shape: 'frame' },
+  { key: 'coil', kind: 'solid', color: 'itemCoil', fuelValue: 0, shape: 'coil' },
+  { key: 'circuit', kind: 'solid', color: 'itemCircuit', fuelValue: 0, shape: 'circuit' },
+  { key: 'motor', kind: 'solid', color: 'itemMotor', fuelValue: 0, shape: 'motor' },
+  { key: 'controlUnit', kind: 'solid', color: 'itemControl', fuelValue: 0, shape: 'control' },
 ] as const satisfies readonly ItemDef[];
 
 export type ItemKey = (typeof ITEMS)[number]['key'];

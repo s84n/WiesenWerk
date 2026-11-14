@@ -22,8 +22,22 @@ export function itemName(item: number): string {
   return TEXTS.items[ITEMS[item].key];
 }
 
-/** Farbiges Symbol eines Items. */
-export function itemIcon(item: number): HTMLSpanElement {
+let itemIconUrls: readonly string[] = [];
+/** Bilder der Items (von der Darstellung einmalig erzeugt). */
+export function setItemIcons(urls: readonly string[]): void {
+  itemIconUrls = urls;
+}
+
+/** Symbol eines Items: Bild, falls vorhanden, sonst ein farbiges Quadrat. */
+export function itemIcon(item: number): HTMLElement {
+  const url = itemIconUrls[item];
+  if (url) {
+    const img = el('img', 'item-icon image');
+    img.src = url;
+    img.alt = itemName(item);
+    img.title = itemName(item);
+    return img;
+  }
   const icon = el('span', 'item-icon');
   icon.style.background = hex(PALETTE[ITEMS[item].color]);
   icon.title = itemName(item);

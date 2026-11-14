@@ -40,7 +40,7 @@ export function checkPlacement(
       if (world.building[i] !== 0) return PlaceResult.Blocked;
       const t = world.tiles[i];
       if (t === TileType.Deposit) {
-        if (def.placement !== 'deposit') return PlaceResult.Blocked;
+        if (def.placement === 'ground') return PlaceResult.Blocked;
         deposits++;
       } else if (!(t === TileType.Meadow || (t === TileType.Forest && trees.wood[i] === 0))) {
         return PlaceResult.Blocked;

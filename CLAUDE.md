@@ -54,10 +54,17 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 - **Kamera** (`src/render/camera-rig.ts`): Ziel- und Ist-Zustand, exponentiell geglättet. Zoom hält den Bodenpunkt unter der Maus fest, Ziehen mit der mittleren Maustaste hält den angefassten Punkt unter der Maus. Grenzen = Karte.
 - **Befehle und Ereignisse:** UI/Eingabe rufen `sim.enqueue(command)` auf (`src/sim/commands.ts`). Die Simulation wendet Befehle vor jedem Tick **und** einmal pro Bild an (`flushCommands`), damit Bauen auch in der Pause sofort wirkt. Änderungen meldet sie als `SimEvent` (`src/sim/events.ts`); `main.ts` reicht sie pro Bild an Darstellung und Oberfläche weiter und leert die Liste.
 - **Gebäude** (`src/sim/buildings.ts`): Struktur aus Arrays (`type`, `x`, `y`, `rot`, `alive`), freie IDs werden wiederverwendet. Belegung im Raster: `world.building` (ID + 1). Drehung im Uhrzeigersinn: `rotateOffset`, `rotateDir`; Richtungen 0 = N (−y), 1 = O, 2 = S (+y), 3 = W. In der Darstellung: Drehung um −rot·90° um die Hochachse (`buildingMatrix`).
-- **Platzierung** (`src/sim/placement.ts`, `checkPlacement`): reine Abfrage, auch für die Vorschau. Normale Gebäude nur auf Wiese oder gefälltem Wald, Bergwerk braucht ≥ 1 Feld auf einem Vorkommen (andere Gebäude dürfen nicht auf Vorkommen).
+- **Platzierung** (`src/sim/placement.ts`, `checkPlacement`): reine Abfrage, auch für die Vorschau. Normale Gebäude nur auf Wiese oder gefälltem Wald, Bergwerk braucht ≥ 1 Feld auf einem Vorkommen (andere Gebäude dürfen nicht auf Vorkommen), Bänder dürfen auf Wiese und Vorkommen (`placement: 'groundOrDeposit'`).
+- **Gebäudeverhalten** (`behavior` in `src/data/buildings.ts`): `hq`, `miner`, `lumberjack`, `crafter` (mit Maschinenart), `belt`. Die Simulation verzweigt nur nach diesen Arten, nie nach einzelnen Gebäuden.
+- **Bänder** (`src/sim/belts.ts`): Bandfelder sind Gebäude (1 × 1, `rot` = Laufrichtung). Zusammenhängende Felder bilden ein `Segment` mit Ringpuffer aus Abständen (`gaps`, Einheit 1/120 Feld, Mindestabstand 60) und Item-IDs. Pro Tick schrumpft nur der erste schrumpfbare Abstand (`active`); gestaute Segmente kosten fast nichts. Vorgänger eines Feldes: bevorzugt das Band dahinter, sonst eines von der Seite (ergibt Kurven); Seitenzuführung in ein schon belegtes Band gibt es nicht (dafür kommen in Phase 6 Zusammenführer). Bei Bauänderungen werden nur die Segmente am Feld und seinen Nachbarn aufgelöst und neu gebildet; Items behalten dabei ihre Position. Ziele (Gebäudeeingang/Folgesegment) werden über `topologyVersion` zwischengespeichert. Geschlossene Ringe sind erlaubt (`cyclic`).
+- **Maschinen** (`src/sim/machines.ts`): typisierte Arrays je Gebäude-ID (Rezept, Fortschritt, Zustand, Puffer, Auslastung). Listen `crafters` und `extractors` laufen pro Tick einmal durch. Ein Durchlauf dauert exakt `RECIPE_TICKS` Ticks (Fortschritt 1 … Dauer + 1). Ausgang: höchstens 1 Item pro Tick auf das Band vor dem Ausgangsanschluss (nur an den Anfang eines Segments). Bergwerk: Rohstoff mit den meisten Feldern darunter, beste Reinheit davon bestimmt das Tempo. Holzfäller: Waldfelder im Quadrat Grundfläche ± Radius, nimmt reihum Holz.
+- **Rezept automatisch:** Hat eine Maschine noch kein Rezept und kommt ein Item an, das zu genau einem freigeschalteten Rezept passt, wird dieses gewählt (Ergänzung zum Projektskript, macht den Einstieg gemütlicher). Rezeptwechsel und Abriss erstatten den Pufferinhalt.
+- **Tick-Reihenfolge:** Befehle → (Strom ab Phase 5) → Maschinen (Abbau, dann Verarbeitung, jeweils mit Ausgabe aufs Band) → Bänder (Bewegung, Abgabe an Eingänge/Zentrale) → Bäume.
 - **Bäume** (`src/sim/trees.ts`): Holz pro Feld; gefällte Bäume kommen in eine Warteschlange und wachsen nach `TREES.regrowSeconds` nach. Wird gefällter Wald bebaut, wird das Feld zu Wiese (wichtig für Phase 4: diese Abweichung muss gespeichert werden).
 - **Werkzeuge** (`src/input/tools.ts`): Auswahl/Abbau von Hand, Bauen (Vorschau, R drehen), Abriss (X, Rahmen ziehen). Beim Abbau wird der Sichtstrahl in mehreren Höhen abgetastet, damit Klicks auf Baumkronen den richtigen Baum treffen.
-- **Oberfläche:** Kopfzeile (`ui/hud.ts`), Bauleiste mit 3D-gerenderten Gebäudebildern (`ui/build-bar.ts`, `render/icons.ts`), Meldungen und „+1“-Zahlen (`ui/toasts.ts`). Alle aktualisieren nur bei geänderter `inventory.version`, höchstens 4×/s.
+- **Werkzeug Band:** Ziehen ergibt einen L-förmigen Weg (Achse nach der ersten Bewegung, R wechselt die Ecke). Das letzte Feld zeigt automatisch in einen angrenzenden passenden Eingang (`belts.inputDirFor`). Vorhandene Bänder im Weg werden gedreht statt neu gebaut.
+- **Darstellung Bänder** (`render/belt-view.ts`): gerade Stücke und Kurven als `DynamicChunkedInstances`; Form aus `belts.entryDir`. Items: ein `InstancedMesh` je Item-Art, jedes Bild nur für Segmente im Bildausschnitt aus den Abständen berechnet, mit `alpha` zwischen den Ticks weitergeschoben; weit herausgezoomt ausgeblendet. Problemsymbole: `render/status-icons.ts` (4×/s, erst nach `problemDelayTicks`).
+- **Oberfläche:** Kopfzeile (`ui/hud.ts`), Bauleiste mit 3D-gerenderten Gebäudebildern (`ui/build-bar.ts`, `render/icons.ts`), Infofenster mit Rezeptwahl (`ui/info-panel.ts`), Meldungen und „+1“-Zahlen (`ui/toasts.ts`). Item-Bilder werden aus den Item-Modellen gerendert (`setItemIcons`). Alles aktualisiert nur bei Änderungen, höchstens 4×/s.
 - **Sichtbare Texte** nur in `src/data/texts.ts`, **Farben** nur in `src/data/palette.ts`.
 
 ## Getroffene technische Entscheidungen
@@ -69,7 +76,9 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 - **Zufallsgenerator und Noise** liegen in `src/sim` (nicht `src/core`, wie ursprünglich skizziert), weil die Weltgenerierung zur Simulation gehört und `sim` nicht auf `core` zugreifen darf. Projektskript ist angepasst.
 - **Geländeblöcke 32 × 32 statt 16 × 16:** Logische Chunks bleiben 16 × 16 (Instanzen, Culling), gezeichnet wird das Gelände aber in größeren Blöcken, damit weit herausgezoomt die Zeichenaufrufe unter 150 bleiben.
 - **Seed** steht in der Adresse (`?seed=123`), damit Neuladen dieselbe Welt zeigt. Das Seed-Feld oben links ist vorläufig und wandert in Phase 4 ins Hauptmenü.
-- **Entwicklerhilfe:** `?zoom=110` startet mit anderer Zoomstufe (für Bildschirmfotos/Messungen).
+- **Entwicklerhilfe:** `?zoom=110` startet mit anderer Zoomstufe (für Bildschirmfotos/Messungen). `?stress=1` lädt die Referenzfabrik, `?stress=10` die zehnfache Variante (sehr große Karte, im Browser schwer).
+- **Stresstest** (`src/dev/stress.ts`): Produktionsmodule (Bergwerk → Band → Schmelzofen → Band → Werkstatt → Band) plus volle Bandringe. Maßstab 1 = 2.001 Maschinen, ~17.600 Bandfelder, 20.000–30.000 Items. `tests/benchmark.test.ts` misst den Tick und schlägt ab 8 ms fehl.
+- **Schlafende Maschinen** (Projektskript Abschnitt 11) sind vorerst nicht als eigene aktive Liste umgesetzt: Jede Maschine prüft pro Tick nur ein paar Zahlen, die Messung liegt bei 0,1 ms für die Referenzfabrik und 0,7 ms für die zehnfache. Wird es nötig, lässt sich das Wecken ohne Datenumbau nachrüsten.
 - **Bildschirmfotos zum Prüfen:** `npx vite preview --port 4789` und dann Headless-Chromium aus `~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome` mit `--headless=new --use-angle=swiftshader --enable-unsafe-swiftshader --screenshot=... --virtual-time-budget=8000`.
 - **Entwicklerzugang:** Im Entwicklungsmodus (`npm run dev`) liegt `window.__wiesenwerk` (`sim`, `view`, `tools`, `loop`) bereit – für automatische Browser-Tests. Im Build ist er nicht enthalten.
 - **Browser fernsteuern zum Prüfen:** Headless-Chromium mit `--remote-debugging-port` starten und per DevTools-Protokoll über das in Node eingebaute `WebSocket` steuern (`Input.dispatchMouseEvent`, `Input.dispatchKeyEvent`, `Page.captureScreenshot`, `Runtime.evaluate`). Feldpositionen auf den Bildschirm umrechnen mit `new Vector3(x + 0.5, h, y + 0.5).project(view.rig.camera)`. Skripte gehören in den Scratchpad, nicht ins Repository.
@@ -79,20 +88,23 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 
 - Schatten-Qualität ist fest eingestellt (Qualitätsstufen kommen in Phase 7); der Schattenbereich ist auf 70 Felder begrenzt.
 - Das Gelände hat leichte Unebenheiten (±0,04) auch auf baubaren Feldern; Gebäude sitzen auf Höhe 0 und können minimal einsinken/schweben (durch den Sockel kaum sichtbar).
-- Item-Symbole sind vorerst farbige Quadrate; Holz und Kupfererz sehen ähnlich aus. Mit den Item-Formen für Bänder (Phase 3) bekommen sie eigene Bilder.
+- Bandoberflächen laufen noch nicht sichtbar mit (nur die Items bewegen sich; Phase 7).
+- Kurven werden als zwei gerade Hälften dargestellt; Items knicken in der Feldmitte ab.
+- Strom ist in Phase 3 unbegrenzt; der Zustand „Kein Strom“ ist vorbereitet, wird aber noch nicht gesetzt.
 - Gebäude sind noch Platzhalter ohne Animation und ohne Aufploppen (Phase 7).
 - Kleine Teiche (1–2 Felder) sehen eher wie Sandmulden aus.
 - Messwerte Phase 1 (Seed 4711, 1280 × 800): nah 22 Zeichenaufrufe / ca. 320 000 Dreiecke, ganz herausgezoomt 53 Zeichenaufrufe / ca. 430 000 Dreiecke. Welterzeugung ca. 30 ms.
+- Messwerte Phase 3 (Referenzfabrik, 1280 × 800): Tick 0,11 ms (Node) bzw. 0,05 ms (Browser); Zeichenaufrufe 26 (nah), 35 (Ringe), 71 (ganz heraus); Dreiecke 250 000–470 000. Zehnfach: Tick 0,74 ms.
 
 ## Stand der Phasen
 
-| Phase                         | Stand                                                                                                 |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------- |
-| 0. Fundament                  | Umgesetzt und lokal geprüft. GitHub Pages wird auf Wunsch des Auftraggebers erst später eingerichtet. |
-| 1. Welt und Kamera            | Abgenommen (Auftraggeber: „Sieht gut aus“).                                                           |
-| 2. Bauen und Vorrat           | Umgesetzt und im ferngesteuerten Browser geprüft. Wartet auf Abnahme durch den Auftraggeber.          |
-| 3. Produktion und Bänder      | offen                                                                                                 |
-| 4. Speichern                  | offen                                                                                                 |
-| 5. Strom                      | offen                                                                                                 |
-| 6. Forschung und Ausbau       | offen                                                                                                 |
-| 7. Atmosphäre und Feinschliff | offen                                                                                                 |
+| Phase                         | Stand                                                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 0. Fundament                  | Umgesetzt und lokal geprüft. GitHub Pages wird auf Wunsch des Auftraggebers erst später eingerichtet.  |
+| 1. Welt und Kamera            | Abgenommen (Auftraggeber: „Sieht gut aus“).                                                            |
+| 2. Bauen und Vorrat           | Abgenommen (Auftraggeber: „mache mit der nächsten Phase weiter“).                                      |
+| 3. Produktion und Bänder      | Umgesetzt; Abnahmetest automatisch (`tests/belts.test.ts`) und im Browser geprüft. Wartet auf Abnahme. |
+| 4. Speichern                  | offen                                                                                                  |
+| 5. Strom                      | offen                                                                                                  |
+| 6. Forschung und Ausbau       | offen                                                                                                  |
+| 7. Atmosphäre und Feinschliff | offen                                                                                                  |
