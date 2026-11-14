@@ -20,6 +20,12 @@ export class ChunkedInstances {
   private readonly colors: Float32Array | null;
   /** Startindex jedes Chunks in den Quell-Arrays; Länge = Chunks + 1. */
   private readonly chunkStart: Uint32Array;
+  /** Ausgeblendete Instanzen (z. B. gefällte Bäume). */
+  private readonly hidden: Uint8Array;
+  /** Zuordnung Schlüssel (z. B. Feldindex) → Instanz. */
+  private readonly byKey = new Map<number, number>();
+  /** Wird bei Änderungen gesetzt, damit der Puffer neu befüllt wird. */
+  dirty = true;
 
   constructor(
     geometry: BufferGeometry,
@@ -27,7 +33,9 @@ export class ChunkedInstances {
     builder: InstanceBuilder,
     options: { castShadow: boolean; lodGeometry?: BufferGeometry },
   ) {
-    const { matrices, colors, chunkStart } = builder.finish();
+    const { matrices, colors, chunkStart, keys } = builder.finish();
+    this.hidden = new Uint8Array(keys.length);
+    for (let i = 0; i < keys.length; i++) if (keys[i] >= 0) this.byKey.set(keys[i], i);
     this.matrices = matrices;
     this.colors = colors;
     this.chunkStart = chunkStart;
@@ -60,8 +68,18 @@ export class ChunkedInstances {
     this.mesh.visible = !low;
   }
 
+  /** Blendet die Instanz mit diesem Schlüssel aus oder ein. */
+  setHidden(key: number, hidden: boolean): void {
+    const i = this.byKey.get(key);
+    if (i === undefined || (this.hidden[i] === 1) === hidden) return;
+    this.hidden[i] = hidden ? 1 : 0;
+    this.dirty = true;
+  }
+
   /** Kopiert die Instanzen der sichtbaren Chunks in den Grafikpuffer. */
   applyVisible(visible: Uint16Array, visibleCount: number): void {
+    this.dirty = false;
+    const hidden = this.hidden;
     const dstM = this.mesh.instanceMatrix.array as Float32Array;
     const dstC = this.mesh.instanceColor ? (this.mesh.instanceColor.array as Float32Array) : null;
     const srcM = this.matrices;
@@ -71,7 +89,8 @@ export class ChunkedInstances {
       const chunk = visible[v];
       const from = this.chunkStart[chunk];
       const to = this.chunkStart[chunk + 1];
-      for (let i = from; i < to; i++, n++) {
+      for (let i = from; i < to; i++) {
+        if (hidden[i]) continue;
         const s = i * 16;
         const d = n * 16;
         for (let k = 0; k < 16; k++) dstM[d + k] = srcM[s + k];
@@ -80,6 +99,7 @@ export class ChunkedInstances {
           dstC[n * 3 + 1] = srcC[i * 3 + 1];
           dstC[n * 3 + 2] = srcC[i * 3 + 2];
         }
+        n++;
       }
     }
     this.mesh.count = n;
@@ -103,21 +123,28 @@ export class InstanceBuilder {
   private readonly chunks: number[] = [];
   private readonly mats: number[] = [];
   private readonly cols: number[] = [];
+  private readonly keys: number[] = [];
 
   constructor(
     private readonly chunkCount: number,
     private readonly withColor: boolean,
   ) {}
 
-  add(chunk: number, matrix: Matrix4, color?: Color): void {
+  add(chunk: number, matrix: Matrix4, color?: Color, key = -1): void {
     this.chunks.push(chunk);
+    this.keys.push(key);
     for (let k = 0; k < 16; k++) this.mats.push(matrix.elements[k]);
     if (this.withColor) {
       this.cols.push(color ? color.r : 1, color ? color.g : 1, color ? color.b : 1);
     }
   }
 
-  finish(): { matrices: Float32Array; colors: Float32Array | null; chunkStart: Uint32Array } {
+  finish(): {
+    matrices: Float32Array;
+    colors: Float32Array | null;
+    chunkStart: Uint32Array;
+    keys: Int32Array;
+  } {
     const n = this.chunks.length;
     const chunkStart = new Uint32Array(this.chunkCount + 1);
     for (const c of this.chunks) chunkStart[c + 1]++;
@@ -125,8 +152,10 @@ export class InstanceBuilder {
     const fill = chunkStart.slice(0, this.chunkCount);
     const matrices = new Float32Array(n * 16);
     const colors = this.withColor ? new Float32Array(n * 3) : null;
+    const keys = new Int32Array(n);
     for (let i = 0; i < n; i++) {
       const dst = fill[this.chunks[i]]++;
+      keys[dst] = this.keys[i];
       for (let k = 0; k < 16; k++) matrices[dst * 16 + k] = this.mats[i * 16 + k];
       if (colors) {
         colors[dst * 3] = this.cols[i * 3];
@@ -134,6 +163,6 @@ export class InstanceBuilder {
         colors[dst * 3 + 2] = this.cols[i * 3 + 2];
       }
     }
-    return { matrices, colors, chunkStart };
+    return { matrices, colors, chunkStart, keys };
   }
 }

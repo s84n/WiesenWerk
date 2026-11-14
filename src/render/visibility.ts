@@ -38,7 +38,8 @@ export class ChunkVisibility {
     for (let cy = 0; cy < chunksPerSide; cy++) {
       for (let cx = 0; cx < chunksPerSide; cx++) {
         tmpMin.set(cx * chunkSize, -1.5, cy * chunkSize);
-        tmpMax.set((cx + 1) * chunkSize, this.maxHeight, (cy + 1) * chunkSize);
+        // +3 Felder, weil Gebäude über die Chunkgrenze hinausragen können
+        tmpMax.set((cx + 1) * chunkSize + 3, this.maxHeight, (cy + 1) * chunkSize + 3);
         tmpBox.set(tmpMin, tmpMax);
         if (this.frustum.intersectsBox(tmpBox)) this.visible[n++] = cy * chunksPerSide + cx;
       }

@@ -90,11 +90,11 @@ body {
 .hint {
   position: absolute;
   bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  white-space: nowrap;
+  left: 16px;
+  max-width: 230px;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  line-height: 1.4;
   color: var(--text-soft);
 }
 
@@ -220,4 +220,260 @@ body {
 
 .button.secondary:hover {
   background: #dccaa4;
+}
+
+/* ---------- Kopfzeile ---------- */
+.hud {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 8px 6px 14px;
+}
+
+.hud-items {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hud-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.item-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+  flex: none;
+}
+
+.hud-speed {
+  display: flex;
+  gap: 3px;
+  padding-left: 10px;
+  border-left: 1px solid var(--panel-border);
+}
+
+.hud-button {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  min-width: 34px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+.hud-button:hover {
+  background: rgba(217, 139, 78, 0.15);
+}
+
+.hud-button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ---------- Bauleiste ---------- */
+.build-wrap {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.build-wrap > * {
+  pointer-events: auto;
+}
+
+.mode-hint {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.build-bar {
+  padding: 8px 10px 10px;
+}
+
+.build-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.build-tab {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+.build-tab:hover {
+  background: rgba(217, 139, 78, 0.15);
+}
+
+.build-tab.selected {
+  background: var(--accent);
+  color: #fff;
+}
+
+.build-tab.demolish {
+  margin-left: auto;
+}
+
+.build-tab.demolish.selected {
+  background: #d8644a;
+}
+
+.build-list {
+  display: flex;
+  gap: 8px;
+  min-height: 118px;
+}
+
+.build-entry {
+  position: relative;
+  width: 96px;
+  padding: 6px 4px 6px;
+  font: inherit;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition:
+    transform 0.12s,
+    border-color 0.12s,
+    background 0.12s;
+}
+
+.build-entry:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.build-entry.selected {
+  border-color: var(--accent);
+  background: #fff;
+}
+
+.build-entry.unaffordable {
+  opacity: 0.5;
+  filter: grayscale(0.7);
+}
+
+.build-icon {
+  width: 56px;
+  height: 56px;
+}
+
+.build-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.build-cost {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+
+.cost-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.cost-chip .item-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.build-key {
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+/* ---------- Meldungen ---------- */
+.toast-stack {
+  position: absolute;
+  bottom: 250px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  animation: toast-in 0.2s ease-out;
+  transition: opacity 0.4s;
+}
+
+.toast.leaving {
+  opacity: 0;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.float-text {
+  position: fixed;
+  font-weight: 800;
+  font-size: 0.95rem;
+  text-shadow:
+    0 1px 0 #fff,
+    0 0 6px rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  animation: float-up 0.9s ease-out forwards;
+}
+
+@keyframes float-up {
+  to {
+    opacity: 0;
+    transform: translateY(-28px);
+  }
 }

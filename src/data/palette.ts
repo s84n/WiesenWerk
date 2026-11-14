@@ -39,6 +39,34 @@ export const PALETTE = {
   flowerWhite: 0xfaf4e6,
   flowerViolet: 0xa98fd8,
 
+  // Gebäude-Details
+  glow: 0xffb347,
+  windowLight: 0xffe39a,
+  flag: 0xe0603e,
+
+  // Items
+  itemWood: 0xc98b4a,
+  itemStone: 0xbdb5a5,
+  itemCopperOre: 0xb0643a,
+  itemCopperIngot: 0xeb9a5e,
+  itemBrick: 0xc96f4a,
+  itemCharcoal: 0x5a4c44,
+  itemPlank: 0xe6c27a,
+  itemWire: 0xf0b45e,
+  itemSheet: 0xd98b4e,
+  itemFrame: 0xa8743c,
+  itemCoil: 0xd07a3c,
+  itemCircuit: 0x5aa66a,
+  itemMotor: 0x7f93ad,
+  itemControl: 0x4fb3b0,
+
+  // Hinweise
+  hintGood: 0x8fe08a,
+  hintBad: 0xf0806a,
+  highlight: 0xfff6d8,
+  portIn: 0x6fb7e8,
+  portOut: 0xf2a33a,
+
   // Licht und Himmel
   sky: 0xbfe3f2,
   fog: 0xcfe7e6,

@@ -1,4 +1,4 @@
-import { TileType, WORLD_CONFIG } from '../data/world';
+import { WORLD_CONFIG } from '../data/world';
 
 /**
  * Das Raster der Welt. Jede Eigenschaft ist ein flaches Array, Index = y * size + x.
@@ -15,6 +15,8 @@ export class World {
   readonly resource: Uint8Array;
   /** Reinheit eines Vorkommens (Index in `PURITY`). */
   readonly purity: Uint8Array;
+  /** Gebäude auf dem Feld: ID + 1, 0 = frei. */
+  readonly building: Int32Array;
   /** Rein optische Höhe von Felsen und Hügeln (0..255). Hat keinen Einfluss auf die Logik. */
   readonly relief: Uint8Array;
 
@@ -36,6 +38,7 @@ export class World {
     this.resource = new Uint8Array(n);
     this.purity = new Uint8Array(n);
     this.relief = new Uint8Array(n);
+    this.building = new Int32Array(n);
   }
 
   index(x: number, y: number): number {
@@ -49,9 +52,5 @@ export class World {
   /** Index des Chunks, in dem das Feld liegt. */
   chunkOf(x: number, y: number): number {
     return Math.floor(y / this.chunkSize) * this.chunksPerSide + Math.floor(x / this.chunkSize);
-  }
-
-  isBuildableGround(index: number): boolean {
-    return this.tiles[index] === TileType.Meadow;
   }
 }

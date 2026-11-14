@@ -3,6 +3,7 @@ import { PALETTE } from '../data/palette';
 import { RENDER_CONFIG } from '../data/config';
 import { DEPOSITS, TileType } from '../data/world';
 import { hash3Float } from '../sim/rng';
+import type { Simulation } from '../sim/simulation';
 import type { World } from '../sim/world';
 import { ChunkedInstances, InstanceBuilder } from './chunked-instances';
 import {
@@ -13,6 +14,7 @@ import {
   pineTreeLow,
   roundTree,
   roundTreeLow,
+  treeStump,
 } from './models';
 import { tileHeight } from './terrain-heights';
 
@@ -38,6 +40,8 @@ export class Nature {
   readonly group = new Group();
   private readonly layers: ChunkedInstances[] = [];
   private readonly details: ChunkedInstances[] = [];
+  private readonly treeLayers: ChunkedInstances[];
+  private readonly stumps: ChunkedInstances;
 
   constructor(world: World, heights: Float32Array, material: Material) {
     const { size, tiles, seed } = world;
@@ -47,6 +51,7 @@ export class Nature {
     const rocks = new InstanceBuilder(chunks, true);
     const flowers = new InstanceBuilder(chunks, true);
     const tufts = new InstanceBuilder(chunks, false);
+    const stumps = new InstanceBuilder(chunks, false);
 
     const place = (
       b: InstanceBuilder,
@@ -57,12 +62,13 @@ export class Nature {
       scale: number,
       rot: number,
       color?: Color,
+      key = -1,
     ): void => {
       pos.set(x, h, y);
       quat.setFromAxisAngle(up, rot);
       scl.set(scale, scale, scale);
       m.compose(pos, quat, scl);
-      b.add(chunk, m, color);
+      b.add(chunk, m, color, key);
     };
 
     for (let y = 0; y < size; y++) {
@@ -76,15 +82,11 @@ export class Nature {
         if (t === TileType.Forest) {
           const scale = 0.8 + r(1) * 0.45;
           const builder = r(2) < 0.6 ? pines : rounds;
-          place(
-            builder,
-            chunk,
-            x + 0.25 + r(3) * 0.5,
-            y + 0.25 + r(4) * 0.5,
-            h,
-            scale,
-            r(5) * Math.PI * 2,
-          );
+          const tx = x + 0.25 + r(3) * 0.5;
+          const ty = y + 0.25 + r(4) * 0.5;
+          const rot = r(5) * Math.PI * 2;
+          place(builder, chunk, tx, ty, h, scale, rot, undefined, i);
+          place(stumps, chunk, tx, ty, h, scale, rot, undefined, i);
         } else if (t === TileType.Deposit) {
           const def = DEPOSITS[world.resource[i] - 1];
           const purity = world.purity[i];
@@ -138,7 +140,7 @@ export class Nature {
       }
     }
 
-    this.layers.push(
+    this.treeLayers = [
       new ChunkedInstances(pineTree(), material, pines, {
         castShadow: true,
         lodGeometry: pineTreeLow(),
@@ -147,8 +149,17 @@ export class Nature {
         castShadow: true,
         lodGeometry: roundTreeLow(),
       }),
+    ];
+    this.stumps = new ChunkedInstances(treeStump(), material, stumps, { castShadow: false });
+    this.layers.push(
+      ...this.treeLayers,
+      this.stumps,
       new ChunkedInstances(boulder(), material, rocks, { castShadow: true }),
     );
+    // Stümpfe sind anfangs alle ausgeblendet
+    for (let i = 0; i < tiles.length; i++) {
+      if (tiles[i] === TileType.Forest) this.stumps.setHidden(i, true);
+    }
     this.details.push(
       new ChunkedInstances(flower(), material, flowers, { castShadow: false }),
       new ChunkedInstances(grassTuft(), material, tufts, { castShadow: false }),
@@ -159,9 +170,18 @@ export class Nature {
     }
   }
 
-  applyVisible(visible: Uint16Array, count: number): void {
-    for (const l of this.layers) l.applyVisible(visible, count);
-    for (const d of this.details) d.applyVisible(visible, count);
+  /** Füllt die Instanzpuffer neu – bei geänderter Sichtbarkeit (`force`) oder nach Änderungen. */
+  applyVisible(visible: Uint16Array, count: number, force: boolean): void {
+    for (const l of this.layers) if (force || l.dirty) l.applyVisible(visible, count);
+    for (const d of this.details) if (force || d.dirty) d.applyVisible(visible, count);
+  }
+
+  /** Aktualisiert Baum und Stumpf auf einem Feld nach dem Spielzustand. */
+  refreshTile(sim: Simulation, tile: number): void {
+    const forest = sim.world.tiles[tile] === TileType.Forest;
+    const tree = forest && sim.trees.hasTree(tile);
+    for (const l of this.treeLayers) l.setHidden(tile, !tree);
+    this.stumps.setHidden(tile, tree || !forest || sim.world.building[tile] !== 0);
   }
 
   /** Vereinfachte Bäume für große Entfernung. */

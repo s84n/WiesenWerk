@@ -116,10 +116,15 @@ export class CameraRig {
 
   /** Schnittpunkt des Sichtstrahls durch einen Bildschirmpunkt mit dem Boden (y = 0). */
   groundAt(ndcX: number, ndcY: number, out: Vector3): boolean {
+    return this.pointAtHeight(ndcX, ndcY, 0, out);
+  }
+
+  /** Punkt auf dem Sichtstrahl in einer bestimmten Höhe (z. B. Baumkronen). */
+  pointAtHeight(ndcX: number, ndcY: number, height: number, out: Vector3): boolean {
     tmpOrigin.set(ndcX, ndcY, -1).unproject(this.camera);
     this.camera.getWorldDirection(tmpDir);
     if (Math.abs(tmpDir.y) < 1e-6) return false;
-    const t = -tmpOrigin.y / tmpDir.y;
+    const t = (height - tmpOrigin.y) / tmpDir.y;
     out.copy(tmpOrigin).addScaledVector(tmpDir, t);
     return true;
   }

@@ -69,3 +69,11 @@ export function grassTuft(): BufferGeometry {
     ),
   ]);
 }
+
+/** Baumstumpf nach dem Fällen. */
+export function treeStump(): BufferGeometry {
+  return merge([
+    colored(new CylinderGeometry(0.11, 0.13, 0.16, 6).translate(0, 0.08, 0), PALETTE.trunk),
+    colored(new CylinderGeometry(0.1, 0.1, 0.02, 6).translate(0, 0.17, 0), PALETTE.wood),
+  ]);
+}

@@ -49,9 +49,15 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 - **Darstellung** (`src/render/scene.ts`): orthografische Kamera im Iso-Winkel, ein gemeinsames `MeshLambertMaterial` mit Vertex-Farben und Flat Shading. Formen werden mit `colored()` eingefärbt und mit `merge()` verschmolzen (`src/render/geometry.ts`).
 - **Welt** (`src/sim/world.ts`, `src/sim/worldgen.ts`): flache typisierte Arrays (`tiles`, `resource`, `purity`, `relief`), Index `y * size + x`. Generator mit eigener Noise-Ebene je Schicht (`deriveSeed(seed, 'relief' | 'lakes' | 'forest' | 'deposit:<id>' ...)`). Neue Vorkommen in `DEPOSITS` (`src/data/world.ts`) immer hinten anhängen, sonst ändern sich alte Seeds. Startpunkt = Kartenmitte; Startgebiet wird garantiert (freie Wiese, Wald, Stein, Kupfer).
 - **Gelände** (`src/render/terrain.ts`): verschmolzene Geometrie je Block von 32 × 32 Feldern. Höhen sind rein optisch (`terrain-heights.ts`): baubare Felder bleiben fast flach, Felsen wölben sich, Ufer fallen unter die Wasserlinie ab.
-- **Instanzen pro Chunk** (`src/render/chunked-instances.ts`): Jede Objektart (Kiefer, Laubbaum, Felsbrocken, Blume, Gras) ist ein `InstancedMesh`. Instanzdaten liegen nach Chunks sortiert; `ChunkVisibility` (`visibility.ts`) prüft die Chunks gegen den Bildausschnitt und nur bei Änderung werden die sichtbaren Instanzen in den Puffer kopiert. Dieses Muster soll in Phase 2 auch für Gebäude genutzt werden (dann mit Einfügen/Entfernen).
+- **Instanzen pro Chunk** (`src/render/chunked-instances.ts`): Jede Objektart (Kiefer, Laubbaum, Felsbrocken, Blume, Gras) ist ein `InstancedMesh`. Instanzdaten liegen nach Chunks sortiert; `ChunkVisibility` (`visibility.ts`) prüft die Chunks gegen den Bildausschnitt und nur bei Änderung werden die sichtbaren Instanzen in den Puffer kopiert. Einzelne Instanzen lassen sich per Schlüssel (Feldindex) aus- und einblenden (gefällte Bäume ↔ Stümpfe). Für Gebäude gibt es die veränderliche Variante `DynamicChunkedInstances` (`dynamic-instances.ts`).
 - **Detailstufen:** ab `detailMaxViewHeight` keine Blumen/Gras, ab `lodViewHeight` vereinfachte Bäume (teilen sich die Instanzdaten) und keine Schatten (`src/data/config.ts`).
 - **Kamera** (`src/render/camera-rig.ts`): Ziel- und Ist-Zustand, exponentiell geglättet. Zoom hält den Bodenpunkt unter der Maus fest, Ziehen mit der mittleren Maustaste hält den angefassten Punkt unter der Maus. Grenzen = Karte.
+- **Befehle und Ereignisse:** UI/Eingabe rufen `sim.enqueue(command)` auf (`src/sim/commands.ts`). Die Simulation wendet Befehle vor jedem Tick **und** einmal pro Bild an (`flushCommands`), damit Bauen auch in der Pause sofort wirkt. Änderungen meldet sie als `SimEvent` (`src/sim/events.ts`); `main.ts` reicht sie pro Bild an Darstellung und Oberfläche weiter und leert die Liste.
+- **Gebäude** (`src/sim/buildings.ts`): Struktur aus Arrays (`type`, `x`, `y`, `rot`, `alive`), freie IDs werden wiederverwendet. Belegung im Raster: `world.building` (ID + 1). Drehung im Uhrzeigersinn: `rotateOffset`, `rotateDir`; Richtungen 0 = N (−y), 1 = O, 2 = S (+y), 3 = W. In der Darstellung: Drehung um −rot·90° um die Hochachse (`buildingMatrix`).
+- **Platzierung** (`src/sim/placement.ts`, `checkPlacement`): reine Abfrage, auch für die Vorschau. Normale Gebäude nur auf Wiese oder gefälltem Wald, Bergwerk braucht ≥ 1 Feld auf einem Vorkommen (andere Gebäude dürfen nicht auf Vorkommen).
+- **Bäume** (`src/sim/trees.ts`): Holz pro Feld; gefällte Bäume kommen in eine Warteschlange und wachsen nach `TREES.regrowSeconds` nach. Wird gefällter Wald bebaut, wird das Feld zu Wiese (wichtig für Phase 4: diese Abweichung muss gespeichert werden).
+- **Werkzeuge** (`src/input/tools.ts`): Auswahl/Abbau von Hand, Bauen (Vorschau, R drehen), Abriss (X, Rahmen ziehen). Beim Abbau wird der Sichtstrahl in mehreren Höhen abgetastet, damit Klicks auf Baumkronen den richtigen Baum treffen.
+- **Oberfläche:** Kopfzeile (`ui/hud.ts`), Bauleiste mit 3D-gerenderten Gebäudebildern (`ui/build-bar.ts`, `render/icons.ts`), Meldungen und „+1“-Zahlen (`ui/toasts.ts`). Alle aktualisieren nur bei geänderter `inventory.version`, höchstens 4×/s.
 - **Sichtbare Texte** nur in `src/data/texts.ts`, **Farben** nur in `src/data/palette.ts`.
 
 ## Getroffene technische Entscheidungen
@@ -65,12 +71,16 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 - **Seed** steht in der Adresse (`?seed=123`), damit Neuladen dieselbe Welt zeigt. Das Seed-Feld oben links ist vorläufig und wandert in Phase 4 ins Hauptmenü.
 - **Entwicklerhilfe:** `?zoom=110` startet mit anderer Zoomstufe (für Bildschirmfotos/Messungen).
 - **Bildschirmfotos zum Prüfen:** `npx vite preview --port 4789` und dann Headless-Chromium aus `~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome` mit `--headless=new --use-angle=swiftshader --enable-unsafe-swiftshader --screenshot=... --virtual-time-budget=8000`.
+- **Entwicklerzugang:** Im Entwicklungsmodus (`npm run dev`) liegt `window.__wiesenwerk` (`sim`, `view`, `tools`, `loop`) bereit – für automatische Browser-Tests. Im Build ist er nicht enthalten.
+- **Browser fernsteuern zum Prüfen:** Headless-Chromium mit `--remote-debugging-port` starten und per DevTools-Protokoll über das in Node eingebaute `WebSocket` steuern (`Input.dispatchMouseEvent`, `Input.dispatchKeyEvent`, `Page.captureScreenshot`, `Runtime.evaluate`). Feldpositionen auf den Bildschirm umrechnen mit `new Vector3(x + 0.5, h, y + 0.5).project(view.rig.camera)`. Skripte gehören in den Scratchpad, nicht ins Repository.
 - **Deploy-Workflow** baut mit Node 22, führt Typprüfung, Lint und Tests aus; schlägt etwas fehl, wird nicht veröffentlicht.
 
 ## Bekannte Schwächen
 
 - Schatten-Qualität ist fest eingestellt (Qualitätsstufen kommen in Phase 7); der Schattenbereich ist auf 70 Felder begrenzt.
-- Das Gelände hat leichte Unebenheiten (±0,04) auch auf baubaren Feldern; Gebäude in Phase 2 sitzen auf Feldhöhe und können minimal einsinken/schweben.
+- Das Gelände hat leichte Unebenheiten (±0,04) auch auf baubaren Feldern; Gebäude sitzen auf Höhe 0 und können minimal einsinken/schweben (durch den Sockel kaum sichtbar).
+- Item-Symbole sind vorerst farbige Quadrate; Holz und Kupfererz sehen ähnlich aus. Mit den Item-Formen für Bänder (Phase 3) bekommen sie eigene Bilder.
+- Gebäude sind noch Platzhalter ohne Animation und ohne Aufploppen (Phase 7).
 - Kleine Teiche (1–2 Felder) sehen eher wie Sandmulden aus.
 - Messwerte Phase 1 (Seed 4711, 1280 × 800): nah 22 Zeichenaufrufe / ca. 320 000 Dreiecke, ganz herausgezoomt 53 Zeichenaufrufe / ca. 430 000 Dreiecke. Welterzeugung ca. 30 ms.
 
@@ -79,8 +89,8 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 | Phase                         | Stand                                                                                                 |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------- |
 | 0. Fundament                  | Umgesetzt und lokal geprüft. GitHub Pages wird auf Wunsch des Auftraggebers erst später eingerichtet. |
-| 1. Welt und Kamera            | Umgesetzt und lokal geprüft. Wartet auf Abnahme durch den Auftraggeber (Erkunden im Browser).         |
-| 2. Bauen und Vorrat           | offen                                                                                                 |
+| 1. Welt und Kamera            | Abgenommen (Auftraggeber: „Sieht gut aus“).                                                           |
+| 2. Bauen und Vorrat           | Umgesetzt und im ferngesteuerten Browser geprüft. Wartet auf Abnahme durch den Auftraggeber.          |
 | 3. Produktion und Bänder      | offen                                                                                                 |
 | 4. Speichern                  | offen                                                                                                 |
 | 5. Strom                      | offen                                                                                                 |

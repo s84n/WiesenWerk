@@ -1,3 +1,4 @@
+import type { ItemKey } from './items';
 import type { PaletteKey } from './palette';
 
 /** Feldarten. Die Zahl ist der Wert im Raster-Array. */
@@ -25,6 +26,8 @@ export interface DepositDef {
   noiseScale: number;
   /** Ab diesem Noise-Wert (0..1) entsteht ein Vorkommen. Höher = seltener. */
   threshold: number;
+  /** Item, das hier abgebaut wird. */
+  item: ItemKey;
   /** Wird im Startgebiet garantiert. */
   startGuarantee: boolean;
   /** Farbe der Felsbrocken auf dem Vorkommen. */
@@ -41,6 +44,7 @@ export interface DepositDef {
 export const DEPOSITS: readonly DepositDef[] = [
   {
     id: 'stone',
+    item: 'stone',
     noiseScale: 1 / 16,
     threshold: 0.79,
     startGuarantee: true,
@@ -49,6 +53,7 @@ export const DEPOSITS: readonly DepositDef[] = [
   },
   {
     id: 'copper',
+    item: 'copperOre',
     noiseScale: 1 / 16,
     threshold: 0.81,
     startGuarantee: true,

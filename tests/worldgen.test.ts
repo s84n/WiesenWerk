@@ -113,6 +113,7 @@ describe('Weltgenerator', () => {
   it('verändert bestehende Vorkommen nicht, wenn neue Rohstoffe dazukommen', () => {
     const extra: DepositDef = {
       id: 'iron-test',
+      item: 'stone',
       noiseScale: 1 / 9,
       threshold: 0.8,
       startGuarantee: true,
