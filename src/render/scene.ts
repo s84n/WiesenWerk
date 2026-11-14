@@ -186,7 +186,7 @@ export class GameRenderer {
     const target = new WebGLRenderTarget(size.x, size.y, { type: HalfFloatType, samples: 4 });
     const composer = new EffectComposer(this.renderer, target);
     composer.addPass(new RenderPass(this.scene, this.rig.camera));
-    this.bloom = new UnrealBloomPass(size.clone(), 0.38, 0.5, 0.82);
+    this.bloom = new UnrealBloomPass(size.clone(), 0.3, 0.4, 0.88);
     composer.addPass(this.bloom);
     composer.addPass(new OutputPass());
     this.composer = composer;
@@ -446,7 +446,7 @@ export class GameRenderer {
     if (this.preset.bloom) {
       const composer = this.ensureComposer();
       // nachts etwas mehr Leuchten
-      this.bloom!.strength = 0.3 + 0.35 * this.atmosphere.glow;
+      this.bloom!.strength = 0.22 + 0.1 * this.atmosphere.glow;
       composer.render();
     } else {
       this.renderer.render(this.scene, rig.camera);

@@ -117,7 +117,7 @@ export class BuildingsView {
 
   /** Nachtleuchten (0..1) für die Lichtscheine der Laternen. */
   setNightGlow(glow: number): void {
-    this.lightMaterial.opacity = glow * 0.55;
+    this.lightMaterial.opacity = glow * 0.35;
     this.lights.group.visible = glow > 0.02;
   }
 

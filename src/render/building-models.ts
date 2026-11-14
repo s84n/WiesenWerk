@@ -49,6 +49,28 @@ function gableRoof(
   return colored(g.translate(x, y, z), color);
 }
 
+/**
+ * Kleine Hängelampe an einer Wand, die nach Süden (+z) zeigt: Arm aus der Wand bei (x, y, wallZ),
+ * darunter ein Glas in Fensterlicht-Farbe (leuchtet nachts über den Shader, keine echte Lichtquelle).
+ */
+function wallLamp(x: number, y: number, wallZ: number): BufferGeometry[] {
+  return [
+    box(0.04, 0.04, 0.2, x, y, wallZ + 0.1, PALETTE.woodDark),
+    box(0.015, 0.08, 0.015, x, y - 0.08, wallZ + 0.18, PALETTE.metalDark),
+    box(0.1, 0.03, 0.1, x, y - 0.11, wallZ + 0.18, PALETTE.metalDark),
+    box(0.11, 0.13, 0.11, x, y - 0.24, wallZ + 0.18, PALETTE.windowLight),
+  ];
+}
+
+/** Hängelampe unter einem Dach oder Balken bei (x, y = Aufhängung, z). */
+function hangingLamp(x: number, y: number, z: number): BufferGeometry[] {
+  return [
+    box(0.015, 0.16, 0.015, x, y - 0.16, z, PALETTE.metalDark),
+    box(0.11, 0.03, 0.11, x, y - 0.19, z, PALETTE.metalDark),
+    box(0.11, 0.13, 0.11, x, y - 0.32, z, PALETTE.windowLight),
+  ];
+}
+
 function pyramidRoof(size: number, height: number, y: number, color: number): BufferGeometry {
   return colored(
     new ConeGeometry(size / Math.SQRT2, height, 4)
@@ -90,6 +112,7 @@ function lumberjack(): BufferGeometry {
     box(0.3, 0.5, 0.04, -0.3, 0.1, 0.18, PALETTE.woodDark),
     // Halter des Sägeblatts (das Blatt selbst dreht sich, siehe SPINNERS)
     box(0.12, 0.3, 0.12, 0.55, 0.1, -0.55, PALETTE.woodDark),
+    ...wallLamp(0.05, 0.75, 0.175),
   ];
   // Holzstapel
   for (let k = 0; k < 3; k++) {
@@ -116,6 +139,7 @@ function miner(): BufferGeometry {
     // Schienen aus dem Stollen (die Lore fährt darauf, siehe SLIDERS)
     box(0.04, 0.03, 1.05, 0.23, 0.25, 0.3, PALETTE.metalDark),
     box(0.04, 0.03, 1.05, 0.47, 0.25, 0.3, PALETTE.metalDark),
+    ...wallLamp(0.45, 1.25, -0.29),
   ];
   return merge(parts);
 }
@@ -140,6 +164,7 @@ function workshop(): BufferGeometry {
     gableRoof(1.45, 1.75, 0.6, 0, 0.95, -0.1, PALETTE.roof),
     box(0.5, 0.55, 0.04, -0.35, 0.1, 0.52, PALETTE.woodDark),
     box(0.3, 0.28, 0.04, 0.4, 0.45, 0.52, PALETTE.windowLight),
+    ...wallLamp(-0.72, 0.78, 0.5),
   ];
   return merge(parts);
 }
@@ -257,6 +282,7 @@ function storageVariant(accent: number, doors: number): BufferGeometry {
     parts.push(box(0.5, 0.55, 0.04, x, 0.1, 0.56, PALETTE.woodDark));
   }
   parts.push(box(0.26, 0.24, 0.26, 0.7, 0.1, -0.85, PALETTE.woodDark));
+  parts.push(...wallLamp(doors === 1 ? 0.25 : 0, 0.74, 0.55));
   return merge(parts);
 }
 
@@ -268,6 +294,8 @@ function storageLarge(): BufferGeometry {
     box(0.8, 0.85, 0.05, -1, 0.14, 1.11, PALETTE.woodDark),
     box(0.8, 0.85, 0.05, 1, 0.14, 1.11, PALETTE.woodDark),
     box(0.5, 0.3, 0.04, 0, 0.8, 1.11, PALETTE.windowLight),
+    ...wallLamp(-0.45, 1.2, 1.1),
+    ...wallLamp(0.45, 1.2, 1.1),
   ];
   // Kistenstapel an der Seite
   for (let k = 0; k < 3; k++)
@@ -318,6 +346,8 @@ function depot(large: boolean): BufferGeometry {
       PALETTE.woodDark,
     ),
   );
+  // Laterne unter dem Vordach
+  parts.push(...hangingLamp(0.15 * s, 1.16, 0.1 * s));
   // Schild mit Kupferplatte
   parts.push(box(0.05, 0.6, 0.05, 0.85 * s, 0.16, 0.95 * s, PALETTE.woodDark));
   parts.push(box(0.4, 0.22, 0.04, 0.85 * s, 0.6, 0.95 * s, PALETTE.copper));
@@ -333,8 +363,9 @@ function dispenser(): BufferGeometry {
     box(1.85, 0.12, 1.85, 0, 0, 0, PALETTE.woodDark),
     box(1.5, 0.9, 1.2, 0.1, 0.12, -0.25, PALETTE.cream),
     gableRoof(1.35, 1.65, 0.5, 0.1, 1.02, -0.25, PALETTE.dispenserRoof),
-    // Tor zur Rutsche
+    // Tor zur Rutsche, darüber eine Lampe
     box(0.5, 0.55, 0.04, -0.5, 0.12, 0.36, PALETTE.woodDark),
+    ...wallLamp(0.15, 0.8, 0.35),
     // Rutsche nach vorn (Süden) Richtung Ausgang
     colored(
       new BoxGeometry(0.46, 0.06, 0.75).rotateX(0.35).translate(-0.5, 0.32, 0.62),

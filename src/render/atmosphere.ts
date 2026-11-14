@@ -43,20 +43,20 @@ const KEYS: readonly Key[] = [
   {
     t: 0.0,
     sun: PALETTE.moon,
-    sunI: 1.05,
+    sunI: 0.7,
     sky: PALETTE.nightSky,
     ground: PALETTE.nightGround,
-    hemiI: 1.75,
+    hemiI: 1.2,
     fog: PALETTE.nightFog,
     glow: 1,
   },
   {
     t: 0.16,
     sun: PALETTE.moon,
-    sunI: 1.05,
+    sunI: 0.7,
     sky: PALETTE.nightSky,
     ground: PALETTE.nightGround,
-    hemiI: 1.75,
+    hemiI: 1.2,
     fog: PALETTE.nightFog,
     glow: 1,
   },
@@ -126,27 +126,27 @@ const KEYS: readonly Key[] = [
     sunI: 1.2,
     sky: PALETTE.duskSky,
     ground: PALETTE.nightGround,
-    hemiI: 1.45,
+    hemiI: 1.3,
     fog: PALETTE.duskFog,
     glow: 0.6,
   },
   {
     t: 0.86,
     sun: PALETTE.moon,
-    sunI: 1.05,
+    sunI: 0.7,
     sky: PALETTE.nightSky,
     ground: PALETTE.nightGround,
-    hemiI: 1.75,
+    hemiI: 1.2,
     fog: PALETTE.nightFog,
     glow: 1,
   },
   {
     t: 1.0,
     sun: PALETTE.moon,
-    sunI: 1.05,
+    sunI: 0.7,
     sky: PALETTE.nightSky,
     ground: PALETTE.nightGround,
-    hemiI: 1.75,
+    hemiI: 1.2,
     fog: PALETTE.nightFog,
     glow: 1,
   },
@@ -296,7 +296,7 @@ ${NOISE}
   float wwGlowMask = 0.0;
 #ifdef USE_COLOR
   wwGlowMask = max(step(distance(vColor.rgb, uGlowA), 0.012), step(distance(vColor.rgb, uGlowB), 0.012));
-  totalEmissiveRadiance += vColor.rgb * wwGlowMask * uGlow * 1.7;
+  totalEmissiveRadiance += vColor.rgb * wwGlowMask * uGlow * 1.05;
 #endif`,
           )
           .replace(
