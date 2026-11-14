@@ -120,6 +120,10 @@ export class PowerSystem {
       let cap = 0;
       for (let k = 0; k < bs.length; k++) {
         const id = bs[k];
+        // einmal pro Sekunde aus dem Vorrat nachfüllen (wenn eingeschaltet)
+        // (nur wenn im Netz Strom gebraucht wird – sonst bleibt das Holz im Vorrat)
+        if (m.autoRefill[id] && this.demand[g] > 0 && tick % SIM_CONFIG.ticksPerSecond === 0)
+          m.autoRefuel(id, burnerBuffer(store.type[id]));
         if (m.fuelEnergy[id] <= 0 && m.inBuf[id * 2] > 0) {
           m.inBuf[id * 2]--;
           m.fuelEnergy[id] += ITEMS[m.fuelItem[id]].fuelValue * 1000;
@@ -338,6 +342,11 @@ export class PowerSystem {
 function burnerWatts(type: number): number {
   const b = BUILDINGS[type].behavior;
   return b.kind === 'burner' ? b.powerKW * 1000 : 0;
+}
+
+function burnerBuffer(type: number): number {
+  const b = BUILDINGS[type].behavior;
+  return b.kind === 'burner' ? b.fuelBuffer : 0;
 }
 
 function windWatts(type: number): number {

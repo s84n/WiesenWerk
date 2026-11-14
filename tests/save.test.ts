@@ -102,7 +102,7 @@ describe('Speichern und Laden', () => {
     expect(state(loaded)).toBe(state(original));
   });
 
-  it('wandelt Spielstände der Versionen 1 und 2 korrekt um', () => {
+  it('wandelt Spielstände der Versionen 1 bis 3 korrekt um', () => {
     // Eine Fabrik ohne Brenner mit vollem Tempo ergibt Werte, die sich verlustfrei zurückrechnen lassen
     const sim = new Simulation(generateWorld(4711));
     sim.power.factorOf = () => 1000;
@@ -125,8 +125,15 @@ describe('Speichern und Laden', () => {
     sim.machines.accept(furnace, ITEM_ID.copperOre);
     sim.machines.accept(furnace, ITEM_ID.copperOre);
     for (let t = 0; t < 57; t++) sim.step(); // mitten in Durchläufen anhalten
-    const v3 = serialize(sim, META, CAM);
+    const v4 = serialize(sim, META, CAM);
     expect(sim.machines.progress[furnace]).toBeGreaterThan(0);
+
+    // Version 3 von Hand herstellen: Nachfüll-Schalter entfernen (es gibt hier keine Brenner)
+    const v3 = JSON.parse(JSON.stringify(v4));
+    v3.version = 3;
+    v3.machines.data = [];
+    for (let k = 0; k < v4.machines.data.length; k += 16)
+      v3.machines.data.push(...v4.machines.data.slice(k, k + 15));
 
     // Version 2 von Hand herstellen: Forschung, Logistik, Statistik, Aufgaben und Stufe entfernen
     const v2 = JSON.parse(JSON.stringify(v3));
@@ -159,8 +166,9 @@ describe('Speichern und Laden', () => {
       stats: { built: 0, produced: [], harvested: [] },
       goals: { done: [], hidden: false },
     });
-    expect(plain(migrate(v1))).toEqual(plain(migrate(v3)));
-    expect(plain(migrate(v2))).toEqual(plain(migrate(v3)));
+    expect(migrate(v3)).toEqual(migrate(v4));
+    expect(plain(migrate(v1))).toEqual(plain(migrate(v4)));
+    expect(plain(migrate(v2))).toEqual(plain(migrate(v4)));
     expect(migrate(v2).stats.built).toBe(2);
     const loaded = deserialize(migrate(v1));
     expect(JSON.stringify(plain(serialize(loaded, META, CAM)))).toBe(

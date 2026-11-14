@@ -1278,3 +1278,18 @@ body {
   font-size: 1.05rem;
   font-variant-numeric: tabular-nums;
 }
+
+.auto-refill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auto-refill input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}

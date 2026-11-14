@@ -214,7 +214,8 @@ export const BUILDINGS: readonly BuildingDef[] = [
     power: 0,
     size: [1, 1],
     category: 'logistics',
-    cost: { plank: 5, copperWire: 5 },
+    // ab Spielbeginn und günstig: teilt Holz zwischen Brenner und Zentrale auf (Überlauf)
+    cost: { wood: 4, stone: 2 },
     placement: 'groundOrDeposit',
     behavior: { kind: 'splitter' },
     ports: [
@@ -224,7 +225,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
       { x: 0, y: 0, dir: 1, kind: 'out' },
     ],
     model: 'splitter',
-    availableFromStart: false,
+    availableFromStart: true,
   },
   {
     key: 'merger',

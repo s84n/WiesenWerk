@@ -175,6 +175,13 @@ export class Simulation {
           this.events.push({ type: 'buildingUpgraded', id: cmd.building });
         }
         break;
+      case 'setAutoRefill':
+        if (
+          this.buildings.alive[cmd.building] &&
+          BUILDINGS[this.buildings.type[cmd.building]].behavior.kind === 'burner'
+        )
+          this.machines.autoRefill[cmd.building] = cmd.on ? 1 : 0;
+        break;
       case 'setGoalsHidden':
         this.goals.setHidden(cmd.hidden);
         break;

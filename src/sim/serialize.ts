@@ -18,14 +18,15 @@ import { generateWorld } from './worldgen';
 
 export const SAVE_FORMAT = 'wiesenwerk';
 /** Bei jeder Änderung am Format erhöhen und eine Migration in `MIGRATIONS` ergänzen. */
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 /**
  * Werte pro Maschine in `machines.data`:
  * id, Rezept, Fortschritt, Zustand, seit, Auslastung, Eingang 0/1, Ausgang 0/1, Baum-Zeiger,
- * Brennstoff-Art, Brennstoff-Energie, voller Stromverbrauch (ab Version 2), Stufe 2 (ab Version 3).
+ * Brennstoff-Art, Brennstoff-Energie, voller Stromverbrauch (ab Version 2), Stufe 2 (ab Version 3),
+ * Brenner füllt aus dem Vorrat nach (ab Version 4).
  */
-const MACHINE_FIELDS = 15;
+const MACHINE_FIELDS = 16;
 /** Werte pro Logistik-Gebäude in `logistics.data`: id, Zeiger, Puffer 0..2. */
 const LOGISTICS_FIELDS = 2 + MAX_PORTS;
 
@@ -133,6 +134,7 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
       m.fuelEnergy[id],
       m.drawFull[id],
       m.upgraded[id],
+      m.autoRefill[id],
     );
     const tl = m.treeLists[id];
     if (tl) treeLists.push([id, ...tl]);
@@ -191,7 +193,21 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
 const MIGRATIONS: Record<number, (data: Record<string, unknown>) => Record<string, unknown>> = {
   1: migrate1to2,
   2: migrate2to3,
+  3: migrate3to4,
 };
+
+/**
+ * Version 3 → 4: Brenner können sich selbst aus dem Vorrat nachfüllen. Bestehende Brenner
+ * bleiben, wie sie waren (aus), damit sich laufende Fabriken nicht unbemerkt ändern.
+ */
+function migrate3to4(d: Record<string, unknown>): Record<string, unknown> {
+  const machines = d.machines as Record<string, unknown> | undefined;
+  if (!machines || !Array.isArray(machines.data)) throw new SaveError('damaged', 'Migration 3');
+  const old = machines.data as number[];
+  const next: number[] = [];
+  for (let k = 0; k + 14 < old.length; k += 15) next.push(...old.slice(k, k + 15), 0);
+  return { ...d, machines: { ...machines, data: next } };
+}
 
 /**
  * Version 2 → 3 (Phase 6, Forschung und Ausbau): je Maschine kommt die Stufe hinzu (alle 1);
@@ -418,6 +434,7 @@ function restore(d: SaveData): Simulation {
     m.fuelEnergy[id] = md[k + 12];
     m.drawFull[id] = md[k + 13];
     m.upgraded[id] = md[k + 14];
+    m.autoRefill[id] = md[k + 15];
   }
   for (const [id, ...tiles] of d.machines.treeLists) m.treeLists[id] = Int32Array.from(tiles);
   m.delivered = d.machines.delivered;

@@ -66,7 +66,7 @@ describe('Bandstufen', () => {
 
   it('erlaubt gesperrte Gebäude erst nach der Forschung', () => {
     const sim = makePoweredSim();
-    build(sim, B.splitter, 3, 3);
+    build(sim, B.merger, 3, 3);
     expect(sim.buildingCount).toBe(0);
     const failed = sim.events.find((e) => e.type === 'commandFailed');
     expect(failed && failed.type === 'commandFailed' && failed.reason).toBe(PlaceResult.Locked);

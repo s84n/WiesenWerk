@@ -43,7 +43,8 @@ export const TEXTS = {
     workshop: { name: 'Werkstatt', description: 'Sägt Bretter, zieht Draht und walzt Blech.' },
     burner: {
       name: 'Biomassebrenner',
-      description: 'Verbrennt Holz oder Holzkohle und erzeugt 30 kW Strom für Gebäude im Netz.',
+      description:
+        'Verbrennt Holz oder Holzkohle und erzeugt 30 kW Strom für Gebäude im Netz. Holt sich Brennstoff selbst aus dem Vorrat.',
     },
     pole: {
       name: 'Strommast',
@@ -64,7 +65,8 @@ export const TEXTS = {
     },
     splitter: {
       name: 'Verteiler',
-      description: 'Teilt ein Band gleichmäßig auf bis zu drei Bänder auf.',
+      description:
+        'Teilt ein Band auf bis zu drei Bänder auf. Ist ein Ausgang voll (z. B. ein Brenner), geht alles an die anderen – praktisch als Überlauf zur Zentrale.',
     },
     merger: {
       name: 'Zusammenführer',
@@ -281,6 +283,9 @@ export const TEXTS = {
     burning: 'Brennt noch',
     burnerOutput: (kw: string) => `Leistung gerade: ${kw} kW`,
     refill: (item: string) => `${item} aus dem Vorrat nachfüllen`,
+    autoRefill: 'Selbst aus dem Vorrat nachfüllen',
+    autoRefillHint:
+      'Wird Strom gebraucht, schickt die Zentrale immer 2 Holz (oder Holzkohle) nach – der Rest bleibt im Vorrat. Ein Band zum Brenner brauchst du dann nicht. Tipp: Mit einem Verteiler (Taste 9) geht Holz vom Band in den Brenner und der Rest zur Zentrale.',
     gridTitle: 'Stromnetz',
     gridLine: (prod: string, demand: string, cap: string) =>
       `Verbrauch ${demand} kW · Erzeugung ${prod} kW von ${cap} kW möglich`,

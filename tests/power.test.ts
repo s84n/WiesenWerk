@@ -114,11 +114,46 @@ describe('Stromnetz', () => {
     build(sim, B.furnace, 4, 4);
     build(sim, B.pole, 6, 4);
     build(sim, B.burner, 7, 4);
+    sim.enqueue({ type: 'setAutoRefill', building: sim.buildingAt(7, 4), on: false });
     const f = sim.buildingAt(4, 4);
     stepFed(sim, [f], 30);
     expect(sim.power.factorOf(f)).toBe(0);
     expect(sim.machines.state[f]).toBe(MachineState.NoPower);
     expect(sim.machines.state[sim.buildingAt(7, 4)]).toBe(MachineState.WaitingInput);
+  });
+
+  it('Brenner holen sich Brennstoff selbst aus dem Vorrat (abschaltbar)', () => {
+    const sim = makeSim();
+    // ohne Verbraucher: nichts holen
+    build(sim, B.pole, 16, 4);
+    build(sim, B.burner, 17, 4);
+    run(sim, 60);
+    expect(sim.machines.inBuf[sim.buildingAt(17, 4) * 2]).toBe(0);
+    build(sim, B.furnace, 4, 4);
+    build(sim, B.pole, 6, 4);
+    build(sim, B.burner, 7, 4);
+    const burner = sim.buildingAt(7, 4);
+    const f = sim.buildingAt(4, 4);
+    const wood = sim.inventory.get(ITEM_ID.wood);
+    stepFed(sim, [f], 30);
+    expect(sim.machines.fuelItem[burner]).toBe(ITEM_ID.wood);
+    // nur ein kleiner Vorrat im Brenner, der Rest bleibt in der Zentrale
+    const taken = wood - sim.inventory.get(ITEM_ID.wood);
+    expect(taken).toBeGreaterThan(0);
+    expect(taken).toBeLessThanOrEqual(3);
+    expect(sim.machines.inBuf[burner * 2]).toBeLessThanOrEqual(2);
+    expect(sim.power.factorOf(f)).toBe(1000);
+    // aus: es wird nichts mehr nachgeholt
+    sim.enqueue({ type: 'setAutoRefill', building: burner, on: false });
+    sim.machines.inBuf[burner * 2] = 0;
+    const before = sim.inventory.get(ITEM_ID.wood);
+    stepFed(sim, [f], 40);
+    expect(sim.inventory.get(ITEM_ID.wood)).toBe(before);
+    // leerer Vorrat: an, aber nichts da
+    sim.enqueue({ type: 'setAutoRefill', building: burner, on: true });
+    sim.inventory.amounts.fill(0);
+    stepFed(sim, [f], 40);
+    expect(sim.machines.inBuf[burner * 2]).toBe(0);
   });
 
   it('wartende Maschinen ziehen nur 10 % ihres Verbrauchs', () => {

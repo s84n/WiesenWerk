@@ -54,6 +54,12 @@ export const POWER = {
   historySeconds: 60,
 } as const;
 
+/** Brenner, die sich selbst aus dem Vorrat nachfüllen, halten nur so viel Brennstoff bereit. */
+export const AUTO_REFILL = {
+  /** Höchstens so viele Items im Puffer (der Rest bleibt im Vorrat zum Bauen und Forschen). */
+  keep: 2,
+} as const;
+
 export const WIND = {
   /** Leistung schwankt zwischen diesen Anteilen der Nennleistung (Mittel = 1). */
   min: 0.7,

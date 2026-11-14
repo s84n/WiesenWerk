@@ -1,4 +1,4 @@
-import { EXTRACTOR_UPGRADE, MACHINES, POWER, TREES } from '../data/balance';
+import { AUTO_REFILL, EXTRACTOR_UPGRADE, MACHINES, POWER, TREES } from '../data/balance';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
 import { SIM_CONFIG } from '../data/config';
 import { ITEMS, ITEM_ID, toAmounts, type ItemAmount } from '../data/items';
@@ -75,6 +75,8 @@ export class MachineSystem {
   needsPower = new Uint8Array(0);
   /** Bergwerk/Holzfäller auf Stufe 2 aufgewertet (1) oder nicht (0). */
   upgraded = new Uint8Array(0);
+  /** Brenner: holt sich Brennstoff selbst aus dem Vorrat (1) oder nicht (0). */
+  autoRefill = new Uint8Array(0);
 
   readonly crafters: number[] = [];
   readonly extractors: number[] = [];
@@ -130,6 +132,7 @@ export class MachineSystem {
     this.fuelEnergy[id] = 0;
     this.drawFull[id] = 0;
     this.upgraded[id] = 0;
+    this.autoRefill[id] = b.kind === 'burner' ? 1 : 0;
     this.needsPower[id] = def.power > 0 ? 1 : 0;
     this.setupOutput(id, def);
     this.setState(id, MachineState.Idle);
@@ -278,6 +281,26 @@ export class MachineSystem {
     this.inBuf[slot] += n;
     this.fuelItem[id] = item;
     return n;
+  }
+
+  /**
+   * Brenner füllt sich aus dem Vorrat nach, aber nur bis `AUTO_REFILL.keep` Items: zuerst die
+   * Sorte, die schon darin liegt, sonst der erste vorrätige Brennstoff (Holz vor Holzkohle).
+   * Wird nur aufgerufen, wenn das Netz Strom braucht.
+   */
+  autoRefuel(id: number, limit: number): void {
+    const slot = id * MAX_RECIPE_INPUTS;
+    const have = this.inBuf[slot];
+    const keep = Math.min(limit, AUTO_REFILL.keep);
+    if (have >= keep) return;
+    let item = have > 0 ? this.fuelItem[id] : -1;
+    if (item < 0) {
+      for (let i = 0; i < ITEMS.length && item < 0; i++)
+        if (ITEMS[i].fuelValue > 0 && this.inventory.get(i) > 0) item = i;
+    }
+    if (item < 0) return;
+    const n = this.addFuel(id, item, Math.min(this.inventory.get(item), keep - have), limit);
+    if (n > 0) this.inventory.pay([{ item, amount: n }]);
   }
 
   private autoRecipe(machine: string, item: number): number {
@@ -559,6 +582,7 @@ export class MachineSystem {
     this.drawFull = grow(this.drawFull, cap);
     this.needsPower = grow(this.needsPower, cap);
     this.upgraded = grow(this.upgraded, cap);
+    this.autoRefill = grow(this.autoRefill, cap);
     this.cap = cap;
   }
 }

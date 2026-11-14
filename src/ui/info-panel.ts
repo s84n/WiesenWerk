@@ -440,7 +440,20 @@ export class InfoPanel {
     const output = el('p', 'info-text soft');
     section.append(row, burnBar, output);
 
-    // Nachfüllen aus dem Vorrat
+    // Selbst aus dem Vorrat nachfüllen (Schalter)
+    const auto = el('label', 'auto-refill');
+    const box = el('input');
+    box.type = 'checkbox';
+    box.checked = sim.machines.autoRefill[id] === 1;
+    box.addEventListener('change', () => {
+      sim.enqueue({ type: 'setAutoRefill', building: id, on: box.checked });
+      box.blur();
+    });
+    auto.append(box, el('span', '', TEXTS.info.autoRefill));
+    section.append(auto, el('p', 'info-text soft', TEXTS.info.autoRefillHint));
+    this.updaters.push((s) => (box.checked = s.machines.autoRefill[id] === 1));
+
+    // Nachfüllen aus dem Vorrat (von Hand)
     const buttons = el('div', 'refill-row');
     const fuels = ITEMS.map((item, i) => ({ item, i })).filter((f) => f.item.fuelValue > 0);
     const refill: { b: HTMLButtonElement; item: number }[] = [];

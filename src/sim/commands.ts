@@ -25,6 +25,8 @@ export type Command =
   | { type: 'buyUpgrade'; upgrade: number }
   /** Wertet Bergwerk oder Holzfäller auf Stufe 2 auf. */
   | { type: 'upgradeBuilding'; building: number }
+  /** Brenner holt Brennstoff selbst aus dem Vorrat (an/aus). */
+  | { type: 'setAutoRefill'; building: number; on: boolean }
   /** Blendet die Aufgabenliste aus oder ein. */
   | { type: 'setGoalsHidden'; hidden: boolean };
 

@@ -169,7 +169,8 @@ Die erste Version enthält 15 Gebäudetypen plus Dekoration. Jedes Gebäude bele
 | Förderband Mk1 | 1 Holz je Feld |
 | Schmelzofen | 20 Stein |
 | Werkstatt | 15 Holz, 5 Kupferbarren |
-| Verteiler, Zusammenführer | je 5 Bretter, 5 Kupferdraht |
+| Verteiler | 4 Holz, 2 Stein (ab Spielbeginn, geändert nach Phase 6) |
+| Zusammenführer | 5 Bretter, 5 Kupferdraht |
 | Lager | 30 Bretter, 10 Steinziegel |
 | Manufaktur | 30 Bretter, 30 Steinziegel, 20 Kupferblech |
 | Windrad | 10 Baurahmen, 10 Spulen |
@@ -183,6 +184,8 @@ Die erste Version enthält 15 Gebäudetypen plus Dekoration. Jedes Gebäude bele
 **Strombilanz:** Ein Biomassebrenner (30 kW) verbraucht bei voller Last 15 Holz pro Minute. Ein Holzfäller versorgt also zwei Brenner. Eine einfache Linie aus Bergwerk, Schmelzofen und Werkstatt braucht 13 kW, ein Brenner trägt zwei solche Linien. Holzkohle liefert aus derselben Holzmenge 50 Prozent mehr Energie.
 
 **Änderung nach Phase 6 (Wunsch des Auftraggebers):** Der Holzfäller braucht keinen Strom (Muskelkraft). Sonst bräuchte man Strom, um Holz zu bekommen, das man erst für Strom verbrennt. So ist die Reihenfolge schlüssig: Holzfäller → Holz → Brenner → Strom für Bergwerk und Maschinen. Stufe 2 verdoppelt beim Holzfäller nur das Tempo.
+
+**Weitere Änderung nach Phase 6:** Brenner holen sich Brennstoff selbst aus dem Vorrat, wenn Strom gebraucht wird, und immer nur 2 Stück (im Infofenster abschaltbar, bei neuen Brennern an). Der Verteiler ist ab Spielbeginn baubar (4 Holz, 2 Stein). Grund: Lieferte der erste Holzfäller alles an den Brenner, kam kein Holz mehr in den Vorrat, und ohne Vorrat ließ sich der Verteiler nicht erforschen. Jetzt reicht ein Band vom Holzfäller zur Zentrale, oder ein Verteiler teilt das Holz zwischen Brenner und Zentrale.
 
 ## 6. Logistik: Förderbänder
 
@@ -246,7 +249,7 @@ Fortschritt entsteht über einen Forschungsbaum, dessen Knoten mit Items aus dem
 
 | Knoten | Schaltet frei | Voraussetzung | Kosten (Startwerte) |
 | --- | --- | --- | --- |
-| Logistik I | Verteiler, Zusammenführer | Start | 50 Bretter, 30 Kupferdraht |
+| Logistik I | Zusammenführer (Verteiler gibt es ab Spielbeginn) | Start | 50 Bretter, 30 Kupferdraht |
 | Lagerhaltung | Lager | Start | 80 Bretter, 40 Steinziegel |
 | Köhlerei | Rezept Holzkohle | Start | 60 Steinziegel |
 | Verschönerung I | Wege, Laternen, Blumenbeete | Start | 40 Steinziegel, 40 Bretter |

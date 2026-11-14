@@ -25,7 +25,7 @@ export const RESEARCH: readonly ResearchDef[] = [
     key: 'logistics1',
     requires: [],
     cost: { plank: 50, copperWire: 30 },
-    buildings: ['splitter', 'merger'],
+    buildings: ['merger'],
     pos: [0, 0],
   },
   {
