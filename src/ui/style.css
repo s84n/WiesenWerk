@@ -228,6 +228,8 @@ body {
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100vw - 560px);
   display: flex;
   align-items: center;
   gap: 14px;
@@ -889,4 +891,306 @@ body {
 
 .state-dot.nopower {
   background: #b59be0;
+}
+
+/* ---------- Fenster (Forschung, Statistik) ---------- */
+.game-window {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(1220px, calc(100vw - 32px));
+  max-height: calc(100vh - 90px);
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px 14px;
+  z-index: 20;
+  animation: toast-in 0.15s ease-out;
+}
+
+.stats-window {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.window-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.window-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.window-body {
+  overflow: auto;
+  min-height: 0;
+}
+
+.window-hint {
+  margin: 4px 0 10px;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.window-subtitle {
+  margin: 14px 0 4px;
+  font-size: 0.95rem;
+}
+
+/* ---------- Forschungsbaum ---------- */
+.research-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.research-tree {
+  position: relative;
+}
+
+.research-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.research-lines path {
+  fill: none;
+  stroke: rgba(140, 100, 60, 0.35);
+  stroke-width: 2.5;
+}
+
+.research-card {
+  position: absolute;
+  height: 158px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 2px solid rgba(140, 100, 60, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.research-card.available {
+  background: #fff;
+  border-color: var(--accent);
+}
+
+.research-card.done {
+  background: #eaf6df;
+  border-color: #9cc67a;
+}
+
+.research-card.locked {
+  opacity: 0.62;
+}
+
+.research-name {
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.research-unlocks {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.unlock-icon {
+  width: 30px;
+  height: 30px;
+}
+
+.item-icon.unlock-item {
+  width: 24px;
+  height: 24px;
+}
+
+.research-unlock-text {
+  font-size: 0.72rem;
+  color: var(--text-soft);
+  line-height: 1.25;
+}
+
+.research-costs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cost-chip.missing {
+  color: #c0533a;
+}
+
+.research-button {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+.upgrade-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.upgrade-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.upgrade-text {
+  flex: 1;
+}
+
+.upgrade-level {
+  font-weight: 600;
+  color: var(--accent-dark);
+}
+
+.upgrade-effect {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+}
+
+/* ---------- Statistik ---------- */
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-table th {
+  text-align: right;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-soft);
+  padding: 4px 6px;
+}
+
+.stats-table th:first-child {
+  text-align: left;
+}
+
+.stats-table td {
+  padding: 3px 6px;
+  border-top: 1px solid rgba(140, 100, 60, 0.12);
+}
+
+.stats-table td.num {
+  text-align: right;
+  font-weight: 700;
+}
+
+.stats-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stats-totals {
+  display: grid;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.stats-total {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ---------- Erste Schritte ---------- */
+.goals-panel {
+  width: 250px;
+  padding: 8px 12px 10px;
+  font-size: 0.82rem;
+}
+
+.goals-head {
+  display: flex;
+  align-items: center;
+}
+
+.goals-title {
+  flex: 1;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.goals-list {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.goal {
+  position: relative;
+  padding-left: 22px;
+  line-height: 1.3;
+}
+
+.goal::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  border: 2px solid rgba(140, 100, 60, 0.4);
+  background: #fffdf6;
+}
+
+.goal.checked {
+  color: var(--text-soft);
+  text-decoration: line-through;
+}
+
+.goal.checked::before {
+  background: #7cc46a;
+  border-color: #7cc46a;
+}
+
+.goal.checked::after {
+  content: '✓';
+  position: absolute;
+  left: 3px;
+  top: -1px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.goals-done {
+  margin: 8px 0 0;
+  font-weight: 700;
+  color: #5d9a4a;
+}
+
+.goals-show {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+.storage-list {
+  margin-top: 6px;
 }

@@ -35,6 +35,7 @@ export class Hud {
     parent: HTMLElement,
     private readonly speed: SpeedControl,
     onMenu: () => void,
+    windows: { research: () => void; stats: () => void },
   ) {
     const bar = el('div', 'panel hud');
     const items = el('div', 'hud-items');
@@ -72,6 +73,19 @@ export class Hud {
       });
       speeds.appendChild(b);
       this.speedButtons.push(b);
+    }
+
+    for (const [label, tip, fn] of [
+      ['🔬', TEXTS.research.tooltip, windows.research],
+      ['📊', TEXTS.stats.tooltip, windows.stats],
+    ] as const) {
+      const b = el('button', 'hud-button hud-menu', label);
+      b.title = tip;
+      b.addEventListener('click', () => {
+        b.blur();
+        fn();
+      });
+      speeds.appendChild(b);
     }
 
     const menu = el('button', 'hud-button hud-menu', '☰');

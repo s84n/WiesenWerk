@@ -53,7 +53,140 @@ export const TEXTS = {
       name: 'Förderband',
       description: 'Transportiert 60 Items pro Minute. Mit gedrückter Maustaste ziehen.',
     },
+    assembler: {
+      name: 'Manufaktur',
+      description: 'Baut aus zwei verschiedenen Zutaten Bauteile wie Baurahmen und Spulen.',
+    },
+    storage: {
+      name: 'Lager',
+      description: 'Puffert bis zu 1.000 Items und gibt sie in derselben Reihenfolge wieder ab.',
+    },
+    splitter: {
+      name: 'Verteiler',
+      description: 'Teilt ein Band gleichmäßig auf bis zu drei Bänder auf.',
+    },
+    merger: {
+      name: 'Zusammenführer',
+      description: 'Führt bis zu drei Bänder abwechselnd auf ein Band zusammen.',
+    },
+    bridge: {
+      name: 'Bandbrücke',
+      description: 'Lässt zwei Bänder sich kreuzen, ohne dass sich die Items mischen.',
+    },
+    beltMk2: {
+      name: 'Förderband Mk2',
+      description:
+        'Transportiert 120 Items pro Minute. Über ein vorhandenes Band ziehen, um es aufzuwerten.',
+    },
+    beltMk3: {
+      name: 'Förderband Mk3',
+      description:
+        'Transportiert 240 Items pro Minute. Über ein vorhandenes Band ziehen, um es aufzuwerten.',
+    },
+    windTurbine: {
+      name: 'Windrad',
+      description: 'Erzeugt im Mittel 10 kW ohne Brennstoff. Die Leistung schwankt mit dem Wind.',
+    },
+    bigPole: {
+      name: 'Großer Strommast',
+      description:
+        'Überbrückt weite Strecken: verbindet sich mit Masten in bis zu 20 Feldern Entfernung.',
+    },
+    path: { name: 'Weg', description: 'Ein heller Steinweg. Mit gedrückter Maustaste ziehen.' },
+    lantern: { name: 'Laterne', description: 'Eine kleine Laterne für gemütliche Ecken.' },
+    flowerbed: { name: 'Blumenbeet', description: 'Ein gemauertes Beet voller Blumen.' },
+    fence: { name: 'Zaun', description: 'Ein Holzzaun. Mit gedrückter Maustaste ziehen.' },
+    bench: { name: 'Bank', description: 'Eine Holzbank zum Ausruhen.' },
+    ornamentalTree: { name: 'Zierbaum', description: 'Ein runder Baum in einem Steinkübel.' },
+    pathColored: {
+      name: 'Ziegelweg',
+      description: 'Ein rötlicher Ziegelweg. Mit gedrückter Maustaste ziehen.',
+    },
   } as Record<string, { name: string; description: string }>,
+
+  research: {
+    title: 'Forschung',
+    tooltip: 'Forschung (T)',
+    hint: 'Forschung wird sofort aus dem Vorrat bezahlt und gilt direkt.',
+    research: 'Erforschen',
+    done: 'Erforscht',
+    locked: 'Erst die Voraussetzungen erforschen',
+    missing: 'Noch nicht genug im Vorrat',
+    unlocks: 'Schaltet frei:',
+    upgradesTitle: 'Verbesserungen (wiederholbar)',
+    upgradesLocked: 'Nach der Forschung „Antriebe“ verfügbar.',
+    level: (n: number) => `Stufe ${n}`,
+    maxLevel: 'Höchste Stufe erreicht',
+    buy: 'Verbessern',
+    recipe: (name: string) => `Rezept ${name}`,
+    extractorUpgrade: 'Bergwerk und Holzfäller Stufe 2',
+    researched: (name: string) => `Erforscht: ${name}`,
+    upgraded: (name: string, level: number) => `${name}: jetzt Stufe ${level}`,
+    nodes: {
+      logistics1: 'Logistik I',
+      storage: 'Lagerhaltung',
+      charcoal: 'Köhlerei',
+      beauty1: 'Verschönerung I',
+      sheetMetal: 'Blechbearbeitung',
+      assembler: 'Manufaktur',
+      wind: 'Windkraft',
+      logistics2: 'Logistik II',
+      electronics: 'Elektronik',
+      drives: 'Antriebe',
+      longDistance: 'Fernleitung',
+      logistics3: 'Logistik III',
+      deepMining: 'Tiefbau',
+      beauty2: 'Verschönerung II',
+    } as Record<string, string>,
+    upgrades: {
+      machineSpeed: {
+        name: 'Maschinentempo',
+        effect: (pct: number) =>
+          `Schmelzofen, Werkstatt und Manufaktur arbeiten ${pct} % schneller.`,
+      },
+      extractionSpeed: {
+        name: 'Abbautempo',
+        effect: (pct: number) => `Holzfäller und Bergwerk arbeiten ${pct} % schneller.`,
+      },
+      efficiency: {
+        name: 'Effizienz',
+        effect: (pct: number) => `Alle Maschinen brauchen ${pct} % weniger Strom.`,
+      },
+    } as Record<string, { name: string; effect: (pct: number) => string }>,
+  },
+
+  stats: {
+    title: 'Statistik',
+    tooltip: 'Statistik (I)',
+    item: 'Item',
+    produced: 'Produktion',
+    consumed: 'Verbrauch',
+    delivered: 'an Zentrale',
+    perMinute: 'pro Minute, gemittelt über die letzte Minute',
+    totals: 'Gesamt',
+    playTime: 'Spielzeit',
+    built: 'Gebaute Gebäude',
+    standing: 'Stehende Gebäude',
+    deliveredTotal: 'An die Zentrale geliefert',
+    researched: 'Erforscht',
+    empty: 'Noch keine Produktion. Baue ein Bergwerk oder einen Holzfäller!',
+  },
+
+  goals: {
+    title: 'Erste Schritte',
+    hide: 'Ausblenden',
+    show: 'Erste Schritte',
+    allDone: 'Geschafft! Jetzt gehört die Wiese dir.',
+    completed: (name: string) => `Erledigt: ${name}`,
+    items: {
+      harvestWood: 'Sammle 10 Holz: klicke auf Bäume',
+      buildHq: 'Baue die Zentrale',
+      buildPower: 'Baue einen Biomassebrenner und einen Strommast',
+      minerWorking: 'Bringe ein Bergwerk mit Strom zum Laufen',
+      beltToHq: 'Liefere per Förderband etwas an die Zentrale',
+      firstResearch: 'Erforsche etwas (Taste T)',
+    } as Record<string, string>,
+  },
 
   categories: {
     extraction: 'Abbau',
@@ -72,6 +205,8 @@ export const TEXTS = {
       'Förderband: mit gedrückter Maustaste ziehen · R dreht bzw. wechselt die Ecke · Rechtsklick oder Esc beendet',
     perTile: 'je Feld',
     modePole: 'Strommast bauen · zeigt die versorgten Felder · Rechtsklick oder Esc beendet',
+    modeLine: (name: string) =>
+      `${name}: mit gedrückter Maustaste ziehen · R wechselt die Ecke · Rechtsklick oder Esc beendet`,
     modeDemolish: 'Abrissmodus · Klick oder Rahmen ziehen · Rechtsklick oder Esc beendet',
     demolishButton: 'Abreißen (X)',
   },
@@ -81,6 +216,7 @@ export const TEXTS = {
     blocked: 'Hier ist kein Platz.',
     needsDeposit: 'Ein Bergwerk muss auf einem Vorkommen stehen.',
     unique: 'Davon kann es nur eine geben.',
+    locked: 'Das musst du erst erforschen (Taste T).',
     missing: (list: string) => `Es fehlt noch: ${list}`,
     built: (name: string) => `${name} gebaut`,
     refunded: (list: string) => `Erstattet: ${list}`,
@@ -127,7 +263,7 @@ export const TEXTS = {
     gridTitle: 'Stromnetz',
     gridLine: (prod: string, demand: string, cap: string) =>
       `Verbrauch ${demand} kW · Erzeugung ${prod} kW von ${cap} kW möglich`,
-    gridBuildings: (n: number, gen: number) => `${n} Verbraucher · ${gen} Brenner`,
+    gridBuildings: (n: number, gen: number) => `${n} Verbraucher · ${gen} Erzeuger`,
     gridSpeed: (pct: number) => `Maschinen laufen mit ${pct} % Tempo`,
     noPoleGrid: 'Dieser Mast ist mit keinem Netz verbunden.',
     chartLegend: 'Grün: Erzeugung · Orange: Verbrauch (letzte 60 s)',
@@ -135,6 +271,20 @@ export const TEXTS = {
     belt: (perMinute: number) => `Transportiert bis zu ${perMinute} Items pro Minute.`,
     beltItems: (n: number, tiles: number) =>
       `Auf diesem Abschnitt: ${n} Items auf ${tiles} Feldern`,
+    windStates: ['Kein Bedarf', 'Erzeugt Strom', '', '', '', 'Nicht am Netz'],
+    windNow: (kw: string, wind: number) => `Leistung gerade: ${kw} kW · Wind ${wind} %`,
+    splitter: 'Verteilt ankommende Items reihum auf die freien Ausgänge.',
+    merger: 'Nimmt reihum von den Eingängen und gibt alles auf ein Band.',
+    bridge: 'Zwei Bänder kreuzen sich hier: Nord–Süd unten, West–Ost oben.',
+    holding: 'Gerade darin',
+    empty: 'leer',
+    storageFill: (n: number, cap: number) =>
+      `${n.toLocaleString('de-DE')} von ${cap.toLocaleString('de-DE')} Plätzen belegt`,
+    decor: 'Rein zur Verschönerung.',
+    tier: (n: number) => `Stufe ${n}`,
+    upgrade: 'Auf Stufe 2 aufwerten',
+    upgradeHint: 'Doppeltes Tempo, doppelter Stromverbrauch.',
+    upgradeLocked: 'Mit der Forschung „Tiefbau“ lässt sich das Gebäude auf Stufe 2 aufwerten.',
   },
 
   menu: {
@@ -190,12 +340,14 @@ export const TEXTS = {
     ['Mausrad', 'Zoomen'],
     ['Q / E', 'Kamera drehen'],
     ['Linksklick', 'Bauen, auswählen, von Hand abbauen'],
-    ['Linksklick ziehen', 'Förderband bauen, Abriss-Rahmen'],
+    ['Linksklick ziehen', 'Förderband, Wege und Zäune bauen, Abriss-Rahmen'],
     ['Rechtsklick / Esc', 'Abbrechen, Fenster schließen, Menü'],
     ['R', 'Gebäude drehen'],
     ['X', 'Abrissmodus'],
     ['1 – 9', 'Schnellwahl Gebäude'],
     ['V', 'Strom-Ansicht'],
+    ['T', 'Forschung'],
+    ['I', 'Statistik'],
     ['Leertaste', 'Pause'],
     ['Strg + S', 'Speichern'],
     ['F3', 'Debug-Anzeige'],

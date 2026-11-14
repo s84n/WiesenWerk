@@ -22,26 +22,35 @@ function box(
   return colored(new BoxGeometry(w, h, d).translate(x, y + h / 2, z), color);
 }
 
-function arrow(z: number, rotY = 0): BufferGeometry {
+/** Farben je Bandstufe (1 bis 3): Rahmen und Pfeil. */
+const TIER_COLORS: readonly { frame: number; arrow: number }[] = [
+  { frame: PALETTE.beltFrame, arrow: PALETTE.beltArrow },
+  { frame: PALETTE.beltFrameMk2, arrow: PALETTE.beltArrowMk2 },
+  { frame: PALETTE.beltFrameMk3, arrow: PALETTE.beltArrowMk3 },
+];
+
+function arrow(z: number, color: number, rotY = 0): BufferGeometry {
   // flacher Pfeil auf der Lauffläche, zeigt nach −z
   const g = new ConeGeometry(0.14, 0.22, 3)
     .rotateX(-Math.PI / 2)
     .scale(1, 0.15, 1)
     .rotateY(rotY);
-  return colored(g.translate(0, BELT_SURFACE + 0.01, z), PALETTE.beltArrow);
+  return colored(g.translate(0, BELT_SURFACE + 0.01, z), color);
 }
 
-export function beltStraight(): BufferGeometry {
+export function beltStraight(tier = 1): BufferGeometry {
+  const c = TIER_COLORS[tier - 1];
   return merge([
     box(W, 0.1, 1, 0, 0.02, 0, PALETTE.beltSurface),
-    box(0.1, 0.16, 1, -0.42, 0, 0, PALETTE.beltFrame),
-    box(0.1, 0.16, 1, 0.42, 0, 0, PALETTE.beltFrame),
-    arrow(0),
+    box(0.1, 0.16, 1, -0.42, 0, 0, c.frame),
+    box(0.1, 0.16, 1, 0.42, 0, 0, c.frame),
+    arrow(0, c.arrow),
   ]);
 }
 
 /** Kurve: `left` = Item kommt von Westen (fährt nach Osten) und biegt nach Norden ab; sonst von Osten. */
-export function beltCurve(left: boolean): BufferGeometry {
+export function beltCurve(left: boolean, tier = 1): BufferGeometry {
+  const c = TIER_COLORS[tier - 1];
   const s = left ? 1 : -1; // Spiegelung über die Lage der Teile, nicht über die Geometrie
   return merge([
     // Querband vom Eingangsrand bis über die Mitte
@@ -49,10 +58,10 @@ export function beltCurve(left: boolean): BufferGeometry {
     // kurzes Stück zum Nordrand
     box(W, 0.1, 0.5 - H, 0, 0.02, -0.5 + (0.5 - H) / 2, PALETTE.beltSurface),
     // Außenränder (Süden und gegenüber dem Eingang)
-    box(1, 0.16, 0.1, 0, 0, 0.42, PALETTE.beltFrame),
-    box(0.1, 0.16, 1, s * 0.42, 0, 0, PALETTE.beltFrame),
+    box(1, 0.16, 0.1, 0, 0, 0.42, c.frame),
+    box(0.1, 0.16, 1, s * 0.42, 0, 0, c.frame),
     // Eckpfosten innen
-    box(0.1, 0.16, 0.1, s * -0.42, 0, -0.42, PALETTE.beltFrame),
-    arrow(-0.18),
+    box(0.1, 0.16, 0.1, s * -0.42, 0, -0.42, c.frame),
+    arrow(-0.18, c.arrow),
   ]);
 }

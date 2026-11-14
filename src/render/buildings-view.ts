@@ -3,7 +3,7 @@ import { BUILDINGS } from '../data/buildings';
 import { footprintH, footprintW } from '../sim/buildings';
 import type { Simulation } from '../sim/simulation';
 import type { World } from '../sim/world';
-import { buildingModel } from './building-models';
+import { buildingModel, upgradeBadge } from './building-models';
 import { DynamicChunkedInstances } from './dynamic-instances';
 
 const m = new Matrix4();
@@ -39,6 +39,8 @@ export function buildingMatrix(
 export class BuildingsView {
   readonly group = new Group();
   private readonly perType: DynamicChunkedInstances[];
+  /** Kennzeichen „Stufe 2“ auf aufgewerteten Gebäuden. */
+  private readonly badges: DynamicChunkedInstances;
 
   constructor(
     private readonly world: World,
@@ -49,6 +51,8 @@ export class BuildingsView {
       (g) => new DynamicChunkedInstances(g, material, chunks),
     );
     for (const t of this.perType) this.group.add(t.group);
+    this.badges = new DynamicChunkedInstances(upgradeBadge(), material, chunks, false);
+    this.group.add(this.badges.group);
   }
 
   added(sim: Simulation, id: number): void {
@@ -56,19 +60,32 @@ export class BuildingsView {
     const type = b.type[id];
     buildingMatrix(type, b.x[id], b.y[id], b.rot[id], m);
     this.perType[type].add(id, this.world.chunkOf(b.x[id], b.y[id]), m);
+    this.refreshBadge(sim, id);
+  }
+
+  /** Zeigt oder entfernt das Kennzeichen „Stufe 2“. */
+  refreshBadge(sim: Simulation, id: number): void {
+    this.badges.remove(id);
+    if (!sim.machines.upgraded[id]) return;
+    const b = sim.buildings;
+    buildingMatrix(b.type[id], b.x[id], b.y[id], 0, m);
+    this.badges.add(id, this.world.chunkOf(b.x[id], b.y[id]), m);
   }
 
   removed(id: number, type: number): void {
     this.perType[type].remove(id);
+    this.badges.remove(id);
   }
 
   apply(visible: Uint16Array, count: number, force: boolean): void {
     for (const t of this.perType) t.apply(visible, count, force);
+    this.badges.apply(visible, count, force);
   }
 
   dispose(): void {
     // Geometrien gehören dem Cache und bleiben erhalten.
     for (const t of this.perType) t.dispose();
+    this.badges.dispose();
     this.group.clear();
   }
 }

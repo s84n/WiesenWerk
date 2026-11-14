@@ -213,7 +213,255 @@ function pole(): BufferGeometry {
   ]);
 }
 
+// ---------------------------------------------------------------- ab Phase 6
+
+function assembler(): BufferGeometry {
+  const parts = [
+    box(2.9, 0.14, 2.9, 0, 0, 0, PALETTE.stone),
+    box(2.5, 1.05, 2.2, 0, 0.14, 0.1, PALETTE.cream),
+    // Sheddach: drei Zacken
+    ...[-0.8, 0, 0.8].map((x) =>
+      colored(
+        new CylinderGeometry(0.5, 0.5, 2.3, 3)
+          .rotateX(Math.PI / 2)
+          .rotateZ(Math.PI / 2)
+          .scale(0.9, 0.9, 1)
+          .translate(x, 1.4, 0.1),
+        PALETTE.roof,
+      ),
+    ),
+    // Trichter für die beiden Eingänge (Norden)
+    colored(new CylinderGeometry(0.3, 0.14, 0.45, 6).translate(-1, 1.0, -1.15), PALETTE.copper),
+    colored(new CylinderGeometry(0.3, 0.14, 0.45, 6).translate(1, 1.0, -1.15), PALETTE.copper),
+    box(0.16, 0.8, 0.16, -1, 0.14, -1.15, PALETTE.woodDark),
+    box(0.16, 0.8, 0.16, 1, 0.14, -1.15, PALETTE.woodDark),
+    // Tor (Süden) und Fenster
+    box(0.7, 0.7, 0.05, 0, 0.14, 1.21, PALETTE.woodDark),
+    box(0.4, 0.3, 0.04, -0.85, 0.6, 1.21, PALETTE.windowLight),
+    box(0.4, 0.3, 0.04, 0.85, 0.6, 1.21, PALETTE.windowLight),
+  ];
+  return merge(parts);
+}
+
+function storage(): BufferGeometry {
+  const parts = [
+    box(1.85, 0.1, 1.85, 0, 0, 0, PALETTE.soil),
+    box(1.5, 0.85, 1.3, 0, 0.1, -0.15, PALETTE.wood),
+    gableRoof(1.45, 1.65, 0.5, 0, 0.95, -0.15, PALETTE.roof),
+    box(0.6, 0.6, 0.04, 0, 0.1, 0.51, PALETTE.woodDark),
+  ];
+  // Kisten vor dem Schuppen
+  parts.push(box(0.32, 0.3, 0.32, -0.6, 0.1, 0.65, PALETTE.woodDark));
+  parts.push(box(0.28, 0.26, 0.28, 0.62, 0.1, 0.62, PALETTE.wood));
+  parts.push(box(0.24, 0.22, 0.24, 0.62, 0.36, 0.62, PALETTE.woodDark));
+  return merge(parts);
+}
+
+function splitter(): BufferGeometry {
+  return merge([
+    box(0.86, 0.16, 0.86, 0, 0, 0, PALETTE.beltFrame),
+    box(0.6, 0.25, 0.6, 0, 0.16, 0, PALETTE.metal),
+    colored(new CylinderGeometry(0.2, 0.24, 0.2, 8).translate(0, 0.51, 0), PALETTE.copper),
+    // drei kleine Pfeile nach Westen, Süden, Osten
+    ...[Math.PI / 2, 0, -Math.PI / 2].map((r) =>
+      colored(
+        new ConeGeometry(0.12, 0.2, 3)
+          .rotateX(Math.PI / 2)
+          .scale(1, 0.4, 1)
+          .translate(0, 0.43, 0.24)
+          .rotateY(r),
+        PALETTE.beltArrow,
+      ),
+    ),
+  ]);
+}
+
+function merger(): BufferGeometry {
+  return merge([
+    box(0.86, 0.16, 0.86, 0, 0, 0, PALETTE.beltFrame),
+    colored(new CylinderGeometry(0.36, 0.22, 0.4, 8).translate(0, 0.36, 0), PALETTE.metal),
+    colored(new CylinderGeometry(0.38, 0.38, 0.06, 8).translate(0, 0.58, 0), PALETTE.copper),
+    colored(
+      new ConeGeometry(0.12, 0.2, 3)
+        .rotateX(Math.PI / 2)
+        .scale(1, 0.4, 1)
+        .translate(0, 0.2, 0.36),
+      PALETTE.beltArrow,
+    ),
+  ]);
+}
+
+function bridge(): BufferGeometry {
+  return merge([
+    // unteres Band (Nord → Süd)
+    box(0.74, 0.1, 1, 0, 0.02, 0, PALETTE.beltSurface),
+    // Rampe des oberen Bandes (West → Ost) auf Stützen
+    box(1, 0.08, 0.74, 0, 0.62, 0, PALETTE.beltSurface),
+    box(1, 0.12, 0.08, 0, 0.58, 0.41, PALETTE.beltFrame),
+    box(1, 0.12, 0.08, 0, 0.58, -0.41, PALETTE.beltFrame),
+    box(0.1, 0.62, 0.1, -0.44, 0, 0.41, PALETTE.woodDark),
+    box(0.1, 0.62, 0.1, 0.44, 0, 0.41, PALETTE.woodDark),
+    box(0.1, 0.62, 0.1, -0.44, 0, -0.41, PALETTE.woodDark),
+    box(0.1, 0.62, 0.1, 0.44, 0, -0.41, PALETTE.woodDark),
+  ]);
+}
+
+function windTurbine(): BufferGeometry {
+  const parts = [
+    box(1.2, 0.16, 1.2, 0, 0, 0, PALETTE.stone),
+    colored(new CylinderGeometry(0.1, 0.2, 3.4, 8).translate(0, 0.16 + 1.7, 0), PALETTE.cream),
+    box(0.3, 0.26, 0.55, 0, 3.5, 0, PALETTE.cream),
+    colored(
+      new CylinderGeometry(0.08, 0.1, 0.16, 8).rotateX(Math.PI / 2).translate(0, 3.63, 0.34),
+      PALETTE.copper,
+    ),
+  ];
+  // drei Flügel nach Süden gerichtet
+  for (let k = 0; k < 3; k++) {
+    const blade = new BoxGeometry(0.16, 1.25, 0.04).translate(0, 0.7, 0);
+    blade.rotateZ((k * 2 * Math.PI) / 3 + 0.3).translate(0, 3.63, 0.43);
+    parts.push(colored(blade, PALETTE.blade));
+  }
+  return merge(parts);
+}
+
+/** Höhe, an der die Kabel am großen Mast hängen. */
+export const BIG_POLE_CABLE_HEIGHT = 4.1;
+
+function bigPole(): BufferGeometry {
+  const parts = [box(1.3, 0.12, 1.3, 0, 0, 0, PALETTE.stone)];
+  // vier Beine, nach oben zusammenlaufend
+  for (const [sx, sz] of [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1],
+  ]) {
+    const leg = new CylinderGeometry(0.04, 0.06, 4.0, 5);
+    leg.rotateX(sz * 0.08).rotateZ(-sx * 0.08);
+    parts.push(colored(leg.translate(sx * 0.32, 2.1, sz * 0.32), PALETTE.metalDark));
+  }
+  for (const h of [1.2, 2.4, 3.4])
+    parts.push(box(0.7 - h * 0.09, 0.05, 0.05, 0, h, 0, PALETTE.metal));
+  parts.push(box(1.5, 0.08, 0.1, 0, 3.95, 0, PALETTE.metalDark));
+  for (const x of [-0.6, 0, 0.6])
+    parts.push(
+      colored(new CylinderGeometry(0.05, 0.06, 0.16, 6).translate(x, 4.1, 0), PALETTE.copper),
+    );
+  return merge(parts);
+}
+
+function path(): BufferGeometry {
+  return merge([
+    box(0.98, 0.05, 0.98, 0, 0, 0, PALETTE.pathStone),
+    box(0.4, 0.02, 0.35, -0.2, 0.05, -0.22, PALETTE.stone),
+    box(0.35, 0.02, 0.4, 0.24, 0.05, 0.2, PALETTE.stone),
+  ]);
+}
+
+function pathColored(): BufferGeometry {
+  return merge([
+    box(0.98, 0.05, 0.98, 0, 0, 0, PALETTE.pathRed),
+    box(0.44, 0.02, 0.44, -0.24, 0.05, -0.24, PALETTE.brick),
+    box(0.44, 0.02, 0.44, 0.24, 0.05, 0.24, PALETTE.brick),
+  ]);
+}
+
+function lantern(): BufferGeometry {
+  return merge([
+    box(0.3, 0.08, 0.3, 0, 0, 0, PALETTE.stone),
+    colored(new CylinderGeometry(0.04, 0.05, 1.3, 6).translate(0, 0.73, 0), PALETTE.metalDark),
+    box(0.22, 0.26, 0.22, 0, 1.38, 0, PALETTE.windowLight),
+    pyramidRoof(0.3, 0.14, 1.64, PALETTE.metalDark),
+  ]);
+}
+
+function flowerbed(): BufferGeometry {
+  const parts = [
+    box(0.9, 0.16, 0.9, 0, 0, 0, PALETTE.brick),
+    box(0.74, 0.04, 0.74, 0, 0.14, 0, PALETTE.soilDark),
+  ];
+  const colors = [
+    PALETTE.flowerYellow,
+    PALETTE.flowerPink,
+    PALETTE.flowerWhite,
+    PALETTE.flowerViolet,
+  ];
+  for (let k = 0; k < 6; k++) {
+    const x = -0.22 + (k % 3) * 0.22;
+    const z = k < 3 ? -0.15 : 0.15;
+    parts.push(
+      colored(new CylinderGeometry(0.015, 0.015, 0.16, 4).translate(x, 0.26, z), PALETTE.leafDark),
+    );
+    parts.push(
+      colored(new SphereGeometry(0.07, 5, 3).translate(x, 0.36, z), colors[k % colors.length]),
+    );
+  }
+  return merge(parts);
+}
+
+function fence(): BufferGeometry {
+  return merge([
+    box(0.08, 0.5, 0.08, -0.42, 0, 0, PALETTE.woodDark),
+    box(0.08, 0.5, 0.08, 0.42, 0, 0, PALETTE.woodDark),
+    box(1, 0.06, 0.05, 0, 0.18, 0, PALETTE.wood),
+    box(1, 0.06, 0.05, 0, 0.36, 0, PALETTE.wood),
+  ]);
+}
+
+function bench(): BufferGeometry {
+  return merge([
+    box(0.08, 0.22, 0.3, -0.32, 0, 0, PALETTE.woodDark),
+    box(0.08, 0.22, 0.3, 0.32, 0, 0, PALETTE.woodDark),
+    box(0.8, 0.06, 0.34, 0, 0.22, 0, PALETTE.wood),
+    box(0.8, 0.2, 0.05, 0, 0.32, -0.16, PALETTE.wood),
+  ]);
+}
+
+function ornamentalTree(): BufferGeometry {
+  return merge([
+    box(0.6, 0.3, 0.6, 0, 0, 0, PALETTE.stone),
+    box(0.5, 0.03, 0.5, 0, 0.3, 0, PALETTE.soilDark),
+    colored(new CylinderGeometry(0.05, 0.07, 0.6, 5).translate(0, 0.6, 0), PALETTE.trunk),
+    colored(new SphereGeometry(0.38, 7, 5).translate(0, 1.1, 0), PALETTE.hedge),
+    colored(new SphereGeometry(0.22, 6, 4).translate(0.12, 1.4, 0.08), PALETTE.leafLight),
+  ]);
+}
+
+/** Kennzeichen für aufgewertete Gebäude (Stufe 2): kupfernes Zahnrad auf einem Mast. */
+export function upgradeBadge(): BufferGeometry {
+  const parts = [
+    colored(new CylinderGeometry(0.03, 0.03, 0.5, 5).translate(0.7, 0.25, 0.7), PALETTE.metalDark),
+    colored(
+      new CylinderGeometry(0.16, 0.16, 0.06, 10).rotateX(Math.PI / 2).translate(0.7, 0.6, 0.7),
+      PALETTE.copper,
+    ),
+  ];
+  for (let k = 0; k < 6; k++) {
+    const tooth = new BoxGeometry(0.06, 0.08, 0.06).translate(0, 0.19, 0);
+    tooth.rotateZ((k * Math.PI) / 3).translate(0.7, 0.6, 0.7);
+    parts.push(colored(tooth, PALETTE.copper));
+  }
+  return merge(parts);
+}
+
 const MODELS: Record<string, () => BufferGeometry> = {
+  assembler,
+  storage,
+  splitter,
+  merger,
+  bridge,
+  windTurbine,
+  bigPole,
+  path,
+  pathColored,
+  lantern,
+  flowerbed,
+  fence,
+  bench,
+  ornamentalTree,
+  beltMk2: () => beltStraight(2),
+  beltMk3: () => beltStraight(3),
   burner,
   pole,
   hq,
@@ -221,7 +469,7 @@ const MODELS: Record<string, () => BufferGeometry> = {
   miner,
   furnace,
   workshop,
-  belt: beltStraight,
+  belt: () => beltStraight(1),
 };
 
 /** Erzeugt das Modell zu einem Namen; unbekannte Namen ergeben einen einfachen Block. */

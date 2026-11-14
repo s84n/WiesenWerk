@@ -1,7 +1,7 @@
-import { BELTS, MACHINES, POWER } from '../data/balance';
+import { BELTS, EXTRACTOR_UPGRADE, MACHINES, POWER } from '../data/balance';
 import { BUILDINGS } from '../data/buildings';
-import { RENDER_CONFIG, SIM_CONFIG } from '../data/config';
-import { ITEMS } from '../data/items';
+import { RENDER_CONFIG } from '../data/config';
+import { ITEMS, ITEM_COUNT, toAmounts } from '../data/items';
 import { PALETTE } from '../data/palette';
 import {
   MAX_RECIPE_INPUTS,
@@ -13,6 +13,7 @@ import {
 import { TEXTS } from '../data/texts';
 import type { ToolController } from '../input/tools';
 import { footprintH, footprintW } from '../sim/buildings';
+import { MAX_PORTS } from '../sim/logistics';
 
 import type { Simulation } from '../sim/simulation';
 import { el, formatNumber, hex, itemIcon, itemName } from './dom';
@@ -31,7 +32,8 @@ export class InfoPanel {
   private readonly title: HTMLElement;
   private readonly icon: HTMLImageElement;
   private shownId = -1;
-  private shownRecipe = -2;
+  /** Rezept, Stufe und Forschungsstand beim Aufbau; ändert sich etwas, wird neu aufgebaut. */
+  private shownKey = '';
   private lastUpdate = 0;
   private updaters: ((sim: Simulation) => void)[] = [];
 
@@ -63,11 +65,11 @@ export class InfoPanel {
       }
       return;
     }
-    const recipe = sim.machines.recipe[id];
-    if (id !== this.shownId || recipe !== this.shownRecipe) {
+    const key = `${sim.machines.recipe[id]}/${sim.machines.upgraded[id]}/${sim.research.version}`;
+    if (id !== this.shownId || key !== this.shownKey) {
       this.build(sim, id);
       this.shownId = id;
-      this.shownRecipe = recipe;
+      this.shownKey = key;
       this.lastUpdate = 0;
     }
     if (now - this.lastUpdate < 1000 / RENDER_CONFIG.uiUpdatesPerSecond) return;
@@ -102,6 +104,21 @@ export class InfoPanel {
       return;
     }
 
+    if (b.kind === 'decor') {
+      this.body.append(el('p', 'info-text soft', TEXTS.buildings[def.key].description));
+      return;
+    }
+
+    if (b.kind === 'splitter' || b.kind === 'merger' || b.kind === 'bridge') {
+      this.buildLogistics(id, TEXTS.info[b.kind]);
+      return;
+    }
+
+    if (b.kind === 'storage') {
+      this.buildStorage(id, b.capacity);
+      return;
+    }
+
     if (b.kind === 'belt') {
       const perMinute = Math.round((b.tilesPerSecond * BELTS.unitsPerTile * 60) / BELTS.minSpacing);
       this.body.append(el('p', 'info-text', TEXTS.info.belt(perMinute)));
@@ -121,14 +138,20 @@ export class InfoPanel {
     const stateText = el('span');
     stateRow.append(dot, stateText);
     this.body.append(stateRow);
-    const isBurner = b.kind === 'burner';
+    const states =
+      b.kind === 'burner'
+        ? TEXTS.info.burnerStates
+        : b.kind === 'wind'
+          ? TEXTS.info.windStates
+          : TEXTS.info.states;
     this.updaters.push((s) => {
       const st = s.machines.state[id];
       dot.className = `state-dot ${STATE_CLASS[st]}`;
-      stateText.textContent = (isBurner ? TEXTS.info.burnerStates : TEXTS.info.states)[st];
+      stateText.textContent = states[st];
     });
 
     if (b.kind === 'burner') this.buildBurner(sim, id, b.fuelBuffer, b.powerKW);
+    else if (b.kind === 'wind') this.buildWind(id, b.powerKW);
     else if (b.kind === 'crafter') this.buildCrafter(sim, id, b.machine);
     else this.buildExtractor(sim, id, b.kind === 'lumberjack');
     if (def.power > 0) this.buildPowerUse(id, def.power);
@@ -156,7 +179,7 @@ export class InfoPanel {
     const current = sim.machines.recipe[id];
     for (let r = 0; r < RECIPES.length; r++) {
       const def = RECIPES[r];
-      if (def.machine !== machine || !def.availableFromStart) continue;
+      if (def.machine !== machine || !sim.research.recipeUnlocked[r]) continue;
       const button = el('button', `recipe${r === current ? ' selected' : ''}`);
       for (const a of RECIPE_INPUTS[r]) button.append(amountChip(a.item, a.amount));
       button.append(el('span', 'recipe-arrow', '→'));
@@ -227,7 +250,7 @@ export class InfoPanel {
       this.body.append(section);
       return;
     }
-    const perMinute = Math.round((60 * SIM_CONFIG.ticksPerSecond) / sim.machines.extractTicks[id]);
+    const perMinute = Math.round(sim.machines.extractPerMinute(id) * 10) / 10;
     const row = el('div', 'buffer-row');
     row.append(
       el('span', 'info-label', TEXTS.info.extracts),
@@ -263,18 +286,126 @@ export class InfoPanel {
         (value.textContent = `${s.machines.outBuf[id * MAX_RECIPE_OUTPUTS]} / ${MACHINES.extractorBuffer}`),
     );
     this.body.append(section);
+    this.buildUpgrade(sim, id);
+  }
+
+  /** Stufe und Aufwertung (Bergwerk, Holzfäller). */
+  private buildUpgrade(sim: Simulation, id: number): void {
+    const section = el('div', 'info-section');
+    const upgraded = sim.machines.upgraded[id] === 1;
+    section.append(el('div', 'info-label', TEXTS.info.tier(upgraded ? 2 : 1)));
+    if (!upgraded) {
+      if (!sim.research.extractorUpgrade) {
+        section.append(el('p', 'info-text soft', TEXTS.info.upgradeLocked));
+      } else {
+        const cost = toAmounts(EXTRACTOR_UPGRADE.cost);
+        const button = el('button', 'recipe refill');
+        button.append(el('span', '', TEXTS.info.upgrade));
+        for (const c of cost) button.append(amountChip(c.item, c.amount));
+        button.title = TEXTS.info.upgradeHint;
+        button.addEventListener('click', () => {
+          sim.enqueue({ type: 'upgradeBuilding', building: id });
+          button.blur();
+        });
+        section.append(button, el('p', 'info-text soft', TEXTS.info.upgradeHint));
+        this.updaters.push((s) => (button.disabled = !s.inventory.canAfford(cost)));
+      }
+    }
+    this.body.append(section);
+  }
+
+  /** Verteiler, Zusammenführer, Bandbrücke: Erklärung und was gerade darin liegt. */
+  private buildLogistics(id: number, text: string): void {
+    this.body.append(el('p', 'info-text', text));
+    const row = el('div', 'buffer-row');
+    const items = el('span', 'buffer-name');
+    row.append(el('span', 'info-label', TEXTS.info.holding), items);
+    this.body.append(row);
+    let shown = '';
+    this.updaters.push((s) => {
+      const buf = s.logistics.buf;
+      const list: number[] = [];
+      for (let j = 0; j < MAX_PORTS; j++)
+        if (buf[id * MAX_PORTS + j] > 0) list.push(buf[id * MAX_PORTS + j] - 1);
+      const key = list.join(',');
+      if (key === shown) return;
+      shown = key;
+      items.replaceChildren(
+        ...(list.length > 0
+          ? list.map((i) => itemIcon(i))
+          : [document.createTextNode(TEXTS.info.empty)]),
+      );
+    });
+  }
+
+  /** Lager: Füllstand und Inhalt je Item. */
+  private buildStorage(id: number, capacity: number): void {
+    const section = el('div', 'info-section');
+    const bar = el('div', 'util-bar');
+    const fill = el('div', 'util-fill');
+    const text = el('span', 'util-text');
+    bar.append(fill, text);
+    const list = el('div', 'storage-list');
+    section.append(el('p', 'info-text', TEXTS.buildings.storage.description), bar, list);
+    this.body.append(section);
+    const counts = new Int32Array(ITEM_COUNT);
+    let shown = '';
+    this.updaters.push((s) => {
+      const n = s.logistics.qCount[id];
+      fill.style.width = `${Math.round((n / capacity) * 100)}%`;
+      text.textContent = TEXTS.info.storageFill(n, capacity);
+      s.logistics.storageContents(id, counts);
+      const key = counts.join(',');
+      if (key === shown) return;
+      shown = key;
+      const rows: HTMLElement[] = [];
+      for (let i = 0; i < ITEM_COUNT; i++) {
+        if (counts[i] === 0) continue;
+        const row = el('div', 'buffer-row');
+        row.append(
+          itemIcon(i),
+          el('span', 'buffer-name', itemName(i)),
+          el('span', 'buffer-value', formatNumber(counts[i])),
+        );
+        rows.push(row);
+      }
+      list.replaceChildren(...rows);
+    });
+  }
+
+  /** Windrad: aktuelle Leistung und Windstärke. */
+  private buildWind(id: number, powerKW: number): void {
+    const section = el('div', 'info-section');
+    section.append(el('div', 'info-label', TEXTS.info.power));
+    const line = el('p', 'info-text');
+    section.append(line, el('p', 'info-text soft', TEXTS.buildings.windTurbine.description));
+    this.body.append(section);
+    this.updaters.push((s) => {
+      const g = s.power.gridOf[id];
+      const wind = s.power.wind / POWER.scale;
+      const load =
+        g >= 0 && s.power.capacity[g] > 0 ? s.power.production[g] / s.power.capacity[g] : 0;
+      line.textContent = TEXTS.info.windNow(
+        g >= 0 ? kw(powerKW * 1000 * wind * load) : '0',
+        Math.round(wind * 100),
+      );
+    });
   }
 
   /** Stromverbrauch und Versorgung einer Maschine. */
   private buildPowerUse(id: number, power: number): void {
     const section = el('div', 'info-section');
     section.append(el('div', 'info-label', TEXTS.info.power));
-    const use = el('p', 'info-text', TEXTS.info.powerUse(power));
+    const use = el('p', 'info-text');
     const status = el('p', 'info-text soft');
     section.append(use, status);
     this.body.append(section);
     this.updaters.push((s) => {
       s.power.ensure();
+      const tier = s.machines.upgraded[id] ? EXTRACTOR_UPGRADE.powerFactor : 1;
+      use.textContent = TEXTS.info.powerUse(
+        Math.round(((power * tier * s.research.powerUse) / POWER.scale) * 10) / 10,
+      );
       const f = s.power.factorOf(id);
       if (s.power.gridOf[id] < 0) {
         status.textContent = TEXTS.info.noGrid;
@@ -372,7 +503,7 @@ export class InfoPanel {
         kw(p.demand[g]),
         kw(p.capacity[g]),
       );
-      counts.textContent = TEXTS.info.gridBuildings(p.consumers[g].length, p.burners[g].length);
+      counts.textContent = TEXTS.info.gridBuildings(p.consumers[g].length, p.generatorCount(g));
       speed.textContent = TEXTS.info.gridSpeed(Math.round((p.factor[g] / POWER.scale) * 100));
       drawChart(canvas, p.history[g], p.historyPos, p.capacity[g]);
     });

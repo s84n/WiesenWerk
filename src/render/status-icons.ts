@@ -30,7 +30,7 @@ export class StatusIcons {
     this.last = now;
     const ms = sim.machines;
     let n = 0;
-    for (const list of [ms.crafters, ms.extractors, ms.burners]) {
+    for (const list of [ms.crafters, ms.extractors, ms.burners, ms.winds]) {
       for (let k = 0; k < list.length; k++) {
         const id = list[k];
         const s = ms.state[id];

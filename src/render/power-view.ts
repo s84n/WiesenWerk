@@ -13,7 +13,7 @@ import { BUILDINGS } from '../data/buildings';
 import { PALETTE } from '../data/palette';
 import { footprintH, footprintW } from '../sim/buildings';
 import type { Simulation } from '../sim/simulation';
-import { POLE_CABLE_HEIGHT } from './building-models';
+import { BIG_POLE_CABLE_HEIGHT, POLE_CABLE_HEIGHT } from './building-models';
 
 const m = new Matrix4();
 const q = new Quaternion();
@@ -93,10 +93,14 @@ export class PowerView {
     for (let k = 0; k < pairs.length; k += 2) {
       const p1 = pairs[k];
       const p2 = pairs[k + 1];
-      const x1 = st.x[p1] + 0.5;
-      const z1 = st.y[p1] + 0.5;
-      const x2 = st.x[p2] + 0.5;
-      const z2 = st.y[p2] + 0.5;
+      const d1 = BUILDINGS[st.type[p1]];
+      const d2 = BUILDINGS[st.type[p2]];
+      const x1 = st.x[p1] + d1.size[0] / 2;
+      const z1 = st.y[p1] + d1.size[1] / 2;
+      const x2 = st.x[p2] + d2.size[0] / 2;
+      const z2 = st.y[p2] + d2.size[1] / 2;
+      const h1 = cableHeight(st.type[p1]);
+      const h2 = cableHeight(st.type[p2]);
       const dist = Math.hypot(x2 - x1, z2 - z1);
       const sag = 0.12 + dist * 0.035;
       for (let s = 0; s < SEGMENTS; s++) {
@@ -104,12 +108,12 @@ export class PowerView {
         const t1 = (s + 1) / SEGMENTS;
         a.set(
           x1 + (x2 - x1) * t0,
-          POLE_CABLE_HEIGHT - sag * 4 * t0 * (1 - t0),
+          h1 + (h2 - h1) * t0 - sag * 4 * t0 * (1 - t0),
           z1 + (z2 - z1) * t0,
         );
         b.set(
           x1 + (x2 - x1) * t1,
-          POLE_CABLE_HEIGHT - sag * 4 * t1 * (1 - t1),
+          h1 + (h2 - h1) * t1 - sag * 4 * t1 * (1 - t1),
           z1 + (z2 - z1) * t1,
         );
         dir.subVectors(b, a);
@@ -140,9 +144,13 @@ export class PowerView {
       if (!st.alive[id]) continue;
       const def = BUILDINGS[st.type[id]];
       const beh = def.behavior;
+      const w = footprintW(def, st.rot[id]);
+      const h = footprintH(def, st.rot[id]);
       if (beh.kind === 'pole') {
         const r = beh.supplyRadius;
-        add(st.x[id] - r, st.y[id] - r, 2 * r + 1, 2 * r + 1, PALETTE.powerArea);
+        add(st.x[id] - r, st.y[id] - r, w + 2 * r, h + 2 * r, PALETTE.powerArea);
+      } else if (beh.kind === 'wind') {
+        add(st.x[id], st.y[id], w, h, power.gridOf[id] < 0 ? PALETTE.powerNone : PALETTE.powerOk);
       } else if (def.power > 0 || beh.kind === 'burner') {
         const g = power.gridOf[id];
         const color =
@@ -155,7 +163,7 @@ export class PowerView {
               : power.factor[g] >= 1000
                 ? PALETTE.powerOk
                 : PALETTE.powerLow;
-        add(st.x[id], st.y[id], footprintW(def, st.rot[id]), footprintH(def, st.rot[id]), color);
+        add(st.x[id], st.y[id], w, h, color);
       }
     }
     this.overlay.count = n;
@@ -193,4 +201,9 @@ export class PowerView {
     old.dispose();
     this.overlay = bigger;
   }
+}
+
+/** Aufhängehöhe der Kabel je Masttyp. */
+function cableHeight(type: number): number {
+  return BUILDINGS[type].model === 'bigPole' ? BIG_POLE_CABLE_HEIGHT : POLE_CABLE_HEIGHT;
 }

@@ -16,9 +16,12 @@ import { generateWorld } from './sim/worldgen';
 import { BuildBar } from './ui/build-bar';
 import { setItemIcons } from './ui/dom';
 import { setErrorExport, showErrorScreen } from './ui/error-screen';
+import { GoalsPanel } from './ui/goals-panel';
 import { Hud } from './ui/hud';
 import { InfoPanel } from './ui/info-panel';
 import { MainMenu } from './ui/main-menu';
+import { ResearchWindow } from './ui/research-window';
+import { StatsWindow } from './ui/stats-window';
 import { Toasts } from './ui/toasts';
 
 /** Längste Bildpause, die noch nachgeholt wird (z. B. nach einem Ruckler). */
@@ -45,13 +48,20 @@ function start(): void {
 
   // ---------------------------------------------------------------- Oberfläche
   setItemIcons(view.itemIcons());
-  buildStaticUi(ui);
+  const topLeft = buildStaticUi(ui);
   const hotbar = BUILDINGS.map((_, i) => i)
     .filter((i) => BUILDINGS[i].availableFromStart)
     .slice(0, 9);
   const tools = new ToolController(canvas, view.rig, () => sim, view.preview, hotbar);
   /** Öffnet das Menü; wird gesetzt, sobald das Menü existiert. */
   let openMenu = (): void => {};
+  const research = new ResearchWindow(ui, () => sim, view.buildingIcons());
+  const stats = new StatsWindow(ui);
+  const toggleWindow = (w: ResearchWindow | StatsWindow): void => {
+    if (!inGame) return;
+    for (const other of [research, stats]) if (other !== w) other.window.close();
+    w.window.toggle();
+  };
   const hud = new Hud(
     ui,
     {
@@ -61,11 +71,13 @@ function start(): void {
       setSpeed: (s) => (loop.speed = s),
     },
     () => openMenu(),
+    { research: () => toggleWindow(research), stats: () => toggleWindow(stats) },
   );
   const buildBar = new BuildBar(ui, tools, view.buildingIcons());
   const info = new InfoPanel(ui, tools, view.buildingIcons());
   tools.onChange = () => buildBar.refreshMode();
   const toasts = new Toasts(ui);
+  const goals = new GoalsPanel(topLeft, () => sim);
 
   const useSimulation = (next: Simulation): void => {
     sim = next;
@@ -73,6 +85,7 @@ function start(): void {
     tools.cancel();
     hud.invalidate();
     buildBar.invalidate();
+    research.invalidate();
   };
 
   // ---------------------------------------------------------------- Speichern
@@ -132,6 +145,8 @@ function start(): void {
           pausedBeforeMenu = loop.paused;
           loop.paused = true;
           tools.cancel();
+          research.window.close();
+          stats.window.close();
         } else {
           loop.paused = pausedBeforeMenu;
         }
@@ -176,6 +191,10 @@ function start(): void {
         if (menu.isOpen) {
           if (inGame) menu.close();
           e.stopImmediatePropagation();
+        } else if (research.window.isOpen || stats.window.isOpen) {
+          research.window.close();
+          stats.window.close();
+          e.stopImmediatePropagation();
         } else if (tools.mode === 'select' && tools.selected < 0) {
           menu.open();
           e.stopImmediatePropagation();
@@ -187,6 +206,9 @@ function start(): void {
       } else if (menu.isOpen && !(e.target instanceof HTMLInputElement)) {
         // Im Menü keine Spieltasten
         e.stopImmediatePropagation();
+      } else if (!e.repeat && !(e.target instanceof HTMLInputElement)) {
+        if (e.code === 'KeyT') toggleWindow(research);
+        else if (e.code === 'KeyI') toggleWindow(stats);
       }
     },
     { capture: true },
@@ -265,6 +287,9 @@ function start(): void {
       hud.update(sim, now);
       buildBar.update(sim, now);
       info.update(sim, now);
+      research.update(sim, now);
+      stats.update(sim, now);
+      goals.update(sim, inGame);
       view.showPower = powerView || tools.placingPower;
       view.render(loop.paused ? 0 : loop.alpha, now);
       debug.frame(now, tickMs, ticks, view, sim, loop.paused);
@@ -288,8 +313,8 @@ function start(): void {
   requestAnimationFrame(frame);
 }
 
-/** Baut Titel, Version und Hinweiszeile. */
-function buildStaticUi(ui: HTMLElement): void {
+/** Baut Titel, Version und Hinweiszeile. Gibt die linke obere Spalte zurück. */
+function buildStaticUi(ui: HTMLElement): HTMLElement {
   const column = document.createElement('div');
   column.className = 'top-left';
 
@@ -308,6 +333,7 @@ function buildStaticUi(ui: HTMLElement): void {
   hint.textContent = TEXTS.hint;
 
   ui.append(column, hint);
+  return column;
 }
 
 window.addEventListener('error', (e) => showErrorScreen(e.error ?? e.message));

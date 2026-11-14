@@ -291,6 +291,7 @@ Gespielt wird nur mit Maus und Tastatur aus einer isometrischen Sicht von schrä
 | Tasten 1 bis 9 | Schnellleiste |
 | Pipette (Taste F) | Gebäude unter der Maus samt Rezept als Bauauswahl übernehmen |
 | T | Forschungsbaum |
+| I | Statistikfenster (ergänzt in Phase 6) |
 | V | Strom-Ansicht ein und aus |
 | Leertaste | Pause |
 | Strg + S | Speichern |
@@ -503,6 +504,7 @@ Die erste Version entsteht in acht Phasen. Jede Phase endet mit einem lauffähig
 - Bis Phase 6 dürfen Gebäude einfache, aber bereits unterscheidbare Platzhalterformen sein. Instancing und Chunk-Verwaltung gelten jedoch von Phase 1 an, weil sie sich nachträglich schwer einbauen lassen.
 - Speichern kommt bewusst früh (Phase 4), damit das Format mit dem Spiel wächst und jede spätere Phase Migrationen übt.
 - Der Stresstest wird in Phase 3 angelegt und ab dann in jeder Phase ausgeführt.
+- Ergänzung bei der Umsetzung: Die Dekorationsgebäude (Wege, Laternen, Blumenbeete, Zäune, Bänke, Zierbäume, farbige Wege) entstehen schon in Phase 6 als einfache Platzhalter, damit die Forschungsknoten „Verschönerung I und II“ etwas freischalten. Phase 7 ersetzt sie durch die endgültigen Modelle.
 
 **Nach der ersten Version (Reihenfolge offen):** Eisen, Kohle und Sand mit neuen Produktionsketten · Wasser und Öl mit Pumpen, Rohren, Tanks und Raffinerie · Blaupausen (Fabrikteile kopieren und einfügen) · größere Karten · Züge · Fotomodus · Wetter · weitere Sprachen · Simulation im Web Worker.
 

@@ -16,6 +16,7 @@ const SPACING = BELTS.minSpacing;
 const SHAPE_STRAIGHT = 0;
 const SHAPE_LEFT = 1;
 const SHAPE_RIGHT = 2;
+const TIERS = 3;
 
 /**
  * Bänder (gerade Stücke und Kurven als Instanzen) und die Items darauf.
@@ -35,9 +36,12 @@ export class BeltView {
     private readonly material: Material,
   ) {
     const chunks = world.chunksPerSide * world.chunksPerSide;
-    this.shapes = [beltStraight(), beltCurve(true), beltCurve(false)].map(
-      (g) => new DynamicChunkedInstances(g, material, chunks, false),
-    );
+    // je Bandstufe: gerade, Kurve links, Kurve rechts (Index = (Stufe − 1) · 3 + Form)
+    this.shapes = [];
+    for (let tier = 1; tier <= TIERS; tier++) {
+      for (const g of [beltStraight(tier), beltCurve(true, tier), beltCurve(false, tier)])
+        this.shapes.push(new DynamicChunkedInstances(g, material, chunks, false));
+    }
     for (const s of this.shapes) this.group.add(s.group);
     this.tileId = new Int32Array(world.size * world.size).fill(-1);
     this.tileShape = new Int8Array(world.size * world.size);
@@ -62,8 +66,11 @@ export class BeltView {
     if (id < 0) return;
     const exit = sim.belts.dirAt(tile);
     const turn = (exit - sim.belts.entryDir(tile)) & 3;
-    const shape = turn === 3 ? SHAPE_LEFT : turn === 1 ? SHAPE_RIGHT : SHAPE_STRAIGHT;
     const b = sim.buildings;
+    const beh = BUILDINGS[b.type[id]].behavior;
+    const tier = beh.kind === 'belt' ? beh.tier : 1;
+    const shape =
+      (tier - 1) * 3 + (turn === 3 ? SHAPE_LEFT : turn === 1 ? SHAPE_RIGHT : SHAPE_STRAIGHT);
     buildingMatrix(b.type[id], b.x[id], b.y[id], exit, m);
     this.shapes[shape].add(id, this.world.chunkOf(b.x[id], b.y[id]), m);
     this.tileId[tile] = id;

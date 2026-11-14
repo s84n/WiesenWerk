@@ -162,6 +162,10 @@ export class GameRenderer {
         case 'buildingAdded':
           this.onAdded(sim, e.id);
           break;
+        case 'buildingUpgraded':
+          this.buildings.refreshBadge(sim, e.id);
+          break;
+        case 'buildingReplaced':
         case 'buildingRotated':
           this.belts?.refreshAround(
             sim,

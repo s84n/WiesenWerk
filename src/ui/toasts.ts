@@ -1,5 +1,7 @@
 import { BUILDING_COSTS } from '../data/buildings';
+import { GOALS } from '../data/goals';
 import { ITEMS } from '../data/items';
+import { RESEARCH, UPGRADES } from '../data/research';
 import { PALETTE } from '../data/palette';
 import { TEXTS } from '../data/texts';
 import type { SimEvent } from '../sim/events';
@@ -35,6 +37,18 @@ export class Toasts {
         this.float(`+${e.amount} ${itemName(e.item)}`, PALETTE[ITEMS[e.item].color]);
       } else if (e.type === 'commandFailed') {
         this.message(this.failureText(e.reason, e.buildingType, sim));
+      } else if (e.type === 'researched') {
+        this.message(TEXTS.research.researched(TEXTS.research.nodes[RESEARCH[e.node].key]));
+      } else if (e.type === 'upgraded') {
+        const key = UPGRADES[e.upgrade].key;
+        this.message(
+          TEXTS.research.upgraded(
+            TEXTS.research.upgrades[key].name,
+            sim.research.levels[e.upgrade],
+          ),
+        );
+      } else if (e.type === 'goalCompleted') {
+        this.message(TEXTS.goals.completed(TEXTS.goals.items[GOALS[e.goal].key]));
       }
     }
   }
@@ -71,6 +85,8 @@ export class Toasts {
         return TEXTS.messages.needsDeposit;
       case PlaceResult.Unique:
         return TEXTS.messages.unique;
+      case PlaceResult.Locked:
+        return TEXTS.messages.locked;
       case PlaceResult.Cost: {
         const missing = BUILDING_COSTS[type]
           .map((c) => ({ item: c.item, amount: c.amount - sim.inventory.get(c.item) }))

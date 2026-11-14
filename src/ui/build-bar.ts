@@ -17,6 +17,7 @@ export class BuildBar {
   private readonly modeHint: HTMLElement;
   private category: BuildCategory;
   private shownVersion = -1;
+  private shownResearch = -1;
   private lastUpdate = 0;
 
   constructor(
@@ -30,10 +31,10 @@ export class BuildBar {
 
     const bar = el('div', 'panel build-bar');
     const tabRow = el('div', 'build-tabs');
-    const available = BUILDINGS.map((_, i) => i).filter((i) => BUILDINGS[i].availableFromStart);
-    const used = CATEGORIES.filter((c) => available.some((i) => BUILDINGS[i].category === c));
-    this.category = used[0];
-    for (const c of used) {
+    // Alle Gebäude bekommen einen Eintrag; gesperrte bleiben bis zur Forschung unsichtbar.
+    const available = BUILDINGS.map((_, i) => i);
+    this.category = CATEGORIES[0];
+    for (const c of CATEGORIES) {
       const tab = el('button', 'build-tab', TEXTS.categories[c]);
       tab.addEventListener('click', () => {
         this.category = c;
@@ -101,12 +102,15 @@ export class BuildBar {
         this.refreshCategory();
       }
       const def = BUILDINGS[t.buildType];
+      const name = TEXTS.buildings[def.key].name;
       this.modeHint.textContent =
         def.behavior.kind === 'belt'
           ? TEXTS.build.modeBelt
           : def.behavior.kind === 'pole'
             ? TEXTS.build.modePole
-            : TEXTS.build.modeBuild(TEXTS.buildings[def.key].name);
+            : def.line
+              ? TEXTS.build.modeLine(name)
+              : TEXTS.build.modeBuild(name);
       this.modeHint.style.display = '';
     } else if (t.mode === 'demolish') {
       this.modeHint.textContent = TEXTS.build.modeDemolish;
@@ -116,8 +120,13 @@ export class BuildBar {
     }
   }
 
-  /** Graut nicht bezahlbare Gebäude aus (nur bei Änderungen am Vorrat). */
+  /** Graut nicht bezahlbare Gebäude aus (nur bei Änderungen am Vorrat) und zeigt erforschte. */
   update(sim: Simulation, now: number): void {
+    if (sim.research.version !== this.shownResearch) {
+      this.shownResearch = sim.research.version;
+      this.unlocked = sim.research.buildingUnlocked;
+      this.refreshCategory();
+    }
     if (sim.inventory.version === this.shownVersion) return;
     if (now - this.lastUpdate < 1000 / RENDER_CONFIG.uiUpdatesPerSecond) return;
     this.lastUpdate = now;
@@ -129,12 +138,25 @@ export class BuildBar {
 
   invalidate(): void {
     this.shownVersion = -1;
+    this.shownResearch = -1;
     this.lastUpdate = 0;
   }
 
+  /** Freigeschaltete Gebäude (aus der Forschung). */
+  private unlocked: Uint8Array = Uint8Array.from(BUILDINGS, (b) => (b.availableFromStart ? 1 : 0));
+
   private refreshCategory(): void {
+    // Kategorien ohne freigeschaltete Gebäude ausblenden
+    for (const [c, tab] of this.tabs) {
+      const any = this.entries.some(
+        (e) => this.unlocked[e.type] && BUILDINGS[e.type].category === c,
+      );
+      tab.style.display = any ? '' : 'none';
+      if (!any && c === this.category) this.category = CATEGORIES[0];
+    }
     for (const [c, tab] of this.tabs) tab.classList.toggle('selected', c === this.category);
     for (const e of this.entries)
-      e.button.style.display = BUILDINGS[e.type].category === this.category ? '' : 'none';
+      e.button.style.display =
+        this.unlocked[e.type] && BUILDINGS[e.type].category === this.category ? '' : 'none';
   }
 }

@@ -43,6 +43,12 @@ export const PALETTE = {
   glow: 0xffb347,
   windowLight: 0xffe39a,
   flag: 0xe0603e,
+  metal: 0x8f99a3,
+  metalDark: 0x5f6870,
+  blade: 0xf6f1e4,
+  pathStone: 0xcfc3a8,
+  pathRed: 0xc77a5a,
+  hedge: 0x5f9a42,
 
   // Items
   itemWood: 0xc98b4a,
@@ -64,6 +70,10 @@ export const PALETTE = {
   beltFrame: 0x9a6a3c,
   beltSurface: 0x5f5048,
   beltArrow: 0xe6c27a,
+  beltFrameMk2: 0x4f7fb0,
+  beltArrowMk2: 0xa8d0f0,
+  beltFrameMk3: 0x3f9a7a,
+  beltArrowMk3: 0xb8f0c0,
 
   // Hinweise
   hintWait: 0xf6d04d,

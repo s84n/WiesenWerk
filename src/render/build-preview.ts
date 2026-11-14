@@ -89,6 +89,8 @@ export class BuildPreview {
   /** Vorschau eines Bandweges; `valid[i]` färbt jedes Feld grün oder rot. */
   showBeltPath(type: number, path: readonly BeltStep[], valid: readonly boolean[]): void {
     this.hide();
+    // gleiche Vorschau für Wege und Zäune: Geometrie des gewählten Gebäudes
+    this.beltGhosts.geometry = buildingGeometries()[type];
     const n = Math.min(path.length, MAX_BELT_PREVIEW);
     for (let i = 0; i < n; i++) {
       const p = path[i];
@@ -112,6 +114,7 @@ export class BuildPreview {
   /** Zeigt ein Gebäude als Vorschau. */
   showBuilding(type: number, x: number, y: number, rot: number, valid: boolean): void {
     const def = BUILDINGS[type];
+    this.range.visible = false;
     this.showGhost(type, x, y, rot, valid ? 0xc8ffc0 : 0xff9a8a, 1);
     this.showArea(
       x,

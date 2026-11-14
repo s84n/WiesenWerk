@@ -65,7 +65,13 @@ export class ToolController {
   get placingPower(): boolean {
     if (this.mode !== 'build') return false;
     const def = BUILDINGS[this.buildType];
-    return def.power > 0 || def.behavior.kind === 'pole' || def.behavior.kind === 'burner';
+    const kind = def.behavior.kind;
+    return def.power > 0 || kind === 'pole' || kind === 'burner' || kind === 'wind';
+  }
+
+  /** Wird das gewählte Gebäude in einer Linie gezogen (Bänder, Wege, Zäune)? */
+  private get isLine(): boolean {
+    return this.mode === 'build' && BUILDINGS[this.buildType].line === true;
   }
 
   private get isBelt(): boolean {
@@ -119,7 +125,7 @@ export class ToolController {
 
     if (!this.inside || this.hoverX < 0) {
       this.preview.hide();
-    } else if (this.isBelt) {
+    } else if (this.isLine) {
       this.updateBeltPreview(sim);
     } else if (this.mode === 'build') {
       const def = BUILDINGS[this.buildType];
@@ -135,6 +141,16 @@ export class ToolController {
         this.rot,
         result === PlaceResult.Ok,
       );
+      // Strommast: Versorgungsbereich zeigen
+      if (def.behavior.kind === 'pole') {
+        const r = def.behavior.supplyRadius;
+        this.preview.showRange(
+          this.placeX - r,
+          this.placeY - r,
+          this.placeX + w - 1 + r,
+          this.placeY + h - 1 + r,
+        );
+      }
     } else if (this.mode === 'demolish') {
       cursor = 'crosshair';
       if (this.leftDown) {
@@ -213,7 +229,11 @@ export class ToolController {
       : [{ x: this.hoverX, y: this.hoverY, dir: this.rot }];
     const valid = path.map((p) => {
       const id = sim.buildingAt(p.x, p.y);
-      if (id >= 0) return sim.isBelt(id);
+      if (id >= 0) {
+        // Bänder dürfen vorhandene Bänder drehen oder aufwerten, Wege überspringen Gleiche
+        if (this.isBelt) return sim.isBelt(id);
+        return sim.buildings.type[id] === this.buildType;
+      }
       return checkPlacement(sim, this.buildType, p.x, p.y, p.dir) === PlaceResult.Ok;
     });
     this.beltPath = path;
@@ -229,7 +249,7 @@ export class ToolController {
     y1: number,
   ): BeltStep[] {
     if (x0 === x1 && y0 === y1) {
-      const into = sim.belts.inputDirFor(sim.world.index(x0, y0));
+      const into = this.isBelt ? sim.belts.inputDirFor(sim.world.index(x0, y0)) : -1;
       return [{ x: x0, y: y0, dir: into >= 0 ? into : this.rot }];
     }
     if (this.beltAxis === null) this.beltAxis = Math.abs(x1 - x0) >= Math.abs(y1 - y0) ? 'x' : 'y';
@@ -253,7 +273,7 @@ export class ToolController {
       } else {
         dir = dirBetween(points[i - 1][0], points[i - 1][1], px, py);
         // Endet das Band neben einem passenden Gebäudeeingang, zeigt es hinein.
-        if (sim.world.inBounds(px, py)) {
+        if (this.isBelt && sim.world.inBounds(px, py)) {
           const into = sim.belts.inputDirFor(sim.world.index(px, py));
           if (into >= 0 && into !== ((dir + 2) & 3)) dir = into;
         }
@@ -301,7 +321,7 @@ export class ToolController {
     this.updateHover();
     if (this.hoverX < 0) return;
 
-    if (this.isBelt) {
+    if (this.isLine) {
       this.leftDown = true;
       this.dragX = this.hoverX;
       this.dragY = this.hoverY;
@@ -338,7 +358,7 @@ export class ToolController {
     if (e.button !== 0 || !this.leftDown) return;
     this.leftDown = false;
     const sim = this.getSim();
-    if (this.isBelt) {
+    if (this.isLine) {
       if (this.beltPath.length > 0) {
         sim.enqueue({ type: 'buildLine', building: this.buildType, path: this.beltPath });
         // Richtung des letzten Feldes merken, damit Einzelklicks danach passend weiterbauen
@@ -359,7 +379,7 @@ export class ToolController {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     if (e.repeat) return;
     if (e.code === 'KeyR' && this.mode === 'build') {
-      if (this.isBelt && this.leftDown) this.beltAxis = this.beltAxis === 'x' ? 'y' : 'x';
+      if (this.isLine && this.leftDown) this.beltAxis = this.beltAxis === 'x' ? 'y' : 'x';
       else this.rot = (this.rot + (e.shiftKey ? 3 : 1)) % 4;
     } else if (e.code === 'KeyX') {
       this.toggleDemolish();
