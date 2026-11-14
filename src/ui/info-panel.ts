@@ -171,9 +171,13 @@ export class InfoPanel {
     const states =
       b.kind === 'burner'
         ? TEXTS.info.burnerStates
-        : b.kind === 'wind'
+        : b.kind === 'wind' || b.kind === 'water'
           ? TEXTS.info.windStates
-          : TEXTS.info.states;
+          : b.kind === 'solar'
+            ? TEXTS.info.solarStates
+            : b.kind === 'battery'
+              ? TEXTS.info.batteryStates
+              : TEXTS.info.states;
     // Bei blockiertem Ausgang: woran es liegt
     const blockedHint = el('p', 'info-text warn');
     blockedHint.style.display = 'none';
@@ -188,8 +192,13 @@ export class InfoPanel {
     });
 
     if (b.kind === 'burner') this.buildBurner(sim, id, b.fuelBuffer, b.powerKW);
-    else if (b.kind === 'wind') this.buildWind(id, b.powerKW);
-    else if (b.kind === 'crafter') this.buildCrafter(sim, id, b.machine);
+    else if (b.kind === 'wind' || b.kind === 'water' || b.kind === 'solar')
+      this.buildFreeGenerator(id, b.kind, def.key);
+    else if (b.kind === 'battery') {
+      this.buildBattery(id);
+      for (const u of this.updaters) u(sim);
+      return;
+    } else if (b.kind === 'crafter') this.buildCrafter(sim, id, b.machine);
     else this.buildExtractor(sim, id, b.kind === 'lumberjack');
     if (def.power > 0) this.buildPowerUse(id, def.power);
 
@@ -410,22 +419,45 @@ export class InfoPanel {
     });
   }
 
-  /** Windrad: aktuelle Leistung und Windstärke. */
-  private buildWind(id: number, powerKW: number): void {
+  /** Wind, Wasser, Sonne: aktuelle Leistung (und Wind- bzw. Sonnenstärke). */
+  private buildFreeGenerator(id: number, kind: 'wind' | 'water' | 'solar', key: string): void {
     const section = el('div', 'info-section');
     section.append(el('div', 'info-label', TEXTS.info.power));
     const line = el('p', 'info-text');
-    section.append(line, el('p', 'info-text soft', TEXTS.buildings.windTurbine.description));
+    section.append(line, el('p', 'info-text soft', TEXTS.buildings[key].description));
     this.body.append(section);
     this.updaters.push((s) => {
-      const g = s.power.gridOf[id];
-      const wind = s.power.wind / POWER.scale;
-      const load =
-        g >= 0 && s.power.capacity[g] > 0 ? s.power.production[g] / s.power.capacity[g] : 0;
-      line.textContent = TEXTS.info.windNow(
-        g >= 0 ? kw(powerKW * 1000 * wind * load) : '0',
-        Math.round(wind * 100),
-      );
+      const watts = s.power.gridOf[id] >= 0 ? s.power.freeWatts(id) : 0;
+      line.textContent =
+        kind === 'wind'
+          ? TEXTS.info.windNow(kw(watts), Math.round((s.power.wind / POWER.scale) * 100))
+          : kind === 'solar'
+            ? TEXTS.info.solarNow(kw(watts), Math.round((s.power.sun / POWER.scale) * 100))
+            : TEXTS.info.waterNow(kw(watts));
+    });
+  }
+
+  /** Akku-Haus: Ladung, Lade- bzw. Entladeleistung. */
+  private buildBattery(id: number): void {
+    const section = el('div', 'info-section');
+    section.append(el('div', 'info-label', TEXTS.info.power));
+    const charge = el('p', 'info-text');
+    const bar = el('div', 'util-bar');
+    const fill = el('div', 'util-fill');
+    bar.append(fill);
+    const flow = el('p', 'info-text soft');
+    section.append(charge, bar, flow, el('p', 'info-text soft', TEXTS.info.batteryHint));
+    this.body.append(section);
+    this.updaters.push((s) => {
+      const { stored, capacity } = s.power.batteryCharge(id);
+      const pct = capacity > 0 ? Math.round((stored / capacity) * 100) : 0;
+      const mj = (j: number): string =>
+        (j / 1e6).toLocaleString('de-DE', { maximumFractionDigits: 1 });
+      charge.textContent = TEXTS.info.batteryCharge(mj(stored), mj(capacity), pct);
+      fill.style.width = `${pct}%`;
+      const f = s.power.gridOf[id] >= 0 ? s.power.flow[id] : 0;
+      flow.textContent =
+        f === 0 ? TEXTS.info.batteryIdle : TEXTS.info.batteryFlow(kw(Math.abs(f)), f > 0);
     });
   }
 

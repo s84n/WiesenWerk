@@ -3,7 +3,7 @@ import { BUILDINGS } from '../data/buildings';
 import { GOALS } from '../data/goals';
 import { ITEM_COUNT } from '../data/items';
 import { MAX_RECIPE_INPUTS, MAX_RECIPE_OUTPUTS } from '../data/recipes';
-import { TileType } from '../data/world';
+import { DEPOSITS, TileType } from '../data/world';
 import { footprintH, footprintW } from './buildings';
 import { LogisticsSystem, MAX_PORTS } from './logistics';
 import { Simulation } from './simulation';
@@ -18,7 +18,7 @@ import { generateWorld } from './worldgen';
 
 export const SAVE_FORMAT = 'wiesenwerk';
 /** Bei jeder Änderung am Format erhöhen und eine Migration in `MIGRATIONS` ergänzen. */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 /**
  * Werte pro Maschine in `machines.data`:
@@ -42,6 +42,11 @@ export interface SaveData {
   meta: SaveMeta;
   seed: number;
   size: number;
+  /**
+   * Ab Version 5: so viele Vorkommen (`DEPOSITS`) gab es beim Anlegen des Spiels. Neuere
+   * Vorkommen werden unter bestehenden Gebäuden beim Laden wieder zu Wiese.
+   */
+  depositLayers: number;
   tick: number;
   /** Kamera: x, z, sichtbare Höhe, Winkel. */
   camera: number[];
@@ -157,6 +162,7 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
     meta,
     seed: world.seed,
     size: world.size,
+    depositLayers: DEPOSITS.length,
     tick: sim.tick,
     camera,
     inventory: Array.from(sim.inventory.amounts),
@@ -194,7 +200,17 @@ const MIGRATIONS: Record<number, (data: Record<string, unknown>) => Record<strin
   1: migrate1to2,
   2: migrate2to3,
   3: migrate3to4,
+  4: migrate4to5,
 };
+
+/**
+ * Version 4 → 5: neue Vorkommen (Eisen, Kohle, Sand). Ältere Spielstände kannten nur Stein und
+ * Kupfer; die neuen Vorkommen erscheinen beim Laden auf freier Wiese und im Wald, unter
+ * bestehenden Gebäuden bleibt Wiese.
+ */
+function migrate4to5(d: Record<string, unknown>): Record<string, unknown> {
+  return { ...d, depositLayers: 2 };
+}
 
 /**
  * Version 3 → 4: Brenner können sich selbst aus dem Vorrat nachfüllen. Bestehende Brenner
@@ -297,6 +313,7 @@ function validate(d: Record<string, unknown>): void {
   const ok =
     num(d.seed) &&
     num(d.size) &&
+    num(d.depositLayers) &&
     (d.size as number) % 16 === 0 &&
     (d.size as number) >= 16 &&
     (d.size as number) <= 2048 &&
@@ -361,8 +378,13 @@ function restore(d: SaveData): Simulation {
 
   for (let k = 0; k < d.tiles.length; k += 2) {
     if (!tileOk(d.tiles[k])) throw new SaveError('damaged', 'Feld');
-    world.tiles[d.tiles[k]] = d.tiles[k + 1];
-    world.changedTiles.add(d.tiles[k]);
+    const t = d.tiles[k];
+    world.tiles[t] = d.tiles[k + 1];
+    world.changedTiles.add(t);
+    if (world.tiles[t] !== TileType.Deposit) {
+      world.resource[t] = 0;
+      world.purity[t] = 0;
+    }
   }
 
   const sim = new Simulation(world);
@@ -392,7 +414,15 @@ function restore(d: SaveData): Simulation {
     for (let ty = y; ty < y + footprintH(def, rot); ty++) {
       for (let tx = x; tx < x + footprintW(def, rot); tx++) {
         if (!world.inBounds(tx, ty)) throw new SaveError('damaged', 'Gebäudeposition');
-        world.building[world.index(tx, ty)] = id + 1;
+        const t = world.index(tx, ty);
+        world.building[t] = id + 1;
+        // Vorkommen, die es beim Anlegen des Spiels noch nicht gab, nicht unter Gebäude schieben
+        if (world.resource[t] > d.depositLayers && def.placement !== 'groundOrDeposit') {
+          world.tiles[t] = TileType.Meadow;
+          world.resource[t] = 0;
+          world.purity[t] = 0;
+          world.changedTiles.add(t);
+        }
       }
     }
     sim.typeCount[type]++;

@@ -1,15 +1,17 @@
 import { Vector3 } from 'three';
 import { HAND_MINING } from '../data/balance';
-import { BUILDINGS } from '../data/buildings';
+import { BUILDINGS, FREE_GENERATOR_KINDS } from '../data/buildings';
 import { PALETTE } from '../data/palette';
+import { TEXTS } from '../data/texts';
 import type { BuildPreview } from '../render/build-preview';
 import type { CameraRig } from '../render/camera-rig';
 import { footprintH, footprintW } from '../sim/buildings';
-import type { BeltStep } from '../sim/commands';
+import { copyArea, placeBlueprint, rotateBlueprint, type Blueprint } from '../sim/blueprint';
+import type { BeltStep, BlueprintPlacement } from '../sim/commands';
 import { PlaceResult, checkPlacement } from '../sim/placement';
 import type { Simulation } from '../sim/simulation';
 
-export type ToolMode = 'select' | 'build' | 'demolish';
+export type ToolMode = 'select' | 'build' | 'demolish' | 'copy' | 'paste';
 
 const tmp = new Vector3();
 /** Höhen, in denen der Sichtstrahl nach Bäumen abgesucht wird (Baumkronen zuerst). */
@@ -31,6 +33,11 @@ export class ToolController {
   recipe = -1;
   /** Wird aufgerufen, wenn sich Modus oder Auswahl ändern (für die Oberfläche). */
   onChange: () => void = () => {};
+  /** Kurze Meldung an den Spieler (wird von außen gesetzt). */
+  onMessage: (text: string) => void = () => {};
+  /** Zuletzt kopierte Blaupause (gilt für das ganze Spiel, auch nach dem Laden). */
+  blueprint: Blueprint | null = null;
+  private pastePlacements: BlueprintPlacement[] = [];
 
   private ndcX = 0;
   private ndcY = 0;
@@ -68,7 +75,13 @@ export class ToolController {
     if (this.mode !== 'build') return false;
     const def = BUILDINGS[this.buildType];
     const kind = def.behavior.kind;
-    return def.power > 0 || kind === 'pole' || kind === 'burner' || kind === 'wind';
+    return (
+      def.power > 0 ||
+      kind === 'pole' ||
+      kind === 'burner' ||
+      kind === 'battery' ||
+      FREE_GENERATOR_KINDS.includes(kind)
+    );
   }
 
   /** Wird das gewählte Gebäude in einer Linie gezogen (Bänder, Wege, Zäune)? */
@@ -101,6 +114,29 @@ export class ToolController {
       this.selected = -1;
       this.onChange();
     }
+  }
+
+  /** Blaupause: Rahmen ziehen zum Kopieren (C). */
+  toggleCopy(): void {
+    if (this.mode === 'copy') this.cancel();
+    else {
+      this.mode = 'copy';
+      this.leftDown = false;
+      this.selected = -1;
+      this.onChange();
+    }
+  }
+
+  /** Letzte Blaupause einfügen (Strg + V). */
+  startPaste(): void {
+    if (!this.blueprint) {
+      this.onMessage(TEXTS.build.noBlueprint);
+      return;
+    }
+    this.mode = 'paste';
+    this.leftDown = false;
+    this.selected = -1;
+    this.onChange();
   }
 
   /** Pipette: Gebäude unter der Maus samt Drehung und Rezept als Bauauswahl übernehmen. */
@@ -171,6 +207,29 @@ export class ToolController {
           this.placeY + h - 1 + r,
         );
       }
+    } else if (this.mode === 'copy') {
+      cursor = 'crosshair';
+      const x0 = this.leftDown ? this.dragX : this.hoverX;
+      const y0 = this.leftDown ? this.dragY : this.hoverY;
+      this.preview.showOnlyArea(x0, y0, this.hoverX, this.hoverY, PALETTE.powerArea);
+    } else if (this.mode === 'paste' && this.blueprint) {
+      const bp = this.blueprint;
+      this.placeX = this.hoverX - Math.floor((bp.w - 1) / 2);
+      this.placeY = this.hoverY - Math.floor((bp.h - 1) / 2);
+      const list = placeBlueprint(bp, this.placeX, this.placeY);
+      const valid = list.map(
+        (p) => checkPlacement(sim, p.building, p.x, p.y, p.rot) === PlaceResult.Ok,
+      );
+      this.pastePlacements = list;
+      this.preview.showBlueprint(
+        list,
+        valid,
+        this.placeX,
+        this.placeY,
+        this.placeX + bp.w - 1,
+        this.placeY + bp.h - 1,
+        valid.every((v) => v),
+      );
     } else if (this.mode === 'demolish') {
       cursor = 'crosshair';
       if (this.leftDown) {
@@ -355,10 +414,13 @@ export class ToolController {
         rot: this.rot,
         recipe: this.recipe,
       });
-    } else if (this.mode === 'demolish') {
+    } else if (this.mode === 'demolish' || this.mode === 'copy') {
       this.leftDown = true;
       this.dragX = this.hoverX;
       this.dragY = this.hoverY;
+    } else if (this.mode === 'paste') {
+      if (this.pastePlacements.length > 0)
+        sim.enqueue({ type: 'buildMany', list: this.pastePlacements });
     } else {
       const tile = this.pickHarvestTile(sim);
       if (tile >= 0) {
@@ -385,6 +447,15 @@ export class ToolController {
         // Richtung des letzten Feldes merken, damit Einzelklicks danach passend weiterbauen
         this.rot = this.beltPath[this.beltPath.length - 1].dir;
       }
+    } else if (this.mode === 'copy' && this.hoverX >= 0) {
+      const bp = copyArea(sim, this.dragX, this.dragY, this.hoverX, this.hoverY);
+      if (!bp) {
+        this.onMessage(TEXTS.build.copyEmpty);
+        return;
+      }
+      this.blueprint = bp;
+      this.onMessage(TEXTS.build.copied(bp.entries.length));
+      this.startPaste();
     } else if (this.mode === 'demolish' && this.hoverX >= 0) {
       sim.enqueue({
         type: 'demolishArea',
@@ -402,6 +473,14 @@ export class ToolController {
     if (e.code === 'KeyR' && this.mode === 'build') {
       if (this.isLine && this.leftDown) this.beltAxis = this.beltAxis === 'x' ? 'y' : 'x';
       else this.rot = (this.rot + (e.shiftKey ? 3 : 1)) % 4;
+    } else if (e.code === 'KeyR' && this.mode === 'paste' && this.blueprint) {
+      const turns = e.shiftKey ? 3 : 1;
+      for (let k = 0; k < turns; k++) this.blueprint = rotateBlueprint(this.blueprint);
+    } else if (e.code === 'KeyV' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      this.startPaste();
+    } else if (e.code === 'KeyC' && !e.ctrlKey && !e.metaKey) {
+      this.toggleCopy();
     } else if (e.code === 'KeyX') {
       this.toggleDemolish();
     } else if (e.code === 'KeyF') {

@@ -83,12 +83,20 @@ export class MachineSystem {
   readonly crafters: number[] = [];
   readonly extractors: number[] = [];
   readonly burners: number[] = [];
-  /** Windräder (Reihenfolge spielt keine Rolle, wird nicht gespeichert). */
+  /** Freie Erzeuger: Windräder, Wasserräder, Solarfelder (Reihenfolge egal, nicht gespeichert). */
   readonly winds: number[] = [];
+  /** Akku-Häuser (Ladung in `fuelEnergy` in J; Reihenfolge egal, nicht gespeichert). */
+  readonly batteries: number[] = [];
   /** Depots (für die Träger-Animation; Reihenfolge egal, nicht gespeichert). */
   readonly depots: number[] = [];
   /** Alle Listen zusammen (für Darstellung, ohne jedes Bild ein neues Array zu bauen). */
-  readonly lists: readonly number[][] = [this.crafters, this.extractors, this.burners, this.winds];
+  readonly lists: readonly number[][] = [
+    this.crafters,
+    this.extractors,
+    this.burners,
+    this.winds,
+    this.batteries,
+  ];
   /** Gelieferte Items je Typ (für Statistik und Tests). */
   delivered = 0;
 
@@ -152,8 +160,10 @@ export class MachineSystem {
     } else if (b.kind === 'burner') {
       this.burners.push(id);
       this.setState(id, MachineState.WaitingInput);
-    } else if (b.kind === 'wind') {
+    } else if (b.kind === 'wind' || b.kind === 'water' || b.kind === 'solar') {
       this.winds.push(id);
+    } else if (b.kind === 'battery') {
+      this.batteries.push(id);
     } else if (b.kind === 'depot') {
       this.depots.push(id);
       this.lastDelivery[id] = -1000;
@@ -175,8 +185,10 @@ export class MachineSystem {
       remove(this.crafters, id);
       const r = this.recipe[id];
       if (r >= 0) this.collectBuffers(id, r, result);
-    } else if (kind === 'wind') {
+    } else if (kind === 'wind' || kind === 'water' || kind === 'solar') {
       remove(this.winds, id);
+    } else if (kind === 'battery') {
+      remove(this.batteries, id);
     } else if (kind === 'depot') {
       remove(this.depots, id);
     } else if (kind === 'burner') {

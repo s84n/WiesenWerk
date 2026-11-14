@@ -127,6 +127,50 @@ export const RESEARCH: readonly ResearchDef[] = [
     buildings: ['storageLarge', 'depotLarge'],
     pos: [3, 4],
   },
+  // Erweiterung nach Phase 7: Eisen, Glas, Stahl und neue Stromarten
+  {
+    key: 'ironworking',
+    requires: [],
+    cost: { copperIngot: 60, stoneBrick: 60 },
+    recipes: ['ironIngot', 'gear'],
+    pos: [0, 5],
+  },
+  {
+    key: 'glassmaking',
+    requires: [],
+    cost: { stoneBrick: 80, plank: 40 },
+    recipes: ['glass'],
+    pos: [0, 6],
+  },
+  {
+    key: 'waterPower',
+    requires: ['ironworking'],
+    cost: { gear: 40, plank: 80 },
+    buildings: ['waterWheel'],
+    pos: [1, 5],
+  },
+  {
+    key: 'steelmaking',
+    requires: ['ironworking', 'assembler'],
+    cost: { ironIngot: 100, frame: 20 },
+    buildings: ['foundry'],
+    recipes: ['steel'],
+    pos: [3, 5],
+  },
+  {
+    key: 'solarPower',
+    requires: ['glassmaking', 'electronics'],
+    cost: { glass: 80, circuit: 30 },
+    buildings: ['solarPanel'],
+    pos: [4, 6],
+  },
+  {
+    key: 'batteries',
+    requires: ['steelmaking', 'solarPower'],
+    cost: { steel: 60, coil: 40 },
+    buildings: ['battery'],
+    pos: [5, 5],
+  },
 ];
 
 export const RESEARCH_ID = Object.fromEntries(RESEARCH.map((r, i) => [r.key, i])) as Record<

@@ -76,8 +76,14 @@ describe('Weltgenerator', () => {
       expect(clear).toBe(all);
       // Wald, Stein und Kupfer in der Nähe
       expect(countAround(w, 24, (i) => w.tiles[i] === TileType.Forest)).toBeGreaterThanOrEqual(20);
-      DEPOSITS.forEach((_, d) => {
-        expect(countAround(w, 26, (i) => w.resource[i] === d + 1)).toBeGreaterThanOrEqual(5);
+      DEPOSITS.forEach((def, d) => {
+        // Stein und Kupfer direkt am Start, Eisen, Kohle und Sand etwas weiter weg
+        const r = def.late ? (def.nearStart ?? 0) : 26;
+        expect(countAround(w, r, (i) => w.resource[i] === d + 1)).toBeGreaterThanOrEqual(5);
+        if (def.late)
+          expect(countAround(w, WORLD_CONFIG.lateClearRadius, (i) => w.resource[i] === d + 1)).toBe(
+            0,
+          );
       });
     }
   });
@@ -119,6 +125,7 @@ describe('Weltgenerator', () => {
       startGuarantee: true,
       oreColor: 'rockDark',
       groundColor: 'soil',
+      late: true,
     };
     const before = generateWorld(999);
     const after = generateWorld(999, WORLD_CONFIG.size, [...DEPOSITS, extra]);

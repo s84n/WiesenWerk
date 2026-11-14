@@ -83,6 +83,28 @@ const SHAPES: Record<ItemShape, (c: number) => BufferGeometry[]> = {
     box(0.22, 0.16, 0.18, 0, 0, 0, c),
     box(0.06, 0.04, 0.02, 0.04, 0.09, 0.09, PALETTE.windowLight),
   ],
+  sand: (c) => [
+    colored(new CylinderGeometry(0.04, 0.15, 0.12, 7).translate(0, 0.06, 0), c),
+    colored(new CylinderGeometry(0.02, 0.06, 0.05, 6).translate(0.03, 0.14, 0.02), c),
+  ],
+  pane: (c) => [
+    box(0.26, 0.03, 0.2, 0, 0, 0, c),
+    box(0.26, 0.03, 0.2, 0.01, 0.035, 0.01, PALETTE.blade),
+    box(0.24, 0.03, 0.18, 0, 0.07, 0, c),
+  ],
+  beam: (c) => [
+    box(0.3, 0.03, 0.14, 0, 0, 0, c),
+    box(0.3, 0.1, 0.03, 0, 0.03, 0, c),
+    box(0.3, 0.03, 0.14, 0, 0.13, 0, c),
+  ],
+  gear: (c) => [
+    colored(new CylinderGeometry(0.11, 0.11, 0.06, 10).translate(0, 0.03, 0), c),
+    ...[0, 1, 2, 3, 4, 5].map((k) => {
+      const a = (k / 6) * Math.PI * 2;
+      return box(0.06, 0.06, 0.06, Math.cos(a) * 0.13, 0, Math.sin(a) * 0.13, c);
+    }),
+    colored(new CylinderGeometry(0.035, 0.035, 0.07, 6).translate(0, 0.03, 0), PALETTE.metalDark),
+  ],
 };
 
 let cache: BufferGeometry[] | null = null;

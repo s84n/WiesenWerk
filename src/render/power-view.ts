@@ -149,7 +149,12 @@ export class PowerView {
       if (beh.kind === 'pole') {
         const r = beh.supplyRadius;
         add(st.x[id] - r, st.y[id] - r, w + 2 * r, h + 2 * r, PALETTE.powerArea);
-      } else if (beh.kind === 'wind') {
+      } else if (
+        beh.kind === 'wind' ||
+        beh.kind === 'water' ||
+        beh.kind === 'solar' ||
+        beh.kind === 'battery'
+      ) {
         add(st.x[id], st.y[id], w, h, power.gridOf[id] < 0 ? PALETTE.powerNone : PALETTE.powerOk);
       } else if (def.power > 0 || beh.kind === 'burner') {
         const g = power.gridOf[id];

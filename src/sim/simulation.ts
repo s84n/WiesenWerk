@@ -4,7 +4,7 @@ import { ITEM_ID, toAmounts } from '../data/items';
 import { DEPOSITS, TileType } from '../data/world';
 import { BeltSystem } from './belts';
 import { BuildingStore, footprintH, footprintW } from './buildings';
-import type { BeltStep, Command } from './commands';
+import type { BeltStep, BlueprintPlacement, Command } from './commands';
 import type { SimEvent } from './events';
 import { GoalSystem } from './goals';
 import { Inventory } from './inventory';
@@ -185,7 +185,24 @@ export class Simulation {
       case 'setGoalsHidden':
         this.goals.setHidden(cmd.hidden);
         break;
+      case 'setDayCycle':
+        this.power.dayCycle = cmd.on;
+        break;
+      case 'buildMany':
+        this.buildMany(cmd.list);
+        break;
     }
+  }
+
+  /** Blaupause: baut, was passt und bezahlbar ist; der Rest wird still übersprungen. */
+  private buildMany(list: readonly BlueprintPlacement[]): void {
+    let built = 0;
+    for (const p of list) {
+      if (checkPlacement(this, p.building, p.x, p.y, p.rot & 3) !== PlaceResult.Ok) continue;
+      this.build(p.building, p.x, p.y, p.rot, p.recipe);
+      built++;
+    }
+    this.events.push({ type: 'blueprintPlaced', built, total: list.length });
   }
 
   private refuel(id: number, item: number): void {

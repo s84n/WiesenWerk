@@ -2,7 +2,7 @@ import { SIM_CONFIG } from './config';
 import { toAmounts, type ItemAmount, type ItemKey } from './items';
 
 /** Maschinenarten, die Rezepte ausführen. */
-export type MachineKind = 'furnace' | 'workshop' | 'assembler';
+export type MachineKind = 'furnace' | 'workshop' | 'assembler' | 'foundry';
 
 export interface RecipeDef {
   key: string;
@@ -105,6 +105,39 @@ export const RECIPES: readonly RecipeDef[] = [
     inputs: { frame: 1, circuit: 1 },
     outputs: { controlUnit: 1 },
     seconds: 8,
+    availableFromStart: false,
+  },
+  // Erweiterung nach Phase 7
+  {
+    key: 'ironIngot',
+    machine: 'furnace',
+    inputs: { ironOre: 1 },
+    outputs: { ironIngot: 1 },
+    seconds: 3,
+    availableFromStart: false,
+  },
+  {
+    key: 'glass',
+    machine: 'furnace',
+    inputs: { sand: 2 },
+    outputs: { glass: 1 },
+    seconds: 3,
+    availableFromStart: false,
+  },
+  {
+    key: 'gear',
+    machine: 'workshop',
+    inputs: { ironIngot: 1 },
+    outputs: { gear: 1 },
+    seconds: 2,
+    availableFromStart: false,
+  },
+  {
+    key: 'steel',
+    machine: 'foundry',
+    inputs: { ironIngot: 2, coal: 1 },
+    outputs: { steel: 1 },
+    seconds: 6,
     availableFromStart: false,
   },
 ];

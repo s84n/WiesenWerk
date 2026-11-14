@@ -178,3 +178,15 @@ export const WEATHER_CONFIG = {
   /** Regentropfen im Bild. */
   drops: 1400,
 } as const;
+
+/** Dorf rund um die Zentrale (rein optisch): wächst mit der Zahl der Gebäude. */
+export const VILLAGE_CONFIG = {
+  /** Je so viele Gebäude (ohne Bänder, Masten, Deko) zieht eine Familie ein. */
+  buildingsPerHouse: 3,
+  maxHouses: 28,
+  /** Häuser stehen in diesem Abstand (Felder) um die Zentrale. */
+  minDistance: 3,
+  maxDistance: 18,
+  /** Neuberechnung nach Bauänderungen höchstens so oft (ms). */
+  refreshMs: 500,
+} as const;

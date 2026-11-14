@@ -29,10 +29,23 @@ export type Command =
   /** Brenner holt Brennstoff selbst aus dem Vorrat (an/aus). */
   | { type: 'setAutoRefill'; building: number; on: boolean }
   /** Blendet die Aufgabenliste aus oder ein. */
-  | { type: 'setGoalsHidden'; hidden: boolean };
+  | { type: 'setGoalsHidden'; hidden: boolean }
+  /** Tag-Nacht-Wechsel an/aus (Einstellung des Spielers; bestimmt den Sonnenstand für Solarfelder). */
+  | { type: 'setDayCycle'; on: boolean }
+  /** Blaupause: mehrere Gebäude auf einmal bauen (blockierte oder zu teure werden übersprungen). */
+  | { type: 'buildMany'; list: readonly BlueprintPlacement[] };
 
 export interface BeltStep {
   x: number;
   y: number;
   dir: number;
+}
+
+/** Ein Gebäude einer eingefügten Blaupause (Weltkoordinaten). */
+export interface BlueprintPlacement {
+  building: number;
+  x: number;
+  y: number;
+  rot: number;
+  recipe: number;
 }

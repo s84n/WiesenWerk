@@ -95,6 +95,29 @@ const ROUTES: Record<string, readonly Route[]> = {
       cycle: 7,
     },
   ],
+  // Gießer bringt Kohle zum Ofen und holt den Stahl am Abstich ab
+  foundry: [
+    {
+      points: [
+        [1.55, -0.9],
+        [1.55, 1.6],
+        [0.35, 1.6],
+      ],
+      carryOut: 'crate',
+      carryBack: 'plank',
+      cycle: 9,
+    },
+  ],
+  // Wartung am Akku-Haus
+  battery: [
+    {
+      points: [
+        [-0.85, 0.85],
+        [0.6, 0.85],
+      ],
+      cycle: 12,
+    },
+  ],
   // zwei Arbeiter holen Teile von den Trichtern und bringen sie zum Tor
   assembler: [
     {
@@ -429,6 +452,8 @@ export class MachineAnimations {
       let speed = working ? 1 : 0;
       if (def.behavior.kind === 'wind')
         speed = (sim.power.wind / POWER.scale) * (working ? 1 : 0.4);
+      // Das Wasser fließt immer: das Rad dreht sich auch ohne Bedarf, nur langsamer
+      else if (def.behavior.kind === 'water') speed = working ? 1 : 0.5;
       this.phase[id] = (this.phase[id] + dt * spin.speed * speed * Math.PI * 2) % (Math.PI * 2);
       mT.makeTranslation(spin.offset[0], spin.offset[1], spin.offset[2]);
       mR.makeRotationAxis(AXES[spin.axis], this.phase[id]);

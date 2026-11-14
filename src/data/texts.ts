@@ -23,6 +23,13 @@ export const TEXTS = {
     circuit: 'Leiterplatte',
     motor: 'Motor',
     controlUnit: 'Steuereinheit',
+    ironOre: 'Eisenerz',
+    coal: 'Kohle',
+    sand: 'Sand',
+    ironIngot: 'Eisenbarren',
+    glass: 'Glas',
+    steel: 'Stahl',
+    gear: 'Zahnrad',
   } satisfies Record<ItemKey, string>,
 
   buildings: {
@@ -139,6 +146,25 @@ export const TEXTS = {
       name: 'Ziegelweg',
       description: 'Ein rötlicher Ziegelweg. Mit gedrückter Maustaste ziehen.',
     },
+    foundry: {
+      name: 'Gießerei',
+      description: 'Schmilzt aus Eisenbarren und Kohle robusten Stahl. 2 Eingänge, 1 Ausgang.',
+    },
+    waterWheel: {
+      name: 'Wasserrad',
+      description:
+        'Erzeugt Tag und Nacht gleichmäßig 25 kW. Die Vorderseite mit dem Rad muss an Wasser grenzen (R dreht).',
+    },
+    solarPanel: {
+      name: 'Solarfeld',
+      description:
+        'Erzeugt bei Sonne bis zu 20 kW, nachts nichts. Zusammen mit einem Akku-Haus reicht der Strom auch für die Nacht.',
+    },
+    battery: {
+      name: 'Akku-Haus',
+      description:
+        'Speichert bis zu 20 MJ überschüssigen Strom aus Wind, Wasser und Sonne und gibt ihn bei Bedarf wieder ab (bis 60 kW).',
+    },
   } as Record<string, { name: string; description: string }>,
 
   research: {
@@ -175,6 +201,12 @@ export const TEXTS = {
       deepMining: 'Tiefbau',
       beauty2: 'Verschönerung II',
       warehousing: 'Lagerwirtschaft',
+      ironworking: 'Eisenverhüttung',
+      glassmaking: 'Glasbläserei',
+      waterPower: 'Wasserkraft',
+      steelmaking: 'Stahlwerk',
+      solarPower: 'Sonnenkraft',
+      batteries: 'Stromspeicher',
     } as Record<string, string>,
     upgrades: {
       machineSpeed: {
@@ -241,6 +273,9 @@ export const TEXTS = {
       wood: 'Von Bäumen: von Hand oder mit dem Holzfäller',
       stone: 'Von Steinvorkommen: von Hand oder mit dem Bergwerk',
       copperOre: 'Von Kupfervorkommen: von Hand oder mit dem Bergwerk',
+      ironOre: 'Von Eisenvorkommen (rötlich-grau): von Hand oder mit dem Bergwerk',
+      coal: 'Von Kohlevorkommen (schwarz): von Hand oder mit dem Bergwerk. Guter Brennstoff!',
+      sand: 'Von Sandvorkommen (hellgelb): von Hand oder mit dem Bergwerk',
     } as Record<string, string>,
     made: (building: string, inputs: string) => `${building} aus ${inputs}`,
     locked: '(erst erforschen)',
@@ -290,6 +325,17 @@ export const TEXTS = {
       `${name}: mit gedrückter Maustaste ziehen · R wechselt die Ecke · Rechtsklick oder Esc beendet`,
     modeDemolish: 'Abrissmodus · Klick oder Rahmen ziehen · Rechtsklick oder Esc beendet',
     demolishButton: 'Abreißen (X)',
+    blueprintButton: 'Blaupause (C)',
+    modeCopy: 'Blaupause: Rahmen über einen Fabrikteil ziehen · Rechtsklick oder Esc beendet',
+    modePaste: (n: number, cost: string) =>
+      `Blaupause mit ${n} Gebäuden einfügen · Kosten: ${cost} · R dreht · Rechtsklick oder Esc beendet`,
+    copied: (n: number) => `Blaupause mit ${n} Gebäuden kopiert`,
+    copyEmpty: 'In diesem Rahmen steht nichts zum Kopieren.',
+    noBlueprint: 'Noch keine Blaupause: Taste C und einen Rahmen ziehen.',
+    pasted: (ok: number, total: number) =>
+      ok === total
+        ? `${ok} Gebäude gebaut`
+        : `${ok} von ${total} Gebäuden gebaut (Rest blockiert oder zu teuer)`,
   },
 
   messages: {
@@ -298,6 +344,7 @@ export const TEXTS = {
     needsDeposit: 'Ein Bergwerk muss auf einem Vorkommen stehen.',
     unique: 'Davon kann es nur eine geben.',
     locked: 'Das musst du erst erforschen (Taste T).',
+    needsWater: 'Das Wasserrad muss mit der Radseite an Wasser stehen (R dreht).',
     undone: (n: number) =>
       n === 1 ? 'Rückgängig gemacht' : `Rückgängig gemacht (${n} Änderungen)`,
     nothingToUndo: 'Nichts mehr rückgängig zu machen',
@@ -360,6 +407,17 @@ export const TEXTS = {
       `Auf diesem Abschnitt: ${n} Items auf ${tiles} Feldern`,
     windStates: ['Kein Bedarf', 'Erzeugt Strom', '', '', '', 'Nicht am Netz'],
     windNow: (kw: string, wind: number) => `Leistung gerade: ${kw} kW · Wind ${wind} %`,
+    waterNow: (kw: string) => `Leistung: ${kw} kW, Tag und Nacht gleich`,
+    solarNow: (kw: string, sun: number) => `Leistung gerade: ${kw} kW · Sonne ${sun} %`,
+    solarStates: ['Kein Bedarf', 'Erzeugt Strom', 'Nachts kein Strom', '', '', 'Nicht am Netz'],
+    batteryStates: ['Wartet', 'Lädt oder gibt Strom ab', '', '', '', 'Nicht am Netz'],
+    batteryCharge: (mj: string, cap: string, pct: number) =>
+      `Ladung: ${mj} von ${cap} MJ (${pct} %)`,
+    batteryFlow: (kw: string, charging: boolean) =>
+      charging ? `Lädt gerade mit ${kw} kW` : `Gibt gerade ${kw} kW ab`,
+    batteryIdle: 'Gerade weder Laden noch Abgeben.',
+    batteryHint:
+      'Lädt nur mit Überschuss von Wind, Wasser und Sonne – Brennstoff wird dafür nicht verbrannt.',
     splitter: 'Verteilt ankommende Items reihum auf die freien Ausgänge.',
     merger: 'Nimmt reihum von den Eingängen und gibt alles auf ein Band.',
     bridge: 'Zwei Bänder kreuzen sich hier: Nord–Süd unten, West–Ost oben.',
@@ -449,6 +507,9 @@ export const TEXTS = {
     ['Rechtsklick / Esc', 'Abbrechen, Fenster schließen, Menü'],
     ['R', 'Gebäude drehen'],
     ['X', 'Abrissmodus'],
+    ['C', 'Blaupause: Bereich markieren und kopieren'],
+    ['Strg + V', 'Letzte Blaupause wieder einfügen'],
+    ['M', 'Minikarte ein/aus'],
     ['F', 'Pipette: Gebäude unter der Maus samt Rezept übernehmen'],
     ['Strg + Z', 'Letzten Bau- oder Abrissschritt rückgängig machen'],
     ['1 – 9', 'Schnellwahl Gebäude'],
@@ -459,6 +520,14 @@ export const TEXTS = {
     ['Strg + S', 'Speichern'],
     ['F3', 'Debug-Anzeige'],
   ] as const,
+
+  minimap: {
+    tooltip: 'Minikarte (M) · Klick springt hin',
+  },
+
+  village: {
+    hint: 'Je größer deine Fabrik, desto mehr Menschen ziehen ins Dorf rund um die Zentrale.',
+  },
 
   hud: {
     pause: 'Pause',

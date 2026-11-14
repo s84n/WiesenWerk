@@ -3,7 +3,11 @@ import { RENDER_CONFIG } from '../data/config';
 import { TEXTS } from '../data/texts';
 import type { ToolController } from '../input/tools';
 import type { Simulation } from '../sim/simulation';
-import { el, formatNumber, itemIcon } from './dom';
+import { blueprintCost } from '../sim/blueprint';
+import { amountsText, el, formatNumber, itemIcon } from './dom';
+
+/** So viele Kostenarten zeigt der Hinweis beim Einfügen einer Blaupause. */
+const PASTE_COST_ITEMS = 4;
 
 /**
  * Bauleiste unten: Kategorien, Gebäude mit Bild, Name und Kosten, Abrissknopf.
@@ -14,6 +18,7 @@ export class BuildBar {
   private readonly tabs = new Map<BuildCategory, HTMLButtonElement>();
   private readonly list: HTMLElement;
   private readonly demolishButton: HTMLButtonElement;
+  private readonly copyButton: HTMLButtonElement;
   private readonly modeHint: HTMLElement;
   private category: BuildCategory;
   private shownVersion = -1;
@@ -49,7 +54,12 @@ export class BuildBar {
       tools.toggleDemolish();
       this.demolishButton.blur();
     });
-    tabRow.appendChild(this.demolishButton);
+    this.copyButton = el('button', 'build-tab blueprint', TEXTS.build.blueprintButton);
+    this.copyButton.addEventListener('click', () => {
+      tools.toggleCopy();
+      this.copyButton.blur();
+    });
+    tabRow.append(this.copyButton, this.demolishButton);
 
     this.list = el('div', 'build-list');
     for (const type of available) {
@@ -95,6 +105,7 @@ export class BuildBar {
     for (const e of this.entries)
       e.button.classList.toggle('selected', t.mode === 'build' && t.buildType === e.type);
     this.demolishButton.classList.toggle('selected', t.mode === 'demolish');
+    this.copyButton.classList.toggle('selected', t.mode === 'copy' || t.mode === 'paste');
     if (t.mode === 'build') {
       const cat = BUILDINGS[t.buildType].category;
       if (cat !== this.category) {
@@ -114,6 +125,18 @@ export class BuildBar {
       this.modeHint.style.display = '';
     } else if (t.mode === 'demolish') {
       this.modeHint.textContent = TEXTS.build.modeDemolish;
+      this.modeHint.style.display = '';
+    } else if (t.mode === 'copy') {
+      this.modeHint.textContent = TEXTS.build.modeCopy;
+      this.modeHint.style.display = '';
+    } else if (t.mode === 'paste' && t.blueprint) {
+      // Kosten nach Menge sortiert, lange Listen gekürzt (Zeile soll ins Bild passen)
+      const cost = blueprintCost(t.blueprint).sort((a, b) => b.amount - a.amount);
+      const shown = amountsText(cost.slice(0, PASTE_COST_ITEMS));
+      this.modeHint.textContent = TEXTS.build.modePaste(
+        t.blueprint.entries.length,
+        cost.length > PASTE_COST_ITEMS ? `${shown} …` : shown,
+      );
       this.modeHint.style.display = '';
     } else {
       this.modeHint.style.display = 'none';

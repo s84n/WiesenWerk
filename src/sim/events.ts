@@ -25,4 +25,6 @@ export type SimEvent =
   | { type: 'buildingUpgraded'; id: number }
   | { type: 'researched'; node: number }
   | { type: 'upgraded'; upgrade: number }
-  | { type: 'goalCompleted'; goal: number };
+  | { type: 'goalCompleted'; goal: number }
+  /** Blaupause eingefügt: so viele von allen Gebäuden wurden gebaut. */
+  | { type: 'blueprintPlaced'; built: number; total: number };

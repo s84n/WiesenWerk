@@ -405,6 +405,97 @@ function windTurbine(): BufferGeometry {
   return merge(parts);
 }
 
+// ---------------------------------------------------------------- Eisen, Stahl, neue Stromarten
+
+/** Gießerei: dunkler Hochofen mit zwei Trichtern, glühendem Abstich vorne und hohem Schlot. */
+function foundry(): BufferGeometry {
+  return merge([
+    box(2.9, 0.14, 2.9, 0, 0, 0, PALETTE.stone),
+    box(2.3, 1.0, 2.0, -0.15, 0.14, 0.2, PALETTE.rockDark),
+    box(2.1, 0.2, 1.8, -0.15, 1.14, 0.2, PALETTE.metalDark),
+    // Hochofen-Turm
+    colored(
+      new CylinderGeometry(0.55, 0.7, 1.4, 8).translate(-0.15, 1.34 + 0.7, 0.1),
+      PALETTE.brick,
+    ),
+    colored(new CylinderGeometry(0.6, 0.6, 0.12, 8).translate(-0.15, 2.8, 0.1), PALETTE.metalDark),
+    // Schlot
+    colored(
+      new CylinderGeometry(0.16, 0.2, 2.0, 6).translate(0.95, 1.14 + 1.0, -0.6),
+      PALETTE.metalDark,
+    ),
+    colored(new CylinderGeometry(0.21, 0.21, 0.1, 6).translate(0.95, 3.19, -0.6), PALETTE.roof),
+    // Trichter für die beiden Eingänge (Norden)
+    colored(new CylinderGeometry(0.3, 0.14, 0.45, 6).translate(-1, 1.0, -1.15), PALETTE.metal),
+    colored(new CylinderGeometry(0.3, 0.14, 0.45, 6).translate(1, 1.0, -1.15), PALETTE.metal),
+    box(0.16, 0.8, 0.16, -1, 0.14, -1.15, PALETTE.metalDark),
+    box(0.16, 0.8, 0.16, 1, 0.14, -1.15, PALETTE.metalDark),
+    // glühender Abstich vorne mit Rinne
+    box(0.8, 0.4, 0.05, 0, 0.3, 1.21, PALETTE.glow),
+    box(0.3, 0.06, 0.5, 0, 0.14, 1.4, PALETTE.glow),
+    box(1.0, 0.1, 0.12, 0, 0.7, 1.22, PALETTE.stone),
+    box(0.35, 0.3, 0.04, -0.85, 0.55, 1.21, PALETTE.windowLight),
+  ]);
+}
+
+/** Wasserrad: Mühlenhaus aus Holz, das Rad steht vorne (Süden) im Wasser. */
+function waterWheelHouse(): BufferGeometry {
+  return merge([
+    box(1.8, 0.12, 1.3, 0, 0, -0.25, PALETTE.stone),
+    box(1.4, 0.85, 1.0, -0.1, 0.12, -0.3, PALETTE.wood),
+    gableRoof(1.2, 1.6, 0.55, -0.1, 0.97, -0.3, PALETTE.roof),
+    box(0.3, 0.28, 0.04, -0.4, 0.45, 0.21, PALETTE.windowLight),
+    // Achslager auf zwei Pfosten am Ufer
+    box(0.14, 0.7, 0.14, -0.55, 0, 0.75, PALETTE.woodDark),
+    box(0.14, 0.7, 0.14, 0.55, 0, 0.75, PALETTE.woodDark),
+    colored(
+      new CylinderGeometry(0.17, 0.17, 0.35, 8).rotateZ(Math.PI / 2).translate(0.82, 0.42, -0.1),
+      PALETTE.copper,
+    ),
+  ]);
+}
+
+/** Solarfeld: zwei schräg gestellte Paneele auf einem Gestell. */
+function solarPanel(): BufferGeometry {
+  const parts = [box(1.85, 0.06, 1.85, 0, 0, 0, PALETTE.soil)];
+  for (const z of [-0.45, 0.45]) {
+    parts.push(box(0.08, 0.35, 0.08, -0.75, 0.06, z + 0.2, PALETTE.metal));
+    parts.push(box(0.08, 0.35, 0.08, 0.75, 0.06, z + 0.2, PALETTE.metal));
+    parts.push(box(0.08, 0.6, 0.08, -0.75, 0.06, z - 0.2, PALETTE.metal));
+    parts.push(box(0.08, 0.6, 0.08, 0.75, 0.06, z - 0.2, PALETTE.metal));
+    const panel = merge([
+      box(1.75, 0.05, 0.8, 0, -0.025, 0, PALETTE.solarFrame),
+      ...[-0.6, -0.2, 0.2, 0.6].map((x) => box(0.36, 0.03, 0.7, x, 0.025, 0, PALETTE.solarCell)),
+    ]);
+    parts.push(panel.rotateX(-0.4).translate(0, 0.55, z));
+  }
+  return merge(parts);
+}
+
+/** Akku-Haus: Betonblock mit grünen Speicherzellen und Leuchtanzeige. */
+function battery(): BufferGeometry {
+  const parts = [
+    box(1.85, 0.12, 1.85, 0, 0, 0, PALETTE.stone),
+    box(1.5, 0.9, 1.3, 0, 0.12, -0.1, PALETTE.cream),
+    box(1.6, 0.1, 1.4, 0, 1.02, -0.1, PALETTE.metalDark),
+    // Anzeige vorne (leuchtet nachts)
+    box(0.9, 0.12, 0.04, 0, 0.7, 0.56, PALETTE.windowLight),
+  ];
+  for (let k = 0; k < 3; k++) {
+    const x = -0.5 + k * 0.5;
+    parts.push(
+      colored(
+        new CylinderGeometry(0.17, 0.17, 0.55, 8).translate(x, 1.12 + 0.275, -0.1),
+        PALETTE.battery,
+      ),
+    );
+    parts.push(
+      colored(new CylinderGeometry(0.07, 0.07, 0.1, 6).translate(x, 1.72, -0.1), PALETTE.copper),
+    );
+  }
+  return merge(parts);
+}
+
 /** Höhe, an der die Kabel am großen Mast hängen. */
 export const BIG_POLE_CABLE_HEIGHT = 4.1;
 
@@ -562,6 +653,36 @@ function wheel(): BufferGeometry {
   return merge(parts);
 }
 
+/** Schaufelrad des Wasserrads (Achse x). */
+function paddleWheel(): BufferGeometry {
+  const parts = [
+    colored(
+      new TorusGeometry(0.62, 0.04, 4, 14).rotateY(Math.PI / 2).translate(-0.32, 0, 0),
+      PALETTE.waterWheel,
+    ),
+    colored(
+      new TorusGeometry(0.62, 0.04, 4, 14).rotateY(Math.PI / 2).translate(0.32, 0, 0),
+      PALETTE.waterWheel,
+    ),
+    colored(new CylinderGeometry(0.07, 0.07, 1.25, 6).rotateZ(Math.PI / 2), PALETTE.metalDark),
+  ];
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2;
+    parts.push(
+      colored(new BoxGeometry(0.7, 0.05, 0.2).translate(0, 0.6, 0).rotateX(a), PALETTE.wood),
+      colored(
+        new BoxGeometry(0.05, 0.6, 0.04).translate(-0.32, 0.3, 0).rotateX(a),
+        PALETTE.woodDark,
+      ),
+      colored(
+        new BoxGeometry(0.05, 0.6, 0.04).translate(0.32, 0.3, 0).rotateX(a),
+        PALETTE.woodDark,
+      ),
+    );
+  }
+  return merge(parts);
+}
+
 function rotor(): BufferGeometry {
   const parts = [
     colored(
@@ -609,6 +730,7 @@ export const SPINNERS: Record<string, SpinnerDef> = {
   },
   windTurbine: { make: rotor, offset: [0, 3.63, 0.43], axis: 'z', speed: 0.35 },
   assembler: { make: fan, offset: [0.9, 1.7, 0.75], axis: 'y', speed: 0.8 },
+  waterWheel: { make: paddleWheel, offset: [0, 0.42, 0.85], axis: 'x', speed: -0.18 },
 };
 
 /** Lore mit Gestein (Ursprung = Mitte der Unterkante). */
@@ -647,9 +769,14 @@ export const SLIDERS: Record<string, SliderDef> = {
 export const SMOKE: Record<string, readonly [number, number, number]> = {
   furnace: [0.45, 2.05, -0.4],
   burner: [0.25, 2.55, -0.25],
+  foundry: [0.95, 3.25, -0.6],
 };
 
 const MODELS: Record<string, () => BufferGeometry> = {
+  foundry,
+  waterWheel: waterWheelHouse,
+  solarPanel,
+  battery,
   tunnelIn: () => tunnel(true),
   tunnelOut: () => tunnel(false),
   storageSplit: () => storageVariant(PALETTE.beltFrameMk2, 2),

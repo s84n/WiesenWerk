@@ -47,6 +47,8 @@ export class Toasts {
             sim.research.levels[e.upgrade],
           ),
         );
+      } else if (e.type === 'blueprintPlaced') {
+        this.message(TEXTS.build.pasted(e.built, e.total));
       } else if (e.type === 'goalCompleted') {
         this.message(TEXTS.goals.completed(TEXTS.goals.items[GOALS[e.goal].key]));
       }
@@ -87,6 +89,8 @@ export class Toasts {
         return TEXTS.messages.unique;
       case PlaceResult.Locked:
         return TEXTS.messages.locked;
+      case PlaceResult.NeedsWater:
+        return TEXTS.messages.needsWater;
       case PlaceResult.Cost: {
         const missing = BUILDING_COSTS[type]
           .map((c) => ({ item: c.item, amount: c.amount - sim.inventory.get(c.item) }))

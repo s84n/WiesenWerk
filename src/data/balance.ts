@@ -80,3 +80,11 @@ export const EXTRACTOR_UPGRADE = {
 export const STATS = {
   windowSeconds: 60,
 } as const;
+
+/** Solarfelder: Sonnenaufgang und -untergang als Tageszeit (passend zum Licht in der Darstellung). */
+export const SOLAR = {
+  riseStart: 0.2,
+  riseEnd: 0.32,
+  setStart: 0.7,
+  setEnd: 0.82,
+} as const;

@@ -16,8 +16,9 @@ import {
   type MeshLambertMaterial,
   type WebGLProgramParametersWithUniforms,
 } from 'three';
-import { DAY_CONFIG, SIM_CONFIG, WEATHER_CONFIG, type QualityPreset } from '../data/config';
+import { SIM_CONFIG, WEATHER_CONFIG, type QualityPreset } from '../data/config';
 import { PALETTE } from '../data/palette';
+import { dayTimeAt } from '../sim/daylight';
 import { hash3Float } from '../sim/rng';
 
 /** Ein Stützpunkt im Tagesverlauf (Tageszeit 0..1, 0 = Mitternacht). */
@@ -342,10 +343,8 @@ ${NOISE}
     cz: number,
     view: number,
   ): void {
-    const seconds = simTicks / SIM_CONFIG.ticksPerSecond;
-    const t = dayNight
-      ? (DAY_CONFIG.startTime + seconds / DAY_CONFIG.daySeconds) % 1
-      : DAY_CONFIG.fixedTime;
+    // dieselbe Rechnung wie für die Solarfelder in der Simulation
+    const t = dayTimeAt(simTicks, dayNight);
     this.dayTime = t;
 
     // Stützpunkte suchen und mischen
@@ -356,7 +355,7 @@ ${NOISE}
     const f = b.t > a.t ? (t - a.t) / (b.t - a.t) : 0;
 
     // Regen (nur Ultra)
-    this.rain = preset.weather ? rainAt(seconds, seed) : 0;
+    this.rain = preset.weather ? rainAt(simTicks / SIM_CONFIG.ticksPerSecond, seed) : 0;
     const dry = 1 - this.rain * 0.35;
 
     lerpColor(sun.color, a.sun, b.sun, f);

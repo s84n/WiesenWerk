@@ -29,7 +29,11 @@ export type ItemShape =
   | 'coil'
   | 'circuit'
   | 'motor'
-  | 'control';
+  | 'control'
+  | 'sand'
+  | 'pane'
+  | 'beam'
+  | 'gear';
 
 export const ITEMS = [
   { key: 'wood', kind: 'solid', color: 'itemWood', fuelValue: 120, shape: 'log' },
@@ -46,6 +50,14 @@ export const ITEMS = [
   { key: 'circuit', kind: 'solid', color: 'itemCircuit', fuelValue: 0, shape: 'circuit' },
   { key: 'motor', kind: 'solid', color: 'itemMotor', fuelValue: 0, shape: 'motor' },
   { key: 'controlUnit', kind: 'solid', color: 'itemControl', fuelValue: 0, shape: 'control' },
+  // Erweiterung nach Phase 7: Eisen, Kohle, Sand und daraus Stahl, Glas, Zahnräder
+  { key: 'ironOre', kind: 'solid', color: 'itemIronOre', fuelValue: 0, shape: 'ore' },
+  { key: 'coal', kind: 'solid', color: 'itemCoal', fuelValue: 600, shape: 'charcoal' },
+  { key: 'sand', kind: 'solid', color: 'itemSand', fuelValue: 0, shape: 'sand' },
+  { key: 'ironIngot', kind: 'solid', color: 'itemIronIngot', fuelValue: 0, shape: 'ingot' },
+  { key: 'glass', kind: 'solid', color: 'itemGlass', fuelValue: 0, shape: 'pane' },
+  { key: 'steel', kind: 'solid', color: 'itemSteel', fuelValue: 0, shape: 'beam' },
+  { key: 'gear', kind: 'solid', color: 'itemGear', fuelValue: 0, shape: 'gear' },
 ] as const satisfies readonly ItemDef[];
 
 export type ItemKey = (typeof ITEMS)[number]['key'];

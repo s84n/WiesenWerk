@@ -25,6 +25,7 @@ import { Hud } from './ui/hud';
 import { InventoryWindow } from './ui/inventory-window';
 import { InfoPanel } from './ui/info-panel';
 import { MainMenu } from './ui/main-menu';
+import { Minimap } from './ui/minimap';
 import { ResearchWindow } from './ui/research-window';
 import { StatsWindow } from './ui/stats-window';
 import { Toasts } from './ui/toasts';
@@ -78,6 +79,8 @@ function start(): void {
     sound.configure(s.soundVolume, s.muted);
     music.setVolume(s.muted ? 0 : s.musicVolume);
     view.dayNight = s.dayNight;
+    // Sonnenstand für Solarfelder folgt der Einstellung
+    if (sim) sim.enqueue({ type: 'setDayCycle', on: s.dayNight });
   };
   applySettings();
   let shownQuality = settings.value.quality;
@@ -109,6 +112,7 @@ function start(): void {
       research: () => toggleWindow(research),
       stats: () => toggleWindow(stats),
       inventory: () => toggleWindow(inventory),
+      minimap: () => minimap.toggle(),
       sound: {
         toggle: () => settings.set('muted', !settings.value.muted),
         muted: () => settings.value.muted,
@@ -119,12 +123,17 @@ function start(): void {
   const info = new InfoPanel(ui, tools, view.buildingIcons());
   tools.onChange = () => buildBar.refreshMode();
   const toasts = new Toasts(ui);
+  const minimap = new Minimap(ui, (x, z) => view.rig.moveTo(x, z));
+  const corners: number[] = [];
+  tools.onMessage = (text) => toasts.message(text);
   const undo = new UndoManager();
   const goals = new GoalsPanel(topLeft, () => sim);
 
   const useSimulation = (next: Simulation): void => {
     sim = next;
+    sim.enqueue({ type: 'setDayCycle', on: settings.value.dayNight });
     view.setSimulation(sim);
+    minimap.setSimulation(sim);
     tools.cancel();
     hud.invalidate();
     buildBar.invalidate();
@@ -337,6 +346,7 @@ function start(): void {
         undo.record(sim, sim.events);
       }
       toasts.handleEvents(sim.events, sim);
+      minimap.handleEvents(sim.events);
       sim.clearEvents();
 
       hud.update(sim, now);
@@ -346,6 +356,7 @@ function start(): void {
       stats.update(sim, now);
       inventory.update(sim, now);
       goals.update(sim, inGame);
+      minimap.update(now, view.rig.groundCorners(corners) ? corners : null, inGame && !menu.isOpen);
       view.showPower = powerView || tools.placingPower;
       view.render(loop.paused ? 0 : loop.alpha, now);
       debug.frame(now, tickMs, ticks, view, sim, loop.paused);

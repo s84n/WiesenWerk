@@ -13,6 +13,8 @@ const dragNow = new Vector3();
  * Isometrische Kamera: Blickpunkt, Zoom und Drehung werden weich zum Ziel hin geglättet.
  * Koordinaten: Feld (x, y) liegt in der Welt bei x..x+1 und z = y..y+1.
  */
+const cornerTmp = new Vector3();
+
 export class CameraRig {
   readonly camera = new OrthographicCamera(-1, 1, 1, -1, 1, C.distance * 2 + 100);
 
@@ -51,6 +53,24 @@ export class CameraRig {
     this.viewHeight = this.tViewHeight = C.viewHeightStart;
     this.angle = this.tAngle = Math.PI / 4;
     this.apply();
+  }
+
+  /** Bodenpunkte der vier Bildecken (x, z abwechselnd) für die Minikarte. */
+  groundCorners(out: number[]): boolean {
+    const ndc = [-1, 1, 1, 1, 1, -1, -1, -1];
+    out.length = 0;
+    for (let k = 0; k < 8; k += 2) {
+      if (!this.groundAt(ndc[k], ndc[k + 1], cornerTmp)) return false;
+      out.push(cornerTmp.x, cornerTmp.z);
+    }
+    return true;
+  }
+
+  /** Fährt weich zu einer Position (Minikarte). */
+  moveTo(x: number, z: number): void {
+    this.tx = x;
+    this.tz = z;
+    this.clamp();
   }
 
   /** Kamerazustand für den Spielstand: x, z, sichtbare Höhe, Winkel. */

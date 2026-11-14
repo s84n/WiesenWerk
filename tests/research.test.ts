@@ -339,9 +339,17 @@ describe('Abnahme Phase 6: der Forschungsbaum ist von Spielbeginn an erreichbar'
       furnace: 'furnace',
       workshop: 'workshop',
       assembler: 'assembler',
+      foundry: 'foundry',
     };
     const producible = (): Set<number> => {
-      const items = new Set([ITEM_ID.wood, ITEM_ID.stone, ITEM_ID.copperOre]);
+      const items = new Set([
+        ITEM_ID.wood,
+        ITEM_ID.stone,
+        ITEM_ID.copperOre,
+        ITEM_ID.ironOre,
+        ITEM_ID.coal,
+        ITEM_ID.sand,
+      ]);
       for (let changed = true; changed;) {
         changed = false;
         RECIPES.forEach((r, i) => {

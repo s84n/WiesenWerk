@@ -102,7 +102,7 @@ describe('Speichern und Laden', () => {
     expect(state(loaded)).toBe(state(original));
   });
 
-  it('wandelt Spielstände der Versionen 1 bis 3 korrekt um', () => {
+  it('wandelt Spielstände der Versionen 1 bis 4 korrekt um', () => {
     // Eine Fabrik ohne Brenner mit vollem Tempo ergibt Werte, die sich verlustfrei zurückrechnen lassen
     const sim = new Simulation(generateWorld(4711));
     sim.power.factorOf = () => 1000;
@@ -125,8 +125,13 @@ describe('Speichern und Laden', () => {
     sim.machines.accept(furnace, ITEM_ID.copperOre);
     sim.machines.accept(furnace, ITEM_ID.copperOre);
     for (let t = 0; t < 57; t++) sim.step(); // mitten in Durchläufen anhalten
-    const v4 = serialize(sim, META, CAM);
+    const v5 = serialize(sim, META, CAM);
     expect(sim.machines.progress[furnace]).toBeGreaterThan(0);
+
+    // Version 4 von Hand herstellen: ohne Angabe der Vorkommen
+    const v4 = JSON.parse(JSON.stringify(v5));
+    v4.version = 4;
+    delete v4.depositLayers;
 
     // Version 3 von Hand herstellen: Nachfüll-Schalter entfernen (es gibt hier keine Brenner)
     const v3 = JSON.parse(JSON.stringify(v4));

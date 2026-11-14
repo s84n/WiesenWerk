@@ -39,6 +39,7 @@ export class Hud {
       research: () => void;
       stats: () => void;
       inventory: () => void;
+      minimap: () => void;
       sound: { toggle: () => void; muted: () => boolean };
     },
   ) {
@@ -88,6 +89,7 @@ export class Hud {
       ['📦', TEXTS.inventory.tooltip, windows.inventory],
       ['🔬', TEXTS.research.tooltip, windows.research],
       ['📊', TEXTS.stats.tooltip, windows.stats],
+      ['🗺', TEXTS.minimap.tooltip, windows.minimap],
     ] as const) {
       const b = el('button', 'hud-button hud-menu', label);
       b.title = tip;

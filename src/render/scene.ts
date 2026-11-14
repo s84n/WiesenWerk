@@ -27,6 +27,7 @@ import { footprintH, footprintW } from '../sim/buildings';
 import type { SimEvent } from '../sim/events';
 import type { Simulation } from '../sim/simulation';
 import { AmbientLife } from './ambient-life';
+import { Village } from './village';
 import { Atmosphere } from './atmosphere';
 import { Effects } from './effects';
 import { BeltView } from './belt-view';
@@ -65,6 +66,7 @@ export class GameRenderer {
   readonly atmosphere = new Atmosphere();
   readonly effects: Effects;
   private readonly life: AmbientLife;
+  private readonly village: Village;
   private preset: QualityPreset;
   /** Tag-Nacht-Wechsel an (sonst fester goldener Nachmittag). */
   dayNight = true;
@@ -147,6 +149,8 @@ export class GameRenderer {
     this.effects = new Effects(this.material);
     this.life = new AmbientLife(this.material);
     this.scene.add(this.life.group);
+    this.village = new Village(this.material);
+    this.scene.add(this.village.group);
     this.effects.amount = preset.particles;
     this.animations.particles = preset.particles;
     this.scene.add(this.animations.group, this.atmosphere.group, this.effects.group);
@@ -212,6 +216,7 @@ export class GameRenderer {
     this.buildings = new BuildingsView(world, this.material);
     this.buildings.setBlobShadows(!this.preset.shadows);
     this.life.setWorld(world);
+    this.village.reset();
     this.belts = new BeltView(world, this.material);
     this.ports = new PortMarkers(world, this.material);
     this.visibility = new ChunkVisibility(world);
@@ -242,6 +247,7 @@ export class GameRenderer {
   handleEvents(events: readonly SimEvent[]): void {
     const sim = this.sim;
     if (!sim || !this.nature || !this.buildings) return;
+    this.village.handleEvents(events);
     for (const e of events) {
       switch (e.type) {
         case 'treeChanged':
@@ -412,6 +418,13 @@ export class GameRenderer {
           1 - this.atmosphere.glow,
           this.atmosphere.rain,
           this.preset.details,
+        );
+        this.village.update(
+          this.sim,
+          now,
+          this.viewRect,
+          rig.viewHeight <= RENDER_CONFIG.lodViewHeight,
+          1 - this.atmosphere.glow,
         );
         this.animations.update(
           this.sim,

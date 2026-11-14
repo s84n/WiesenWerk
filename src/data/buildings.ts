@@ -40,6 +40,12 @@ export type Behavior =
    * höchstens `range` Felder dazwischen liegen. Die Ware läuft unterirdisch, darüber ist Platz.
    */
   | { kind: 'tunnel'; role: 'in' | 'out'; range: number }
+  /** Wasserrad: erzeugt gleichmäßig `powerKW`, muss mit der Vorderseite (Süden, ungedreht) am Wasser stehen. */
+  | { kind: 'water'; powerKW: number }
+  /** Solarfeld: erzeugt `powerKW` bei voller Sonne, nachts nichts (Tageszeit aus der Spielzeit). */
+  | { kind: 'solar'; powerKW: number }
+  /** Akku-Haus: speichert bis `capacityKJ` überschüssigen Strom aus Wind, Wasser und Sonne, gibt bis `rateKW` ab. */
+  | { kind: 'battery'; capacityKJ: number; rateKW: number }
   /** Dekoration: rein optisch. */
   | { kind: 'decor' };
 
@@ -53,9 +59,10 @@ export interface BuildingDef {
   cost: Partial<Record<ItemKey, number>>;
   /**
    * 'ground' = freie Wiese oder gefällter Wald, 'deposit' = mindestens ein Feld auf einem Vorkommen,
-   * 'groundOrDeposit' = beides erlaubt (Bänder).
+   * 'groundOrDeposit' = beides erlaubt (Bänder), 'shore' = wie 'ground', aber die Vorderseite
+   * (ungedreht Süden) grenzt an Wasser.
    */
-  placement: 'ground' | 'deposit' | 'groundOrDeposit';
+  placement: 'ground' | 'deposit' | 'groundOrDeposit' | 'shore';
   behavior: Behavior;
   /** Stromverbrauch in kW bei der Arbeit (wartend: 10 %). 0 = braucht keinen Strom. */
   power: number;
@@ -507,7 +514,63 @@ export const BUILDINGS: readonly BuildingDef[] = [
     model: 'tunnelOut',
     availableFromStart: false,
   },
+  // ---------------------------------------------------------------- Eisen, Stahl, neue Stromarten
+  {
+    key: 'foundry',
+    power: 20,
+    size: [3, 3],
+    category: 'production',
+    cost: { stoneBrick: 60, ironIngot: 30, copperSheet: 10 },
+    placement: 'ground',
+    behavior: { kind: 'crafter', machine: 'foundry' },
+    ports: [
+      { x: 0, y: 0, dir: 0, kind: 'in' },
+      { x: 2, y: 0, dir: 0, kind: 'in' },
+      { x: 1, y: 2, dir: 2, kind: 'out' },
+    ],
+    model: 'foundry',
+    availableFromStart: false,
+  },
+  {
+    key: 'waterWheel',
+    power: 0,
+    size: [2, 2],
+    category: 'energy',
+    cost: { plank: 30, gear: 20, stoneBrick: 20 },
+    placement: 'shore',
+    behavior: { kind: 'water', powerKW: 25 },
+    ports: [],
+    model: 'waterWheel',
+    availableFromStart: false,
+  },
+  {
+    key: 'solarPanel',
+    power: 0,
+    size: [2, 2],
+    category: 'energy',
+    cost: { glass: 20, copperWire: 20, frame: 5 },
+    placement: 'ground',
+    behavior: { kind: 'solar', powerKW: 20 },
+    ports: [],
+    model: 'solarPanel',
+    availableFromStart: false,
+  },
+  {
+    key: 'battery',
+    power: 0,
+    size: [2, 2],
+    category: 'energy',
+    cost: { steel: 20, coil: 20, circuit: 10 },
+    placement: 'ground',
+    behavior: { kind: 'battery', capacityKJ: 20000, rateKW: 60 },
+    ports: [],
+    model: 'battery',
+    availableFromStart: false,
+  },
 ];
+
+/** Erzeuger ohne Brennstoff (Wind, Wasser, Sonne). */
+export const FREE_GENERATOR_KINDS: readonly Behavior['kind'][] = ['wind', 'water', 'solar'];
 
 export const BUILDING_ID = Object.fromEntries(BUILDINGS.map((b, i) => [b.key, i])) as Record<
   string,

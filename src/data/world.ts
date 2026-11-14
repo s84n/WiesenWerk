@@ -34,6 +34,13 @@ export interface DepositDef {
   oreColor: PaletteKey;
   /** Farbe des Bodens unter dem Vorkommen. */
   groundColor: PaletteKey;
+  /**
+   * Spätes Vorkommen (nach Phase 7 ergänzt): wird erst nach dem Startgebiet gesetzt, nur auf
+   * Wiese oder Wald und nicht im Startgebiet. So bleibt die Welt alter Spielstände ringsum gleich.
+   */
+  late?: boolean;
+  /** Spätes Vorkommen: Gibt es keines im Umkreis von `nearStart` Feldern, wird eines dort gesetzt. */
+  nearStart?: number;
 }
 
 /**
@@ -59,6 +66,39 @@ export const DEPOSITS: readonly DepositDef[] = [
     startGuarantee: true,
     oreColor: 'copper',
     groundColor: 'soil',
+  },
+  {
+    id: 'iron',
+    item: 'ironOre',
+    noiseScale: 1 / 16,
+    threshold: 0.82,
+    startGuarantee: false,
+    oreColor: 'iron',
+    groundColor: 'ironGround',
+    late: true,
+    nearStart: 40,
+  },
+  {
+    id: 'coal',
+    item: 'coal',
+    noiseScale: 1 / 16,
+    threshold: 0.83,
+    startGuarantee: false,
+    oreColor: 'coal',
+    groundColor: 'coalGround',
+    late: true,
+    nearStart: 45,
+  },
+  {
+    id: 'sand',
+    item: 'sand',
+    noiseScale: 1 / 14,
+    threshold: 0.82,
+    startGuarantee: false,
+    oreColor: 'sandOre',
+    groundColor: 'sandGround',
+    late: true,
+    nearStart: 45,
   },
 ];
 
@@ -107,4 +147,8 @@ export const WORLD_CONFIG = {
   startDepositSearchRadius: 24,
   startDepositDistance: 13,
   startDepositRadius: 2.4,
+  /** Späte Vorkommen: Abstand zum Startpunkt (frei bleibt das Startgebiet) und Größe des garantierten Flecks. */
+  lateClearRadius: 12,
+  lateGuaranteeDistance: 28,
+  lateGuaranteeRadius: 2.6,
 } as const;

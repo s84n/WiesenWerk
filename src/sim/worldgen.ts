@@ -53,6 +53,7 @@ export function generateWorld(
   // 2. Vorkommen, jedes mit eigener Noise-Ebene. Frühere Einträge haben Vorrang.
   for (let d = 0; d < deposits.length; d++) {
     const def = deposits[d];
+    if (def.late) continue;
     const noise = new SimplexNoise(deriveSeed(seed, `deposit:${def.id}`));
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
@@ -70,8 +71,63 @@ export function generateWorld(
 
   // 3. Startgebiet in der Kartenmitte
   prepareStartArea(world, seed, deposits);
+
+  // 4. Späte Vorkommen (Eisen, Kohle, Sand): nur auf Wiese/Wald außerhalb des Startgebiets,
+  // damit die Welt bestehender Spielstände sonst unverändert bleibt
+  for (let d = 0; d < deposits.length; d++) {
+    if (deposits[d].late) placeLateDeposit(world, seed, d, deposits[d]);
+  }
   world.generated = true;
   return world;
+}
+
+function placeLateDeposit(world: World, seed: number, d: number, def: DepositDef): void {
+  const { size, tiles } = world;
+  const noise = new SimplexNoise(deriveSeed(seed, `deposit:${def.id}`));
+  const sx = world.startX;
+  const sy = world.startY;
+  const clear2 = C.lateClearRadius * C.lateClearRadius;
+  const free = (i: number, x: number, y: number): boolean =>
+    (tiles[i] === TileType.Meadow || tiles[i] === TileType.Forest) &&
+    (x - sx) * (x - sx) + (y - sy) * (y - sy) > clear2;
+  let near = 0;
+  const near2 = (def.nearStart ?? 0) * (def.nearStart ?? 0);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const i = y * size + x;
+      if (!free(i, x, y)) continue;
+      const v = noise.fbm(x * def.noiseScale, y * def.noiseScale, 2) * 0.5 + 0.5;
+      if (v < def.threshold) continue;
+      const t = (v - def.threshold) / (1 - def.threshold);
+      tiles[i] = TileType.Deposit;
+      world.resource[i] = d + 1;
+      world.purity[i] = t < C.purityPoorBelow ? 1 : t > C.purityRichAbove ? 3 : 2;
+      world.relief[i] = 0;
+      if ((x - sx) * (x - sx) + (y - sy) * (y - sy) <= near2) near++;
+    }
+  }
+  if (!def.nearStart || near >= C.startDepositMinTiles) return;
+  // Kein Vorkommen in erreichbarer Nähe: einen kleinen Fleck setzen (Richtung aus dem Seed)
+  const rng = new Rng(deriveSeed(seed, `late:${def.id}`));
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const angle = rng.next() * Math.PI * 2;
+    const dist = C.lateGuaranteeDistance + rng.range(-4, 8);
+    const cx = Math.round(sx + Math.cos(angle) * dist);
+    const cy = Math.round(sy + Math.sin(angle) * dist);
+    let ok = 0;
+    forEachInRadius(world, cx, cy, C.lateGuaranteeRadius, (i) => {
+      if (free(i, i % size, Math.floor(i / size))) ok++;
+    });
+    if (ok < C.startDepositMinTiles) continue;
+    forEachInRadius(world, cx, cy, C.lateGuaranteeRadius + rng.range(-0.4, 0.4), (i) => {
+      if (!free(i, i % size, Math.floor(i / size))) return;
+      tiles[i] = TileType.Deposit;
+      world.resource[i] = d + 1;
+      world.purity[i] = 2;
+      world.relief[i] = 0;
+    });
+    return;
+  }
 }
 
 function toByte(v: number): number {
@@ -96,7 +152,7 @@ function prepareStartArea(world: World, seed: number, deposits: readonly Deposit
 
   // Wald, Stein und Kupfer in unterschiedlichen Richtungen, damit sie sich nicht überlappen
   const baseAngle = rng.next() * Math.PI * 2;
-  const targets = 1 + deposits.filter((d) => d.startGuarantee).length;
+  const targets = 1 + deposits.filter((d) => d.startGuarantee && !d.late).length;
   let slot = 0;
   const angleFor = (): number =>
     baseAngle + (slot++ / targets) * Math.PI * 2 + rng.range(-0.3, 0.3);
@@ -119,7 +175,7 @@ function prepareStartArea(world: World, seed: number, deposits: readonly Deposit
 
   for (let d = 0; d < deposits.length; d++) {
     const def = deposits[d];
-    if (!def.startGuarantee) continue;
+    if (!def.startGuarantee || def.late) continue;
     const angle = angleFor();
     const have = countInRadius(
       world,

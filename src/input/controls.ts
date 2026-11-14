@@ -73,7 +73,8 @@ export class InputController {
         this.hotkeys.togglePause();
         break;
       case 'KeyV':
-        this.hotkeys.togglePowerView();
+        // Strg + V fügt eine Blaupause ein (siehe Werkzeuge)
+        if (!e.ctrlKey && !e.metaKey) this.hotkeys.togglePowerView();
         break;
       case 'KeyQ':
         this.rig.rotate(-1);

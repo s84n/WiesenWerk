@@ -64,6 +64,9 @@ export class BuildPreview {
     depthTest: false,
   });
 
+  /** Blaupause: je Gebäudetyp eine Instanz-Gruppe (wenige Zeichenaufrufe, auch bei vielen Gebäuden). */
+  private readonly blueprintGhosts = new Map<number, InstancedMesh>();
+
   constructor() {
     this.ghost.matrixAutoUpdate = false;
     this.ghost.renderOrder = 2;
@@ -103,7 +106,55 @@ export class BuildPreview {
     this.ghostMaterial.color.setHex(0xffffff);
   }
 
+  /** Vorschau einer Blaupause; `valid[i]` färbt jedes Gebäude grün oder rot. */
+  showBlueprint(
+    list: readonly { building: number; x: number; y: number; rot: number }[],
+    valid: readonly boolean[],
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    allValid: boolean,
+  ): void {
+    this.hide();
+    const counts = new Map<number, number>();
+    for (const p of list) counts.set(p.building, (counts.get(p.building) ?? 0) + 1);
+    for (const [type, n] of counts) {
+      let mesh = this.blueprintGhosts.get(type);
+      if (!mesh || mesh.instanceMatrix.count < n) {
+        if (mesh) {
+          this.group.remove(mesh);
+          mesh.dispose();
+        }
+        mesh = new InstancedMesh(
+          buildingGeometries()[type],
+          this.ghostMaterial,
+          Math.max(16, n * 2),
+        );
+        mesh.frustumCulled = false;
+        mesh.renderOrder = 2;
+        mesh.setColorAt(0, tint.setHex(0xffffff));
+        this.blueprintGhosts.set(type, mesh);
+        this.group.add(mesh);
+      }
+      mesh.count = 0;
+    }
+    list.forEach((p, i) => {
+      const mesh = this.blueprintGhosts.get(p.building)!;
+      const k = mesh.count++;
+      mesh.setMatrixAt(k, buildingMatrix(p.building, p.x, p.y, p.rot, m));
+      mesh.setColorAt(k, tint.setHex(valid[i] ? 0xc8ffc0 : 0xff9a8a));
+    });
+    for (const mesh of this.blueprintGhosts.values()) {
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
+    this.ghostMaterial.color.setHex(0xffffff);
+    this.showArea(x0, y0, x1, y1, allValid ? PALETTE.hintGood : PALETTE.hintWait);
+  }
+
   hide(): void {
+    for (const mesh of this.blueprintGhosts.values()) mesh.count = 0;
     this.ghost.visible = false;
     if (this.range) this.range.visible = false;
     if (this.beltGhosts) this.beltGhosts.count = 0;

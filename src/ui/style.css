@@ -114,7 +114,7 @@ body {
 
 .debug-overlay {
   position: absolute;
-  bottom: 16px;
+  bottom: 214px;
   right: 16px;
   min-width: 200px;
   padding: 8px 12px;
@@ -375,6 +375,7 @@ body {
   background: transparent;
   color: var(--text-soft);
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .build-tab:hover {
@@ -1363,4 +1364,28 @@ body {
   text-align: right;
   font-variant-numeric: tabular-nums;
   color: var(--text-soft);
+}
+
+/* Minikarte unten rechts */
+.minimap {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 184px;
+  height: 184px;
+  padding: 6px;
+  pointer-events: auto;
+}
+
+.minimap canvas {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  width: 172px;
+  height: 172px;
+  border-radius: 8px;
+}
+
+.minimap-view {
+  cursor: pointer;
 }

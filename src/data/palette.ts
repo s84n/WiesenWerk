@@ -71,6 +71,43 @@ export const PALETTE = {
   itemCircuit: 0x5aa66a,
   itemMotor: 0x7f93ad,
   itemControl: 0x4fb3b0,
+  itemIronOre: 0x8a6a5a,
+  itemCoal: 0x3a3438,
+  itemSand: 0xe8d29a,
+  itemIronIngot: 0xa9b2ba,
+  itemGlass: 0xbfe8f0,
+  itemSteel: 0x6f7f8e,
+  itemGear: 0x9aa4ac,
+
+  // Neue Vorkommen
+  iron: 0x9a6f5e,
+  ironGround: 0x8f7466,
+  coal: 0x3e383c,
+  coalGround: 0x6e6258,
+  sandGround: 0xe2cf98,
+  sandOre: 0xf0e0b0,
+
+  // Dorf
+  houseWall: 0xf3e6c8,
+  houseWallB: 0xe8d4b0,
+  houseRoofA: 0xc96f4a,
+  houseRoofB: 0x8e4b3a,
+  houseRoofC: 0x6f8fa8,
+  garden: 0x7a5a3a,
+  villagerA: 0xd86a6a,
+  villagerB: 0x6aa86a,
+  villagerC: 0xe0b050,
+
+  // Neue Stromgebäude
+  solarCell: 0x2f4f7a,
+  solarFrame: 0xd8dde2,
+  battery: 0x5aa66a,
+  waterWheel: 0x8a5a34,
+
+  // Minikarte
+  miniBuilding: 0xe0603e,
+  miniBelt: 0x5f5048,
+  miniView: 0xfff6d8,
 
   // Bänder
   beltFrame: 0x9a6a3c,

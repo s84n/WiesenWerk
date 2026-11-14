@@ -1,10 +1,11 @@
 import { EXTRACTOR_UPGRADE, POWER, WIND } from '../data/balance';
-import { BUILDINGS } from '../data/buildings';
+import { BUILDINGS, FREE_GENERATOR_KINDS } from '../data/buildings';
 import { SIM_CONFIG } from '../data/config';
 import { ITEMS } from '../data/items';
 import { footprintH, footprintW, type BuildingStore } from './buildings';
 import { MachineState, type MachineSystem } from './machines';
 import type { ResearchSystem } from './research';
+import { sunlightAt } from './daylight';
 import { hash3Float } from './rng';
 import type { StatsSystem } from './stats';
 import type { World } from './world';
@@ -45,6 +46,16 @@ export class PowerSystem {
   historyPos = 0;
   /** Aktuelle Windstärke in Tausendsteln der Nennleistung (für alle Windräder gleich). */
   wind: number = SCALE;
+  /** Aktuelle Sonnenstärke in Tausendsteln (für alle Solarfelder gleich). */
+  sun: number = SCALE;
+  /** Tag-Nacht-Wechsel an (sonst fester Nachmittag, Befehl `setDayCycle`). */
+  dayCycle = true;
+  /** Akkus je Netz. */
+  batteries: number[][] = [];
+  /** Was die Brenner im letzten Tick noch decken mussten (W), je Netz. */
+  fuelNeed: number[] = [];
+  /** Akku: Lade- (+) bzw. Entladeleistung (−) im letzten Tick in W, je Gebäude-ID. */
+  flow = new Int32Array(0);
 
   constructor(
     private readonly world: World,
@@ -111,31 +122,31 @@ export class PowerSystem {
     this.ensure();
     const m = this.machines;
     const store = this.store;
-    const perTickDiv = SIM_CONFIG.ticksPerSecond;
+    const tps = SIM_CONFIG.ticksPerSecond;
     this.wind = this.windAt(tick);
+    this.sun = sunlightAt(tick, this.dayCycle);
     const use = this.research.powerUse;
     for (let g = 0; g < this.gridCount; g++) {
       // Brenner: ggf. nächsten Brennstoff anzünden, mögliche Erzeugung summieren
       const bs = this.burners[g];
-      let cap = 0;
+      let fuelCap = 0;
       for (let k = 0; k < bs.length; k++) {
         const id = bs[k];
-        // einmal pro Sekunde aus dem Vorrat nachfüllen (wenn eingeschaltet)
-        // (nur wenn im Netz Strom gebraucht wird – sonst bleibt das Holz im Vorrat)
-        if (m.autoRefill[id] && this.demand[g] > 0 && tick % SIM_CONFIG.ticksPerSecond === 0)
+        // einmal pro Sekunde aus dem Vorrat nachfüllen (wenn eingeschaltet), aber nur, wenn
+        // Wind, Wasser, Sonne und Akkus im letzten Tick nicht reichten
+        if (m.autoRefill[id] && this.fuelNeed[g] > 0 && tick % tps === 0)
           m.autoRefuel(id, burnerBuffer(store.type[id]));
         if (m.fuelEnergy[id] <= 0 && m.inBuf[id * 2] > 0) {
           m.inBuf[id * 2]--;
           m.fuelEnergy[id] += ITEMS[m.fuelItem[id]].fuelValue * 1000;
           this.stats.consume(m.fuelItem[id], 1);
         }
-        if (m.fuelEnergy[id] > 0) cap += burnerWatts(store.type[id]);
+        if (m.fuelEnergy[id] > 0) fuelCap += burnerWatts(store.type[id]);
       }
-      // Windräder: Nennleistung × Windstärke
+      // Wind, Wasser, Sonne: kostenlos, werden zuerst genutzt
       const ws = this.winds[g];
-      for (let k = 0; k < ws.length; k++) {
-        cap += Math.floor((windWatts(store.type[ws[k]]) * this.wind) / SCALE);
-      }
+      let free = 0;
+      for (let k = 0; k < ws.length; k++) free += this.freeWatts(ws[k]);
 
       // Verbrauch: arbeitende Maschinen voll, andere 10 %
       const cs = this.consumers[g];
@@ -147,8 +158,44 @@ export class PowerSystem {
         dem += m.drawFull[id] ? w : Math.round(w * POWER.idleShare);
       }
 
+      // Akkus: Überschuss der freien Erzeuger laden, bei Mangel abgeben
+      const as = this.batteries[g];
+      let batteryOut = 0;
+      let batteryCap = 0;
+      const spare = Math.max(0, free - dem);
+      let surplus = spare;
+      let need = Math.max(0, dem - free);
+      for (let k = 0; k < as.length; k++) {
+        const id = as[k];
+        const b = BUILDINGS[store.type[id]].behavior;
+        if (b.kind !== 'battery') continue;
+        const rate = b.rateKW * 1000;
+        const maxJ = b.capacityKJ * 1000;
+        const canGive = Math.min(rate, m.fuelEnergy[id] * tps);
+        batteryCap += canGive;
+        let flow = 0;
+        if (surplus > 0) {
+          const take = Math.min(rate, surplus, (maxJ - m.fuelEnergy[id]) * tps);
+          surplus -= take;
+          flow = take;
+          m.fuelEnergy[id] += Math.floor(take / tps);
+        } else if (need > 0) {
+          const give = Math.min(canGive, need);
+          need -= give;
+          batteryOut += give;
+          flow = -give;
+          m.fuelEnergy[id] = Math.max(0, m.fuelEnergy[id] - Math.ceil(give / tps));
+        }
+        this.flow[id] = flow;
+        m.setState(id, flow !== 0 ? MachineState.Working : MachineState.Idle);
+        m.utilization[id] = maxJ > 0 ? m.fuelEnergy[id] / maxJ : 0;
+      }
+
+      // Brenner decken den Rest
+      const cap = free + batteryCap + fuelCap;
       const factor = dem === 0 ? SCALE : Math.min(SCALE, Math.floor((cap * SCALE) / dem));
-      const load = cap === 0 ? 0 : Math.min(SCALE, Math.ceil((dem * SCALE) / cap));
+      const load = fuelCap === 0 ? 0 : Math.min(SCALE, Math.ceil((need * SCALE) / fuelCap));
+      this.fuelNeed[g] = Math.max(0, dem - free - batteryOut);
       this.capacity[g] = cap;
       this.demand[g] = dem;
       this.production[g] = Math.min(cap, dem);
@@ -158,8 +205,8 @@ export class PowerSystem {
       for (let k = 0; k < bs.length; k++) {
         const id = bs[k];
         if (m.fuelEnergy[id] > 0) {
-          const use = Math.floor((burnerWatts(store.type[id]) * load) / SCALE / perTickDiv);
-          m.fuelEnergy[id] = Math.max(0, m.fuelEnergy[id] - use);
+          const burn = Math.floor((burnerWatts(store.type[id]) * load) / SCALE / tps);
+          m.fuelEnergy[id] = Math.max(0, m.fuelEnergy[id] - burn);
           m.setState(id, load > 0 ? MachineState.Working : MachineState.Idle);
         } else {
           m.setState(id, m.inBuf[id * 2] > 0 ? MachineState.Idle : MachineState.WaitingInput);
@@ -167,25 +214,30 @@ export class PowerSystem {
         m.utilization[id] +=
           ((m.fuelEnergy[id] > 0 ? load / SCALE : 0) - m.utilization[id]) * 0.005;
       }
+      // Freie Erzeuger: Auslastung = genutzter Anteil (Verbrauch + Laden)
+      const used = free === 0 ? 0 : Math.min(1, (Math.min(dem, free) + spare - surplus) / free);
       for (let k = 0; k < ws.length; k++) {
         const id = ws[k];
-        m.setState(id, load > 0 ? MachineState.Working : MachineState.Idle);
-        m.utilization[id] += (load / SCALE - m.utilization[id]) * 0.005;
+        const producing = this.freeWatts(id) > 0;
+        m.setState(
+          id,
+          !producing
+            ? MachineState.WaitingInput
+            : used > 0
+              ? MachineState.Working
+              : MachineState.Idle,
+        );
+        m.utilization[id] += ((producing ? used : 0) - m.utilization[id]) * 0.005;
       }
     }
 
-    // Erzeuger ohne Netz
-    for (let n = 0; n < m.burners.length; n++) {
-      const id = m.burners[n];
-      if (this.gridOf[id] < 0) m.setState(id, MachineState.NoPower);
-    }
-    for (let n = 0; n < m.winds.length; n++) {
-      const id = m.winds[n];
-      if (this.gridOf[id] < 0) m.setState(id, MachineState.NoPower);
-    }
+    // Erzeuger und Akkus ohne Netz
+    this.markUnconnected(m.burners);
+    this.markUnconnected(m.winds);
+    this.markUnconnected(m.batteries);
 
     // Verlauf: eine Probe pro Sekunde
-    if (tick % SIM_CONFIG.ticksPerSecond === 0) {
+    if (tick % tps === 0) {
       this.historyPos = (this.historyPos + 1) % HISTORY;
       for (let g = 0; g < this.gridCount; g++) {
         this.history[g][this.historyPos * 2] = this.production[g];
@@ -194,13 +246,38 @@ export class PowerSystem {
     }
   }
 
+  private markUnconnected(list: readonly number[]): void {
+    for (let n = 0; n < list.length; n++) {
+      const id = list[n];
+      if (this.gridOf[id] < 0) this.machines.setState(id, MachineState.NoPower);
+    }
+  }
+
+  /** Leistung eines Wind-, Wasser- oder Solar-Erzeugers in diesem Tick (W). */
+  freeWatts(id: number): number {
+    const b = BUILDINGS[this.store.type[id]].behavior;
+    if (b.kind === 'wind') return Math.floor((b.powerKW * 1000 * this.wind) / SCALE);
+    if (b.kind === 'solar') return Math.floor((b.powerKW * 1000 * this.sun) / SCALE);
+    if (b.kind === 'water') return b.powerKW * 1000;
+    return 0;
+  }
+
+  /** Gespeicherte Energie eines Akkus in J und seine Größe. */
+  batteryCharge(id: number): { stored: number; capacity: number } {
+    const b = BUILDINGS[this.store.type[id]].behavior;
+    return {
+      stored: this.machines.fuelEnergy[id],
+      capacity: b.kind === 'battery' ? b.capacityKJ * 1000 : 0,
+    };
+  }
+
   private rebuild(): void {
     this.dirty = false;
     this.version++;
     const store = this.store;
     if (this.gridOf.length < store.capacity) {
-      const next = new Int32Array(store.capacity);
-      this.gridOf = next;
+      this.gridOf = new Int32Array(store.capacity);
+      this.flow = new Int32Array(store.capacity);
     }
     this.gridOf.fill(-1);
     this.coverage.fill(-1);
@@ -268,9 +345,11 @@ export class PowerSystem {
     this.consumers = Array.from({ length: this.gridCount }, () => []);
     this.burners = Array.from({ length: this.gridCount }, () => []);
     this.winds = Array.from({ length: this.gridCount }, () => []);
+    this.batteries = Array.from({ length: this.gridCount }, () => []);
     this.poles = Array.from({ length: this.gridCount }, () => []);
-    for (const arr of [this.capacity, this.demand, this.production, this.factor])
+    for (const arr of [this.capacity, this.demand, this.production, this.factor, this.fuelNeed])
       arr.length = this.gridCount;
+    this.fuelNeed.fill(0);
     this.capacity.fill(0);
     this.demand.fill(0);
     this.production.fill(0);
@@ -301,13 +380,20 @@ export class PowerSystem {
       if (!store.alive[id]) continue;
       const def = BUILDINGS[store.type[id]];
       const kind = def.behavior.kind;
-      if (def.power <= 0 && kind !== 'burner' && kind !== 'wind') continue;
+      const free = FREE_GENERATOR_KINDS.includes(kind);
+      if (def.power <= 0 && kind !== 'burner' && kind !== 'battery' && !free) continue;
       const g = this.gridAtFootprint(id);
       this.gridOf[id] = g;
       if (g < 0) continue;
-      (kind === 'burner' ? this.burners : kind === 'wind' ? this.winds : this.consumers)[g].push(
-        id,
-      );
+      const list =
+        kind === 'burner'
+          ? this.burners
+          : kind === 'battery'
+            ? this.batteries
+            : free
+              ? this.winds
+              : this.consumers;
+      list[g].push(id);
     }
   }
 
@@ -320,9 +406,9 @@ export class PowerSystem {
       : 2 * s.y[id] + footprintH(def, s.rot[id]);
   }
 
-  /** Erzeuger im Netz (Brenner und Windräder). */
+  /** Erzeuger im Netz (Brenner, Wind, Wasser, Sonne, Akkus). */
   generatorCount(g: number): number {
-    return this.burners[g].length + this.winds[g].length;
+    return this.burners[g].length + this.winds[g].length + this.batteries[g].length;
   }
 
   private gridAtFootprint(id: number): number {
@@ -347,11 +433,6 @@ function burnerWatts(type: number): number {
 function burnerBuffer(type: number): number {
   const b = BUILDINGS[type].behavior;
   return b.kind === 'burner' ? b.fuelBuffer : 0;
-}
-
-function windWatts(type: number): number {
-  const b = BUILDINGS[type].behavior;
-  return b.kind === 'wind' ? b.powerKW * 1000 : 0;
 }
 
 function poleRange(type: number): number {
