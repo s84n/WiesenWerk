@@ -8,14 +8,24 @@ import type { Simulation } from '../sim/simulation';
 import { el, formatNumber, itemIcon, itemName } from './dom';
 import { GameWindow } from './game-window';
 
-const COL_W = 196;
-const ROW_H = 172;
-const CARD_W = 172;
+const COL_W = 222;
+const ROW_H = 250;
+const CARD_W = 196;
 
 interface NodeView {
   card: HTMLElement;
   button: HTMLButtonElement;
-  costs: { chip: HTMLElement; item: number; amount: number }[];
+  costBox: HTMLElement;
+  costs: CostView[];
+}
+
+/** Eine Kostenzeile: Bild, Name, „vorhanden / benötigt“ und Balken. */
+interface CostView {
+  row: HTMLElement;
+  have: HTMLElement;
+  fill: HTMLElement;
+  item: number;
+  amount: number;
 }
 
 interface UpgradeView {
@@ -111,14 +121,23 @@ export class ResearchWindow {
         el('div', 'research-unlock-text', unlockText(r.buildings, r.recipes, r.extractorUpgrade)),
       );
 
-      const costRow = el('div', 'research-costs');
-      const costs = RESEARCH_COSTS[i].map((c) => {
-        const chip = el('span', 'cost-chip');
-        chip.append(itemIcon(c.item), document.createTextNode(formatNumber(c.amount)));
-        costRow.appendChild(chip);
-        return { chip, item: c.item, amount: c.amount };
+      const costBox = el('div', 'research-costs');
+      costBox.appendChild(el('div', 'research-costs-title', TEXTS.research.costs));
+      const costs = RESEARCH_COSTS[i].map((c): CostView => {
+        const row = el('div', 'research-cost');
+        const icon = itemIcon(c.item);
+        icon.classList.add('research-cost-icon');
+        const have = el('span', 'research-cost-have');
+        const amounts = el('span', 'research-cost-amounts');
+        amounts.append(have, document.createTextNode(` / ${formatNumber(c.amount)}`));
+        const bar = el('div', 'research-cost-bar');
+        const fill = el('div', 'research-cost-fill');
+        bar.appendChild(fill);
+        row.append(icon, el('span', 'research-cost-name', itemName(c.item)), amounts, bar);
+        costBox.appendChild(row);
+        return { row, have, fill, item: c.item, amount: c.amount };
       });
-      card.appendChild(costRow);
+      card.appendChild(costBox);
 
       const button = el('button', 'button small research-button', TEXTS.research.research);
       button.addEventListener('click', () => {
@@ -127,7 +146,7 @@ export class ResearchWindow {
       });
       card.appendChild(button);
       tree.appendChild(card);
-      this.nodes.push({ card, button, costs });
+      this.nodes.push({ card, button, costBox, costs });
     });
     const scroller = el('div', 'research-scroll');
     scroller.appendChild(tree);
@@ -146,7 +165,7 @@ export class ResearchWindow {
       name.append(document.createTextNode(TEXTS.research.upgrades[u.key].name + ' '), level);
       const effect = el('div', 'upgrade-effect');
       text.append(name, effect);
-      const cost = el('div', 'research-costs');
+      const cost = el('div', 'research-costs-inline');
       const button = el('button', 'button small', TEXTS.research.buy);
       button.addEventListener('click', () => {
         this.getSim().enqueue({ type: 'buyUpgrade', upgrade: i });
@@ -190,8 +209,20 @@ export class ResearchWindow {
           : !affordable
             ? TEXTS.research.missing
             : '';
-      for (const c of n.costs)
-        c.chip.classList.toggle('missing', !done && inv.get(c.item) < c.amount);
+      n.costBox.hidden = done;
+      for (const c of n.costs) {
+        const have = inv.get(c.item);
+        const ok = have >= c.amount;
+        c.row.classList.toggle('missing', !ok);
+        c.row.classList.toggle('enough', ok);
+        c.have.textContent = formatNumber(Math.min(have, 999_999));
+        c.fill.style.width = `${Math.min(100, (have / c.amount) * 100)}%`;
+        c.row.title = TEXTS.research.costTooltip(
+          itemName(c.item),
+          formatNumber(have),
+          formatNumber(c.amount),
+        );
+      }
     });
 
     let anyAvailable = false;

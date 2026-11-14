@@ -1009,7 +1009,7 @@ body {
 
 .research-card {
   position: absolute;
-  height: 158px;
+  height: 234px;
   padding: 8px 10px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.5);
@@ -1031,7 +1031,7 @@ body {
 }
 
 .research-card.locked {
-  opacity: 0.62;
+  opacity: 0.8;
 }
 
 .research-name {
@@ -1064,13 +1064,79 @@ body {
 
 .research-costs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 7px;
+  border-radius: 8px;
+  background: rgba(140, 100, 60, 0.08);
 }
 
-.cost-chip.missing {
+.research-costs[hidden] {
+  display: none;
+}
+
+.research-costs-title {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-soft);
+}
+
+.research-cost {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  grid-template-rows: auto 4px;
+  column-gap: 6px;
+  row-gap: 2px;
+  align-items: center;
+}
+
+.research-cost .item-icon.research-cost-icon {
+  grid-row: 1 / span 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+}
+
+.research-cost-name {
+  font-size: 0.74rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.research-cost-amounts {
+  font-size: 0.76rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.research-cost-bar {
+  grid-column: 2 / span 2;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(140, 100, 60, 0.16);
+  overflow: hidden;
+}
+
+.research-cost-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background: #d9894a;
+}
+
+.research-cost.enough .research-cost-fill {
+  background: #6fae4a;
+}
+
+.research-cost.enough .research-cost-have {
+  color: #4f8f2f;
+}
+
+.research-cost.missing .research-cost-have {
   color: #c0533a;
 }
 
@@ -1388,4 +1454,23 @@ body {
 
 .minimap-view {
   cursor: pointer;
+}
+
+.cost-chip.missing {
+  color: #c0533a;
+}
+
+/* Kosten der Verbesserungen: gut lesbar wie im Forschungsbaum */
+.upgrade-row .research-costs-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.upgrade-row .cost-chip .item-icon,
+.upgrade-row .cost-chip .item-icon.image {
+  width: 20px;
+  height: 20px;
 }

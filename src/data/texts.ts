@@ -180,6 +180,9 @@ export const TEXTS = {
     locked: 'Erst die Voraussetzungen erforschen',
     missing: 'Noch nicht genug im Vorrat',
     unlocks: 'Schaltet frei:',
+    costs: 'Kosten',
+    costTooltip: (name: string, have: string, need: string) =>
+      `${name}: ${have} im Vorrat, ${need} benötigt`,
     upgradesTitle: 'Verbesserungen (wiederholbar)',
     upgradesLocked: 'Nach der Forschung „Antriebe“ verfügbar.',
     level: (n: number) => `Stufe ${n}`,
