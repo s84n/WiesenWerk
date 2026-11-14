@@ -257,8 +257,22 @@ describe('Statistik und Erste Schritte', () => {
     build(sim, B.pole, 6, 4);
     build(sim, B.burner, 7, 4);
     sim.enqueue({ type: 'refuel', building: sim.buildingAt(7, 4), item: ITEM_ID.wood });
+    // Holzfäller neben dem Mast, zwei Bäume in Reichweite
+    for (const ty of [2, 3]) {
+      const t = sim.world.index(11, ty);
+      sim.world.tiles[t] = TileType.Forest;
+      sim.trees.wood[t] = 4;
+    }
+    build(sim, B.lumberjack, 8, 2);
     run(sim, 400);
-    expect(done()).toEqual(['harvestWood', 'buildHq', 'buildPower', 'minerWorking', 'beltToHq']);
+    expect(done()).toEqual([
+      'harvestWood',
+      'buildHq',
+      'lumberjackWorking',
+      'buildPower',
+      'minerWorking',
+      'beltToHq',
+    ]);
     research(sim, 'charcoal');
     run(sim, 20);
     expect(done()).toHaveLength(GOALS.length);

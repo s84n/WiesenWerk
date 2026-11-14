@@ -3,6 +3,7 @@ import {
   ConeGeometry,
   CylinderGeometry,
   SphereGeometry,
+  TorusGeometry,
   type BufferGeometry,
 } from 'three';
 import { PALETTE } from '../data/palette';
@@ -84,11 +85,7 @@ function lumberjack(): BufferGeometry {
     box(1.1, 0.8, 0.95, -0.3, 0.1, -0.3, PALETTE.wood),
     gableRoof(1.25, 1.3, 0.55, -0.3, 0.9, -0.3, PALETTE.roof),
     box(0.3, 0.5, 0.04, -0.3, 0.1, 0.18, PALETTE.woodDark),
-    // Sägeblatt
-    colored(
-      new CylinderGeometry(0.32, 0.32, 0.04, 12).rotateX(Math.PI / 2).translate(0.55, 0.55, -0.55),
-      PALETTE.stone,
-    ),
+    // Halter des Sägeblatts (das Blatt selbst dreht sich, siehe SPINNERS)
     box(0.12, 0.3, 0.12, 0.55, 0.1, -0.55, PALETTE.woodDark),
   ];
   // Holzstapel
@@ -111,10 +108,6 @@ function miner(): BufferGeometry {
     box(0.12, 1.7, 0.12, -0.45, 0.25, -0.35, PALETTE.woodDark),
     box(0.12, 1.7, 0.12, 0.45, 0.25, -0.35, PALETTE.woodDark),
     box(1.05, 0.12, 0.16, 0, 1.9, -0.35, PALETTE.wood),
-    colored(
-      new CylinderGeometry(0.32, 0.32, 0.08, 10).rotateX(Math.PI / 2).translate(0, 1.6, -0.25),
-      PALETTE.copper,
-    ),
     box(0.7, 0.55, 0.7, 0, 0.25, -0.35, PALETTE.wood),
     gableRoof(0.85, 0.85, 0.35, 0, 0.8, -0.35, PALETTE.roof),
     // Lore mit Gestein
@@ -147,17 +140,7 @@ function workshop(): BufferGeometry {
     gableRoof(1.45, 1.75, 0.6, 0, 0.95, -0.1, PALETTE.roof),
     box(0.5, 0.55, 0.04, -0.35, 0.1, 0.52, PALETTE.woodDark),
     box(0.3, 0.28, 0.04, 0.4, 0.45, 0.52, PALETTE.windowLight),
-    // Zahnrad an der Seite
-    colored(
-      new CylinderGeometry(0.3, 0.3, 0.08, 10).rotateZ(Math.PI / 2).translate(0.84, 0.6, -0.1),
-      PALETTE.copper,
-    ),
   ];
-  for (let k = 0; k < 8; k++) {
-    const tooth = new BoxGeometry(0.08, 0.12, 0.12).translate(0, 0.33, 0);
-    tooth.rotateX((k * Math.PI) / 4).translate(0.84, 0.6, -0.1);
-    parts.push(colored(tooth, PALETTE.copper));
-  }
   return merge(parts);
 }
 
@@ -311,17 +294,7 @@ function windTurbine(): BufferGeometry {
     box(1.2, 0.16, 1.2, 0, 0, 0, PALETTE.stone),
     colored(new CylinderGeometry(0.1, 0.2, 3.4, 8).translate(0, 0.16 + 1.7, 0), PALETTE.cream),
     box(0.3, 0.26, 0.55, 0, 3.5, 0, PALETTE.cream),
-    colored(
-      new CylinderGeometry(0.08, 0.1, 0.16, 8).rotateX(Math.PI / 2).translate(0, 3.63, 0.34),
-      PALETTE.copper,
-    ),
   ];
-  // drei Flügel nach Süden gerichtet
-  for (let k = 0; k < 3; k++) {
-    const blade = new BoxGeometry(0.16, 1.25, 0.04).translate(0, 0.7, 0);
-    blade.rotateZ((k * 2 * Math.PI) / 3 + 0.3).translate(0, 3.63, 0.43);
-    parts.push(colored(blade, PALETTE.blade));
-  }
   return merge(parts);
 }
 
@@ -445,6 +418,98 @@ export function upgradeBadge(): BufferGeometry {
   return merge(parts);
 }
 
+// ---------------------------------------------------------------- bewegliche Teile
+
+function sawBlade(): BufferGeometry {
+  const parts = [
+    colored(new CylinderGeometry(0.32, 0.32, 0.04, 12).rotateX(Math.PI / 2), PALETTE.stone),
+  ];
+  for (let k = 0; k < 6; k++) {
+    const tooth = new BoxGeometry(0.06, 0.08, 0.05).translate(0, 0.34, 0);
+    parts.push(colored(tooth.rotateZ((k * Math.PI) / 3), PALETTE.metalDark));
+  }
+  return merge(parts);
+}
+
+function gear(radius: number, teeth: number, color: number): BufferGeometry {
+  const parts = [
+    colored(new CylinderGeometry(radius, radius, 0.08, 10).rotateZ(Math.PI / 2), color),
+  ];
+  for (let k = 0; k < teeth; k++) {
+    const tooth = new BoxGeometry(0.08, 0.12, 0.12).translate(0, radius + 0.03, 0);
+    parts.push(colored(tooth.rotateX((k * 2 * Math.PI) / teeth), color));
+  }
+  return merge(parts);
+}
+
+function wheel(): BufferGeometry {
+  const parts = [
+    colored(new TorusGeometry(0.3, 0.035, 4, 12), PALETTE.copper),
+    colored(new CylinderGeometry(0.05, 0.05, 0.1, 6).rotateX(Math.PI / 2), PALETTE.metalDark),
+  ];
+  for (let k = 0; k < 3; k++) {
+    parts.push(
+      colored(new BoxGeometry(0.6, 0.04, 0.03).rotateZ((k * Math.PI) / 3), PALETTE.copper),
+    );
+  }
+  return merge(parts);
+}
+
+function rotor(): BufferGeometry {
+  const parts = [
+    colored(
+      new CylinderGeometry(0.08, 0.1, 0.16, 8).rotateX(Math.PI / 2).translate(0, 0, -0.09),
+      PALETTE.copper,
+    ),
+  ];
+  for (let k = 0; k < 3; k++) {
+    const blade = new BoxGeometry(0.16, 1.25, 0.04).translate(0, 0.7, 0);
+    parts.push(colored(blade.rotateZ((k * 2 * Math.PI) / 3), PALETTE.blade));
+  }
+  return merge(parts);
+}
+
+function fan(): BufferGeometry {
+  const parts = [colored(new CylinderGeometry(0.06, 0.06, 0.12, 6), PALETTE.metalDark)];
+  for (let k = 0; k < 4; k++) {
+    parts.push(
+      colored(
+        new BoxGeometry(0.5, 0.03, 0.12).translate(0.25, 0.04, 0).rotateY((k * Math.PI) / 2),
+        PALETTE.metal,
+      ),
+    );
+  }
+  return merge(parts);
+}
+
+/** Bewegliches Teil eines Gebäudes: Form, Drehpunkt (ungedreht, wie das Modell) und Achse. */
+export interface SpinnerDef {
+  make: () => BufferGeometry;
+  offset: readonly [number, number, number];
+  axis: 'x' | 'y' | 'z';
+  /** Umdrehungen pro Sekunde bei der Arbeit. */
+  speed: number;
+}
+
+export const SPINNERS: Record<string, SpinnerDef> = {
+  lumberjack: { make: sawBlade, offset: [0.55, 0.55, -0.55], axis: 'z', speed: 1.6 },
+  miner: { make: wheel, offset: [0, 1.6, -0.25], axis: 'z', speed: 0.5 },
+  workshop: {
+    make: () => gear(0.3, 8, PALETTE.copper),
+    offset: [0.84, 0.6, -0.1],
+    axis: 'x',
+    speed: 0.4,
+  },
+  windTurbine: { make: rotor, offset: [0, 3.63, 0.43], axis: 'z', speed: 0.35 },
+  assembler: { make: fan, offset: [0, 1.88, 0.1], axis: 'y', speed: 0.8 },
+};
+
+/** Rauch steigt aus diesen Punkten (Schornsteine), solange das Gebäude arbeitet. */
+export const SMOKE: Record<string, readonly [number, number, number]> = {
+  furnace: [0.45, 2.05, -0.4],
+  burner: [0.25, 2.55, -0.25],
+};
+
 const MODELS: Record<string, () => BufferGeometry> = {
   assembler,
   storage,
@@ -472,8 +537,19 @@ const MODELS: Record<string, () => BufferGeometry> = {
   belt: () => beltStraight(1),
 };
 
-/** Erzeugt das Modell zu einem Namen; unbekannte Namen ergeben einen einfachen Block. */
-export function buildingModel(name: string, w: number, h: number): BufferGeometry {
+/**
+ * Erzeugt das Modell zu einem Namen; unbekannte Namen ergeben einen einfachen Block.
+ * `withMoving` setzt die beweglichen Teile in Ruhestellung dazu (für Bilder und Vorschau).
+ */
+export function buildingModel(
+  name: string,
+  w: number,
+  h: number,
+  withMoving = false,
+): BufferGeometry {
   const make = MODELS[name];
-  return make ? make() : merge([box(w - 0.15, 0.8, h - 0.15, 0, 0, 0, PALETTE.cream)]);
+  const base = make ? make() : merge([box(w - 0.15, 0.8, h - 0.15, 0, 0, 0, PALETTE.cream)]);
+  const spin = SPINNERS[name];
+  if (!withMoving || !spin) return base;
+  return merge([base, spin.make().translate(...spin.offset)]);
 }

@@ -12,11 +12,20 @@ const quat = new Quaternion();
 const one = new Vector3(1, 1, 1);
 const up = new Vector3(0, 1, 0);
 
-/** Geometrien der Gebäudemodelle, einmal erzeugt und überall geteilt (Vorschau, Icons). */
+/** Geometrien der Gebäudemodelle mit beweglichen Teilen in Ruhestellung (Vorschau, Icons). */
 let geometryCache: BufferGeometry[] | null = null;
 export function buildingGeometries(): BufferGeometry[] {
-  geometryCache ??= BUILDINGS.map((def) => buildingModel(def.model, def.size[0], def.size[1]));
+  geometryCache ??= BUILDINGS.map((def) =>
+    buildingModel(def.model, def.size[0], def.size[1], true),
+  );
   return geometryCache;
+}
+
+/** Geometrien ohne bewegliche Teile (die zeichnet `MachineAnimations`). */
+let staticCache: BufferGeometry[] | null = null;
+function staticGeometries(): BufferGeometry[] {
+  staticCache ??= BUILDINGS.map((def) => buildingModel(def.model, def.size[0], def.size[1]));
+  return staticCache;
 }
 
 /** Transformationsmatrix eines Gebäudes (Mitte der Grundfläche, Drehung). */
@@ -47,9 +56,7 @@ export class BuildingsView {
     material: Material,
   ) {
     const chunks = world.chunksPerSide * world.chunksPerSide;
-    this.perType = buildingGeometries().map(
-      (g) => new DynamicChunkedInstances(g, material, chunks),
-    );
+    this.perType = staticGeometries().map((g) => new DynamicChunkedInstances(g, material, chunks));
     for (const t of this.perType) this.group.add(t.group);
     this.badges = new DynamicChunkedInstances(upgradeBadge(), material, chunks, false);
     this.group.add(this.badges.group);

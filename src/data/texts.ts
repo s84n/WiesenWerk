@@ -172,6 +172,24 @@ export const TEXTS = {
     empty: 'Noch keine Produktion. Baue ein Bergwerk oder einen Holzfäller!',
   },
 
+  inventory: {
+    title: 'Vorrat',
+    tooltip: 'Vorrat: alle Items (Klick auf die Mengen oben öffnet ihn auch)',
+    hint: 'Oben stehen nur Items, die du schon hast. Hier siehst du alle – und woher sie kommen.',
+    raw: {
+      wood: 'Von Bäumen: von Hand oder mit dem Holzfäller',
+      stone: 'Von Steinvorkommen: von Hand oder mit dem Bergwerk',
+      copperOre: 'Von Kupfervorkommen: von Hand oder mit dem Bergwerk',
+    } as Record<string, string>,
+    made: (building: string, inputs: string) => `${building} aus ${inputs}`,
+    locked: '(erst erforschen)',
+  },
+
+  sound: {
+    on: 'Ton aus',
+    off: 'Ton an',
+  },
+
   goals: {
     title: 'Erste Schritte',
     hide: 'Ausblenden',
@@ -181,6 +199,8 @@ export const TEXTS = {
     items: {
       harvestWood: 'Sammle 10 Holz: klicke auf Bäume',
       buildHq: 'Baue die Zentrale',
+      lumberjackWorking:
+        'Lass einen Holzfäller am Waldrand arbeiten: seine Leute fällen die Bäume für dich',
       buildPower: 'Baue einen Biomassebrenner und einen Strommast',
       minerWorking: 'Bringe ein Bergwerk mit Strom zum Laufen',
       beltToHq: 'Liefere per Förderband etwas an die Zentrale',

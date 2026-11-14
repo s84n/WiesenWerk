@@ -23,6 +23,7 @@ export interface GoalDef {
 export const GOALS: readonly GoalDef[] = [
   { key: 'harvestWood', condition: { kind: 'harvest', item: 'wood', amount: 10 } },
   { key: 'buildHq', condition: { kind: 'build', buildings: ['hq'] } },
+  { key: 'lumberjackWorking', condition: { kind: 'working', building: 'lumberjack' } },
   { key: 'buildPower', condition: { kind: 'build', buildings: ['burner', 'pole'] } },
   { key: 'minerWorking', condition: { kind: 'working', building: 'miner' } },
   { key: 'beltToHq', condition: { kind: 'delivered', amount: 1 } },

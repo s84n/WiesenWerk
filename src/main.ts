@@ -1,4 +1,5 @@
 import './ui/style.css';
+import { SoundSystem } from './audio/sound';
 import { FixedStepLoop } from './core/loop';
 import { SaveManager } from './core/saves';
 import { closeDb } from './core/storage';
@@ -18,6 +19,7 @@ import { setItemIcons } from './ui/dom';
 import { setErrorExport, showErrorScreen } from './ui/error-screen';
 import { GoalsPanel } from './ui/goals-panel';
 import { Hud } from './ui/hud';
+import { InventoryWindow } from './ui/inventory-window';
 import { InfoPanel } from './ui/info-panel';
 import { MainMenu } from './ui/main-menu';
 import { ResearchWindow } from './ui/research-window';
@@ -57,11 +59,18 @@ function start(): void {
   let openMenu = (): void => {};
   const research = new ResearchWindow(ui, () => sim, view.buildingIcons());
   const stats = new StatsWindow(ui);
-  const toggleWindow = (w: ResearchWindow | StatsWindow): void => {
+  const inventory = new InventoryWindow(ui);
+  const windows = [research, stats, inventory];
+  const toggleWindow = (w: (typeof windows)[number]): void => {
     if (!inGame) return;
-    for (const other of [research, stats]) if (other !== w) other.window.close();
+    for (const other of windows) if (other !== w) other.window.close();
     w.window.toggle();
   };
+  const sound = new SoundSystem();
+  // Leiser Klick bei jedem Knopf der Oberfläche
+  ui.addEventListener('click', (e) => {
+    if (e.target instanceof Element && e.target.closest('button')) sound.click();
+  });
   const hud = new Hud(
     ui,
     {
@@ -71,7 +80,12 @@ function start(): void {
       setSpeed: (s) => (loop.speed = s),
     },
     () => openMenu(),
-    { research: () => toggleWindow(research), stats: () => toggleWindow(stats) },
+    {
+      research: () => toggleWindow(research),
+      stats: () => toggleWindow(stats),
+      inventory: () => toggleWindow(inventory),
+      sound: { toggle: () => sound.toggleMute(), muted: () => sound.isMuted },
+    },
   );
   const buildBar = new BuildBar(ui, tools, view.buildingIcons());
   const info = new InfoPanel(ui, tools, view.buildingIcons());
@@ -86,6 +100,7 @@ function start(): void {
     hud.invalidate();
     buildBar.invalidate();
     research.invalidate();
+    inventory.invalidate();
   };
 
   // ---------------------------------------------------------------- Speichern
@@ -145,8 +160,7 @@ function start(): void {
           pausedBeforeMenu = loop.paused;
           loop.paused = true;
           tools.cancel();
-          research.window.close();
-          stats.window.close();
+          for (const w of windows) w.window.close();
         } else {
           loop.paused = pausedBeforeMenu;
         }
@@ -191,9 +205,8 @@ function start(): void {
         if (menu.isOpen) {
           if (inGame) menu.close();
           e.stopImmediatePropagation();
-        } else if (research.window.isOpen || stats.window.isOpen) {
-          research.window.close();
-          stats.window.close();
+        } else if (windows.some((w) => w.window.isOpen)) {
+          for (const w of windows) w.window.close();
           e.stopImmediatePropagation();
         } else if (tools.mode === 'select' && tools.selected < 0) {
           menu.open();
@@ -281,6 +294,7 @@ function start(): void {
       sim.flushCommands();
 
       view.handleEvents(sim.events);
+      if (inGame) sound.handleEvents(sim.events);
       toasts.handleEvents(sim.events, sim);
       sim.clearEvents();
 
@@ -289,10 +303,12 @@ function start(): void {
       info.update(sim, now);
       research.update(sim, now);
       stats.update(sim, now);
+      inventory.update(sim, now);
       goals.update(sim, inGame);
       view.showPower = powerView || tools.placingPower;
       view.render(loop.paused ? 0 : loop.alpha, now);
       debug.frame(now, tickMs, ticks, view, sim, loop.paused);
+      if (inGame && !menu.isOpen) sound.update(now, view.animations.workingInView, loop.paused);
 
       if (inGame && !menu.isOpen) {
         autosaveTimer += dt;

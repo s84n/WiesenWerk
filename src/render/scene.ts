@@ -24,6 +24,8 @@ import { BuildingsView, buildingGeometries } from './buildings-view';
 import { CameraRig } from './camera-rig';
 import { renderIcons } from './icons';
 import { itemGeometries } from './item-models';
+import { MachineAnimations, type ViewRect } from './machine-animations';
+import { PortMarkers } from './port-markers';
 import { PowerView } from './power-view';
 import { StatusIcons } from './status-icons';
 import { Nature } from './nature';
@@ -56,6 +58,9 @@ export class GameRenderer {
   private nature: Nature | null = null;
   private buildings: BuildingsView | null = null;
   private belts: BeltView | null = null;
+  private ports: PortMarkers | null = null;
+  readonly animations: MachineAnimations;
+  private readonly viewRect: ViewRect = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
   private readonly status = new StatusIcons();
   private readonly powerView = new PowerView();
   /** Strom-Ansicht (Taste V) bzw. beim Bauen von Strom-Gebäuden. */
@@ -107,6 +112,8 @@ export class GameRenderer {
       this.powerView.group,
     );
 
+    this.animations = new MachineAnimations(this.material);
+    this.scene.add(this.animations.group);
     this.resize();
   }
 
@@ -132,10 +139,17 @@ export class GameRenderer {
     this.nature = new Nature(world, heights, this.material);
     this.buildings = new BuildingsView(world, this.material);
     this.belts = new BeltView(world, this.material);
+    this.ports = new PortMarkers(world, this.material);
     this.visibility = new ChunkVisibility(world);
     this.appliedVersion = -1;
     this.powerView.reset();
-    this.scene.add(this.terrain.group, this.nature.group, this.buildings.group, this.belts.group);
+    this.scene.add(
+      this.terrain.group,
+      this.nature.group,
+      this.buildings.group,
+      this.belts.group,
+      this.ports.group,
+    );
     // Vorhandene Gebäude übernehmen (Stresstest, später geladene Spielstände)
     const b = sim.buildings;
     for (let id = 0; id < b.highWater; id++) if (b.alive[id]) this.onAdded(sim, id);
@@ -177,6 +191,7 @@ export class GameRenderer {
             this.belts?.refreshAround(sim, sim.world.index(e.x, e.y));
           } else {
             this.buildings.removed(e.id, e.buildingType);
+            this.ports?.removed(e.id);
             this.belts?.refreshPerimeter(sim, e.buildingType, e.x, e.y, e.rot);
           }
           this.refreshFootprint(sim, e.buildingType, e.x, e.y, e.rot);
@@ -191,6 +206,7 @@ export class GameRenderer {
       this.belts?.refreshAround(sim, sim.world.index(b.x[id], b.y[id]));
     } else {
       this.buildings?.added(sim, id);
+      this.ports?.added(sim, id);
       this.belts?.refreshPerimeter(sim, b.type[id], b.x[id], b.y[id], b.rot[id]);
     }
     this.refreshFootprint(sim, b.type[id], b.x[id], b.y[id], b.rot[id]);
@@ -256,9 +272,16 @@ export class GameRenderer {
       this.appliedVersion = this.visibility.version;
       this.nature.applyVisible(this.visibility.visible, this.visibility.count, changed);
       this.buildings.apply(this.visibility.visible, this.visibility.count, changed);
+      this.ports?.apply(this.visibility.visible, this.visibility.count, changed);
       if (this.belts && this.sim) {
         this.belts.apply(this.visibility.visible, this.visibility.count, changed);
         this.updateItems(this.sim, alpha);
+        this.animations.update(
+          this.sim,
+          now,
+          this.viewRect,
+          rig.viewHeight <= RENDER_CONFIG.lodViewHeight,
+        );
         this.status.update(this.sim, now);
         this.powerView.update(this.sim, now, this.showPower);
       }
@@ -286,11 +309,15 @@ export class GameRenderer {
       maxY = Math.max(maxY, corner.z);
     }
     const show = rig.viewHeight <= RENDER_CONFIG.lodViewHeight;
+    this.viewRect.minX = minX - 2;
+    this.viewRect.minY = minY - 2;
+    this.viewRect.maxX = maxX + 2;
+    this.viewRect.maxY = maxY + 2;
     this.belts?.updateItems(sim, alpha, minX - 2, minY - 2, maxX + 2, maxY + 2, show);
   }
 
   private disposeWorld(): void {
-    for (const part of [this.terrain, this.nature, this.buildings, this.belts]) {
+    for (const part of [this.terrain, this.nature, this.buildings, this.belts, this.ports]) {
       if (!part) continue;
       this.scene.remove(part.group);
       part.dispose();
@@ -299,6 +326,7 @@ export class GameRenderer {
     this.nature = null;
     this.buildings = null;
     this.belts = null;
+    this.ports = null;
     this.visibility = null;
     this.sim = null;
   }

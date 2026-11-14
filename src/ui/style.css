@@ -236,17 +236,47 @@ body {
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
-  max-width: calc(100vw - 560px);
+  max-width: calc(100vw - 640px);
+  min-height: 44px;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 6px 8px 6px 14px;
+  padding: 6px 14px;
+}
+
+.hud-controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 6px 8px;
+}
+
+.hud-row,
+.hud-extra {
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .hud-items {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.hud-items:hover {
+  background: rgba(217, 139, 78, 0.1);
+}
+
+.hud-chip .item-icon.image {
+  width: 24px;
+  height: 24px;
 }
 
 .hud-chip {
@@ -504,7 +534,7 @@ body {
 /* ---------- Infofenster ---------- */
 .info-panel {
   position: absolute;
-  top: 80px;
+  top: 104px;
   right: 16px;
   width: 290px;
   padding: 12px 14px 14px;
@@ -1200,4 +1230,51 @@ body {
 
 .storage-list {
   margin-top: 6px;
+}
+
+/* ---------- Vorrat ---------- */
+.inventory-window {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.inventory-list {
+  display: grid;
+  gap: 4px;
+}
+
+.inventory-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.inventory-row.none {
+  opacity: 0.55;
+}
+
+.item-icon.image.big {
+  width: 34px;
+  height: 34px;
+}
+
+.inventory-text {
+  flex: 1;
+}
+
+.inventory-name {
+  font-weight: 700;
+}
+
+.inventory-source {
+  font-size: 0.76rem;
+  color: var(--text-soft);
+}
+
+.inventory-value {
+  font-weight: 800;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
 }

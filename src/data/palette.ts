@@ -49,6 +49,11 @@ export const PALETTE = {
   pathStone: 0xcfc3a8,
   pathRed: 0xc77a5a,
   hedge: 0x5f9a42,
+  smoke: 0xf2ece2,
+  workerShirt: 0x5f8fc0,
+  workerPants: 0x6a5240,
+  skin: 0xf0c9a0,
+  hat: 0xd9a35b,
 
   // Items
   itemWood: 0xc98b4a,
@@ -89,6 +94,8 @@ export const PALETTE = {
   highlight: 0xfff6d8,
   portIn: 0x6fb7e8,
   portOut: 0xf2a33a,
+  portMarkerIn: 0x3f9ae0,
+  portMarkerOut: 0xff8a1e,
 
   // Licht und Himmel
   sky: 0xbfe3f2,

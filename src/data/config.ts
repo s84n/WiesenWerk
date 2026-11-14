@@ -55,3 +55,12 @@ export const SAVE_CONFIG = {
   /** Dateiendung für Exporte. */
   fileExtension: '.fabrik',
 } as const;
+
+export const SOUND_CONFIG = {
+  /** Gesamtlautstärke (0..1). */
+  volume: 0.5,
+  /** Lautstärke von Wind und Vögeln. */
+  ambience: 0.05,
+  /** Lautstärke der Arbeitsgeräusche, wenn viele Maschinen im Bild arbeiten. */
+  machines: 0.07,
+} as const;

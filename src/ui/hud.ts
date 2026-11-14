@@ -35,10 +35,18 @@ export class Hud {
     parent: HTMLElement,
     private readonly speed: SpeedControl,
     onMenu: () => void,
-    windows: { research: () => void; stats: () => void },
+    windows: {
+      research: () => void;
+      stats: () => void;
+      inventory: () => void;
+      sound: { toggle: () => void; muted: () => boolean };
+    },
   ) {
     const bar = el('div', 'panel hud');
     const items = el('div', 'hud-items');
+    // Klick auf die Mengen öffnet den Vorrat mit allen Items
+    items.title = TEXTS.inventory.tooltip;
+    items.addEventListener('click', () => windows.inventory());
     for (let i = 0; i < ITEM_COUNT; i++) {
       const chip = el('span', 'hud-chip');
       chip.title = itemName(i);
@@ -75,7 +83,9 @@ export class Hud {
       this.speedButtons.push(b);
     }
 
+    const extra = el('div', 'hud-extra');
     for (const [label, tip, fn] of [
+      ['📦', TEXTS.inventory.tooltip, windows.inventory],
       ['🔬', TEXTS.research.tooltip, windows.research],
       ['📊', TEXTS.stats.tooltip, windows.stats],
     ] as const) {
@@ -85,8 +95,22 @@ export class Hud {
         b.blur();
         fn();
       });
-      speeds.appendChild(b);
+      extra.appendChild(b);
     }
+
+    const sound = el('button', 'hud-button hud-menu');
+    const showSound = (): void => {
+      const muted = windows.sound.muted();
+      sound.textContent = muted ? '🔇' : '🔊';
+      sound.title = muted ? TEXTS.sound.off : TEXTS.sound.on;
+    };
+    showSound();
+    sound.addEventListener('click', () => {
+      windows.sound.toggle();
+      showSound();
+      sound.blur();
+    });
+    extra.appendChild(sound);
 
     const menu = el('button', 'hud-button hud-menu', '☰');
     menu.title = TEXTS.menu.menuTooltip;
@@ -94,10 +118,15 @@ export class Hud {
       menu.blur();
       onMenu();
     });
-    speeds.appendChild(menu);
+    extra.appendChild(menu);
 
-    bar.append(items, this.powerChip, speeds);
-    parent.appendChild(bar);
+    // Vorrat in der Mitte, Strom und Knöpfe in einem eigenen Feld oben rechts
+    bar.append(items);
+    const controls = el('div', 'panel hud-controls');
+    const row = el('div', 'hud-row');
+    row.append(this.powerChip, speeds);
+    controls.append(row, extra);
+    parent.append(bar, controls);
   }
 
   update(sim: Simulation, now: number): void {
