@@ -225,6 +225,25 @@ function assembler(): BufferGeometry {
   return merge(parts);
 }
 
+/**
+ * Tunnelband: steinernes Portal mit dunkler Öffnung und Bandrampe. Eingang: Rampe von Süden
+ * hinab ins Portal im Norden. Ausgang: Portal im Süden, Rampe nach Norden hinauf.
+ */
+function tunnel(entrance: boolean): BufferGeometry {
+  const dir = entrance ? -1 : 1; // Lage des Portals: Norden (−z) beim Eingang, Süden beim Ausgang
+  const ramp = new BoxGeometry(0.74, 0.08, 0.75).rotateX(dir * 0.22).translate(0, 0.1, -dir * 0.1);
+  return merge([
+    box(0.96, 0.06, 0.96, 0, 0, 0, PALETTE.rockDark),
+    colored(ramp, PALETTE.beltSurface),
+    box(0.1, 0.16, 0.7, -0.42, 0, -dir * 0.12, PALETTE.beltFrame),
+    box(0.1, 0.16, 0.7, 0.42, 0, -dir * 0.12, PALETTE.beltFrame),
+    // Portal
+    box(0.96, 0.55, 0.26, 0, 0, dir * 0.36, PALETTE.stone),
+    box(0.62, 0.36, 0.05, 0, 0.04, dir * 0.22, PALETTE.rockDark),
+    box(1.0, 0.1, 0.32, 0, 0.55, dir * 0.36, PALETTE.roof),
+  ]);
+}
+
 /** Lager-Varianten: Schuppen mit farbigem Streifen am Giebel, damit man sie unterscheidet. */
 function storageVariant(accent: number, doors: number): BufferGeometry {
   const parts = [
@@ -631,6 +650,8 @@ export const SMOKE: Record<string, readonly [number, number, number]> = {
 };
 
 const MODELS: Record<string, () => BufferGeometry> = {
+  tunnelIn: () => tunnel(true),
+  tunnelOut: () => tunnel(false),
   storageSplit: () => storageVariant(PALETTE.beltFrameMk2, 2),
   storageMerge: () => storageVariant(PALETTE.beltFrameMk3, 2),
   storageLarge,

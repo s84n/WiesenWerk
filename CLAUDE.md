@@ -93,6 +93,11 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 - **Rückgängig** (`src/core/undo.ts`, Strg + Z): zeichnet je Bild die Bau-Ereignisse auf (bis 30 Schritte) und schickt Gegenbefehle (Abriss, Neubau mit Rezept, alte Bandstufe/Richtung). Ereignisse tragen dafür `recipe` bzw. `oldRot`; der Bau-Befehl kennt ein optionales `recipe`.
 - **Pipette** (Taste F, `ToolController.pipette`): Gebäude unter der Maus samt Drehung und Rezept als Bauauswahl.
 - **Musik** (`src/audio/music.ts`, Liste in `src/data/music.ts`, Dateien in `public/audio/musik/`): zufällige Reihenfolge, Ein-/Ausblenden, Laden erst bei Bedarf, fehlende Dateien werden still übersprungen.
+- **Depots** (`behavior: 'depot'`, Wunsch des Auftraggebers nach Phase 7): Was ankommt, geht wie bei der Zentrale sofort in den Vorrat (`machines.accept`). Depot (2 × 2, 1 Eingang) ab Start, Großdepot (3 × 3, 3 Eingänge) über „Lagerwirtschaft“. Träger-Animation, solange in den letzten 10 s etwas ankam (`machines.lastDelivery`, nicht gespeichert).
+- **Lager-Varianten:** alle `behavior: 'storage'` mit eigener Kapazität; Ein- und Ausgänge kommen aus `ports`. Ausgabe reihum an die Ausgänge (je Ausgang 1 Item pro Tick, `cursor`). Lager (1/1, 1.000), Verteillager (1/2, 1.500), Sammellager (2/1, 1.500) mit „Lagerhaltung“; Großlager (2/2, 5.000) mit „Lagerwirtschaft“.
+- **Tunnelband** (`behavior: 'tunnel'`, Rolle `in`/`out`, Reichweite 6; mit „Logistik I“): Eingang verbindet sich mit dem ersten Ausgang gleicher Richtung geradeaus (`LogisticsSystem.pairTunnels`, neu bei jeder Bauänderung an Tunneln). Ware wird ohne Fahrzeit über den Ausgang aufs Band gelegt (Durchsatz begrenzt wie bei einem Verteiler). Tunnel-Eingänge in einer nach ID sortierten Liste (feste Reihenfolge auch nach dem Laden, daher keine Formatänderung).
+- **Bauen auf Wald:** Stehende Bäume werden beim Bauen gerodet, das Holz geht in den Vorrat (Ereignis `harvested` für die „+Holz“-Anzeige).
+- **Kartengrößen** (`WORLD_SIZES` in `src/data/world.ts`): Normal 256, Groß 384, Riesig 512 – Auswahl beim neuen Spiel; die Größe steht im Spielstand.
 - **Sichtbare Texte** nur in `src/data/texts.ts`, **Farben** nur in `src/data/palette.ts`.
 
 ## Getroffene technische Entscheidungen

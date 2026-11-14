@@ -105,6 +105,27 @@ export class InfoPanel {
       return;
     }
 
+    if (b.kind === 'tunnel') {
+      this.body.append(el('p', 'info-text', TEXTS.buildings[def.key].description));
+      const status = el('p', 'info-text soft');
+      this.body.append(status);
+      const isIn = b.role === 'in';
+      this.updaters.push((s) => {
+        const other = s.logistics.pairOf(id);
+        if (other < 0) {
+          status.textContent = isIn ? TEXTS.info.tunnelUnlinked : TEXTS.info.tunnelExitUnlinked;
+          status.className = 'info-text warn';
+        } else {
+          const d =
+            Math.abs(s.buildings.x[other] - s.buildings.x[id]) +
+            Math.abs(s.buildings.y[other] - s.buildings.y[id]);
+          status.textContent = isIn ? TEXTS.info.tunnelLinked(d) : TEXTS.info.tunnelExitLinked;
+          status.className = 'info-text soft';
+        }
+      });
+      return;
+    }
+
     if (b.kind === 'depot') {
       this.body.append(
         el('p', 'info-text', TEXTS.buildings[def.key].description),

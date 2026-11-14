@@ -150,8 +150,8 @@ function start(): void {
       : Promise.reject(new Error('nichts zu exportieren')),
   );
 
-  const newGame = (seed: number): void => {
-    useSimulation(new Simulation(generateWorld(seed)));
+  const newGame = (seed: number, size?: number): void => {
+    useSimulation(new Simulation(generateWorld(seed, size)));
     saves.reset();
     inGame = true;
   };
@@ -171,9 +171,9 @@ function start(): void {
         if (slots.length > 0) await saves.load(slots[0].slot);
         else newGame(randomSeed(Math.random));
       },
-      newGame: (seed) => {
+      newGame: (seed, size) => {
         if (inGame) void saves.autosave().catch(() => undefined);
-        newGame(seed);
+        newGame(seed, size);
       },
       save: (slot, name) => saves.save(slot, name),
       load: async (slot) => {

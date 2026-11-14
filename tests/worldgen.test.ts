@@ -128,3 +128,14 @@ describe('Weltgenerator', () => {
     expect(after.resource.some((r) => r === DEPOSITS.length + 1)).toBe(true);
   });
 });
+
+describe('Kartengrößen', () => {
+  it('erzeugt auch große und riesige Karten mit Startgebiet in der Mitte', () => {
+    for (const size of [384, 512]) {
+      const w = generateWorld(77, size);
+      expect(w.size).toBe(size);
+      expect(w.startX).toBe(size / 2);
+      expect(w.tiles[w.index(w.startX, w.startY)]).toBe(0); // Wiese am Start
+    }
+  });
+});

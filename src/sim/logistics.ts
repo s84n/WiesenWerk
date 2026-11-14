@@ -40,6 +40,11 @@ export class LogisticsSystem {
   readonly mergers: number[] = [];
   readonly bridges: number[] = [];
   readonly storages: number[] = [];
+  /** Tunnel-Eingänge, nach ID sortiert (feste Reihenfolge, auch nach dem Laden). */
+  readonly tunnels: number[] = [];
+  /** Zu jedem Tunnel-Eingang der verbundene Ausgang und umgekehrt (−1 = keiner). */
+  tunnelPair = new Int32Array(0);
+  private pairsDirty = true;
 
   constructor(
     private readonly world: World,
@@ -53,7 +58,13 @@ export class LogisticsSystem {
 
   /** Ist das ein Logistik-Gebäude (von diesem System betreut)? */
   static handles(kind: string): boolean {
-    return kind === 'splitter' || kind === 'merger' || kind === 'bridge' || kind === 'storage';
+    return (
+      kind === 'splitter' ||
+      kind === 'merger' ||
+      kind === 'bridge' ||
+      kind === 'storage' ||
+      kind === 'tunnel'
+    );
   }
 
   added(id: number): void {
@@ -86,6 +97,13 @@ export class LogisticsSystem {
     else if (b.kind === 'storage') {
       this.storages.push(id);
       this.queues[id] = new Uint16Array(b.capacity);
+    } else if (b.kind === 'tunnel') {
+      if (b.role === 'in') {
+        let i = this.tunnels.length;
+        while (i > 0 && this.tunnels[i - 1] > id) i--;
+        this.tunnels.splice(i, 0, id);
+      }
+      this.pairsDirty = true;
     }
   }
 
@@ -103,6 +121,12 @@ export class LogisticsSystem {
       for (let k = 0; k < this.qCount[id]; k++) refund(q[(this.qHead[id] + k) % q.length], 1);
       this.queues[id] = null;
       this.qCount[id] = 0;
+    }
+    if (kind === 'tunnel') {
+      this.pairsDirty = true;
+      const t = this.tunnels.indexOf(id);
+      if (t >= 0) this.tunnels.splice(t, 1);
+      return;
     }
     const list =
       kind === 'splitter'
@@ -130,7 +154,7 @@ export class LogisticsSystem {
       this.qCount[id]++;
       return true;
     }
-    const slot = b.kind === 'splitter' ? 0 : IN_SLOT[type][port];
+    const slot = b.kind === 'splitter' || b.kind === 'tunnel' ? 0 : IN_SLOT[type][port];
     if (slot < 0) return false;
     const i = id * MAX_PORTS + slot;
     if (this.buf[i] !== 0) return false;
@@ -177,6 +201,15 @@ export class LogisticsSystem {
         if (buf[base + j] !== 0 && this.tryOutput(id, j, buf[base + j] - 1)) buf[base + j] = 0;
       }
     }
+    // Tunnel: Eingang gibt direkt über den verbundenen Ausgang aufs Band
+    if (this.pairsDirty) this.pairTunnels();
+    for (let n = 0; n < this.tunnels.length; n++) {
+      const id = this.tunnels[n];
+      const base = id * MAX_PORTS;
+      if (buf[base] === 0) continue;
+      const exit = this.tunnelPair[id];
+      if (exit >= 0 && this.tryOutput(exit, 0, buf[base] - 1)) buf[base] = 0;
+    }
     // Lager: ältestes Item zuerst, reihum an die Ausgänge (je Ausgang höchstens 1 pro Tick)
     for (let n = 0; n < this.storages.length; n++) {
       const id = this.storages[n];
@@ -189,6 +222,43 @@ export class LogisticsSystem {
           this.qCount[id]--;
           this.cursor[id] = (o + 1) % count;
         }
+      }
+    }
+  }
+
+  /** Verbundenes Gegenstück eines Tunnels (−1 = keins). */
+  pairOf(id: number): number {
+    if (this.pairsDirty) this.pairTunnels();
+    return this.tunnelPair[id] ?? -1;
+  }
+
+  /**
+   * Verbindet jeden Tunnel-Eingang mit dem ersten Ausgang gleicher Richtung geradeaus in
+   * Reichweite. Ein weiterer Eingang gleicher Richtung dazwischen beendet die Suche.
+   */
+  private pairTunnels(): void {
+    this.pairsDirty = false;
+    if (this.tunnelPair.length < this.store.capacity)
+      this.tunnelPair = new Int32Array(this.store.capacity);
+    this.tunnelPair.fill(-1);
+    const size = this.world.size;
+    for (const id of this.tunnels) {
+      const b = BUILDINGS[this.store.type[id]].behavior;
+      if (b.kind !== 'tunnel') continue;
+      const rot = this.store.rot[id];
+      for (let k = 1; k <= b.range + 1; k++) {
+        const x = this.store.x[id] + DIR_X[rot] * k;
+        const y = this.store.y[id] + DIR_Y[rot] * k;
+        if (!this.world.inBounds(x, y)) break;
+        const other = this.world.building[y * size + x] - 1;
+        if (other < 0) continue;
+        const ob = BUILDINGS[this.store.type[other]].behavior;
+        if (ob.kind !== 'tunnel' || this.store.rot[other] !== rot) continue;
+        if (ob.role === 'in') break;
+        if (this.tunnelPair[other] >= 0) break;
+        this.tunnelPair[id] = other;
+        this.tunnelPair[other] = id;
+        break;
       }
     }
   }

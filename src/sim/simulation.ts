@@ -264,16 +264,25 @@ export class Simulation {
     const { world } = this;
     const w = footprintW(def, rot);
     const h = footprintH(def, rot);
+    let cleared = 0;
     for (let ty = y; ty < y + h; ty++) {
       for (let tx = x; tx < x + w; tx++) {
         const i = world.index(tx, ty);
         world.building[i] = id + 1;
-        // Gefällter Wald wird beim Bebauen zu Wiese und wächst nicht mehr nach.
+        // Wald wird beim Bebauen gerodet (Holz in den Vorrat), wird zu Wiese und wächst nicht nach.
         if (world.tiles[i] === TileType.Forest) {
+          cleared += this.trees.wood[i];
+          this.trees.wood[i] = 0;
           world.tiles[i] = TileType.Meadow;
           world.changedTiles.add(i);
         }
       }
+    }
+    if (cleared > 0) {
+      const wood = ITEM_ID[TREES.item];
+      this.inventory.add(wood, cleared);
+      this.stats.produce(wood, cleared);
+      this.events.push({ type: 'harvested', item: wood, amount: cleared });
     }
     this.typeCount[type]++;
     this.stats.buildingsBuilt++;

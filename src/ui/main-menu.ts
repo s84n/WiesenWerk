@@ -1,5 +1,6 @@
 import { QUALITIES, type Quality } from '../data/config';
 import { MUSIC_TRACKS } from '../data/music';
+import { WORLD_SIZES } from '../data/world';
 import { TEXTS } from '../data/texts';
 import type { Settings } from '../core/settings';
 import type { SlotInfo } from '../core/storage';
@@ -12,7 +13,7 @@ export interface MenuActions {
   currentSeed(): number;
   rollSeed(): number;
   continueGame(): Promise<void>;
-  newGame(seed: number): void;
+  newGame(seed: number, size: number): void;
   save(slot: string | null, name: string): Promise<void>;
   load(slot: string): Promise<void>;
   remove(slot: string): Promise<void>;
@@ -192,9 +193,29 @@ export class MainMenu {
         'button secondary',
       ),
     );
+    // Kartengröße
+    let size: number = WORLD_SIZES[0].size;
+    const sizeSection = el('div', 'menu-section');
+    sizeSection.append(el('div', 'menu-label', TEXTS.menu.mapSize));
+    const sizeRow = el('div', 'quality-row');
+    const sizeButtons: HTMLButtonElement[] = [];
+    for (const s of WORLD_SIZES) {
+      const b = this.button(
+        TEXTS.menu.mapSizes[s.key],
+        () => {
+          size = s.size;
+          for (const other of sizeButtons) other.classList.toggle('selected', other === b);
+        },
+        `quality-button${s.size === size ? ' selected' : ''}`,
+      );
+      b.title = TEXTS.menu.mapSizeTip(s.size);
+      sizeButtons.push(b);
+      sizeRow.append(b);
+    }
+    sizeSection.append(sizeRow, el('p', 'menu-hint left', TEXTS.menu.mapSizeHint));
     const start = (): void => {
       const seed = Math.max(1, Math.floor(Number(input.value) || this.actions.rollSeed()));
-      this.actions.newGame(seed);
+      this.actions.newGame(seed, size);
       this.close();
     };
     input.addEventListener('keydown', (e) => {
@@ -202,7 +223,7 @@ export class MainMenu {
     });
     const actions = el('div', 'menu-row');
     actions.append(this.back(), this.button(TEXTS.menu.start, start));
-    this.body.append(row, el('p', 'menu-hint', TEXTS.menu.seedHint), actions);
+    this.body.append(row, el('p', 'menu-hint', TEXTS.menu.seedHint), sizeSection, actions);
     input.focus();
     input.select();
   }

@@ -176,14 +176,20 @@ describe('Abbau von Hand', () => {
     expect(sim.trees.hasTree(tile)).toBe(true);
   });
 
-  it('macht gefällten Wald baubar; bebautes Feld wächst nicht nach', () => {
+  it('rodet stehenden Wald beim Bauen (Holz in den Vorrat); bebautes Feld wächst nicht nach', () => {
     const sim = makeSim();
-    expect(checkPlacement(sim, FURNACE, 5, 24, 0)).toBe(PlaceResult.Blocked);
-    for (let k = 0; k < 4; k++) sim.enqueue({ type: 'harvest', x: 5, y: 25 });
-    run(sim);
+    const forest = [sim.world.index(5, 24), sim.world.index(5, 25)].filter((i) =>
+      sim.trees.hasTree(i),
+    ).length;
+    expect(forest).toBeGreaterThan(0);
     expect(checkPlacement(sim, FURNACE, 5, 24, 0)).toBe(PlaceResult.Ok);
+    const wood = sim.inventory.get(ITEM_ID.wood);
+    let standing = 0;
+    for (let y = 24; y < 26; y++)
+      for (let x = 5; x < 7; x++) standing += sim.trees.wood[sim.world.index(x, y)];
     sim.enqueue({ type: 'build', building: FURNACE, x: 5, y: 24, rot: 0 });
     run(sim);
+    expect(sim.inventory.get(ITEM_ID.wood)).toBe(wood + standing);
     for (let t = 0; t < 2500; t++) sim.step();
     expect(sim.trees.hasTree(sim.world.index(5, 25))).toBe(false);
   });

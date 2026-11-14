@@ -32,7 +32,7 @@ export function checkPlacement(
   if (!sim.research.buildingUnlocked[type]) return PlaceResult.Locked;
   if (def.unique && sim.typeCount[type] > 0) return PlaceResult.Unique;
 
-  const { world, trees } = sim;
+  const { world } = sim;
   const w = footprintW(def, rot);
   const h = footprintH(def, rot);
   let deposits = 0;
@@ -45,7 +45,8 @@ export function checkPlacement(
       if (t === TileType.Deposit) {
         if (def.placement === 'ground') return PlaceResult.Blocked;
         deposits++;
-      } else if (!(t === TileType.Meadow || (t === TileType.Forest && trees.wood[i] === 0))) {
+      } else if (!(t === TileType.Meadow || t === TileType.Forest)) {
+        // Wald ist baubar: stehende Bäume werden beim Bauen gerodet
         return PlaceResult.Blocked;
       }
     }

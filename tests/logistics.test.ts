@@ -214,3 +214,32 @@ describe('Depots und Lager-Varianten', () => {
     expect(sim.logistics.qCount[id]).toBe(5000);
   });
 });
+
+describe('Tunnelband', () => {
+  it('bringt Ware unter Gebäuden hindurch, wenn Eingang und Ausgang verbunden sind', () => {
+    const sim = makeSim(48);
+    belt(sim, line(5, 1, 2, 3)); // nach Süden zum Eingang
+    build(sim, B.tunnelIn, 5, 4, 2); // Laufrichtung Süden
+    build(sim, B.furnace, 5, 5); // steht mitten über dem Tunnel
+    build(sim, B.tunnelOut, 5, 8, 2);
+    belt(sim, line(5, 9, 2, 3));
+    build(sim, B.hq, 4, 12);
+    const tin = sim.buildingAt(5, 4);
+    expect(sim.logistics.pairOf(tin)).toBe(sim.buildingAt(5, 8));
+    sim.belts.fill(sim.belts.tileSegment[sim.world.index(5, 1)], ORE);
+    const before = sim.inventory.get(ORE);
+    run(sim, 600);
+    expect(sim.inventory.get(ORE) - before).toBeGreaterThanOrEqual(4);
+  });
+
+  it('verbindet nur in gleicher Richtung und höchstens 6 Felder weit', () => {
+    const sim = makeSim(48);
+    build(sim, B.tunnelIn, 5, 4, 2);
+    build(sim, B.tunnelOut, 5, 12, 2); // 7 Felder dazwischen: zu weit
+    expect(sim.logistics.pairOf(sim.buildingAt(5, 4))).toBe(-1);
+    build(sim, B.tunnelOut, 5, 9, 1); // falsche Richtung
+    expect(sim.logistics.pairOf(sim.buildingAt(5, 4))).toBe(-1);
+    build(sim, B.tunnelOut, 5, 11, 2); // 6 dazwischen: passt
+    expect(sim.logistics.pairOf(sim.buildingAt(5, 4))).toBe(sim.buildingAt(5, 11));
+  });
+});

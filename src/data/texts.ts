@@ -87,6 +87,16 @@ export const TEXTS = {
       name: 'Großdepot',
       description: 'Wie das Depot, aber mit drei Eingängen.',
     },
+    tunnelIn: {
+      name: 'Tunnel-Eingang',
+      description:
+        'Das Band taucht hier ab und kommt am Tunnel-Ausgang wieder hoch – bis zu 6 Felder geradeaus. Darüber kannst du frei bauen.',
+    },
+    tunnelOut: {
+      name: 'Tunnel-Ausgang',
+      description:
+        'Hier kommt die Ware aus dem Tunnel wieder hoch. In gleicher Richtung wie der Eingang bauen, höchstens 6 Felder dahinter.',
+    },
     splitter: {
       name: 'Verteiler',
       description:
@@ -359,6 +369,12 @@ export const TEXTS = {
       `${n.toLocaleString('de-DE')} von ${cap.toLocaleString('de-DE')} Plätzen belegt`,
     decor: 'Rein zur Verschönerung.',
     depot: 'Träger bringen alles, was hier ankommt, gleich in den Vorrat.',
+    tunnelLinked: (n: number) => `Verbunden: der Ausgang liegt ${n} Felder weiter.`,
+    tunnelUnlinked:
+      'Noch nicht verbunden: Bau einen Tunnel-Ausgang in gleicher Richtung, höchstens 6 Felder geradeaus.',
+    tunnelExitLinked: 'Verbunden mit einem Tunnel-Eingang.',
+    tunnelExitUnlinked:
+      'Kein Tunnel-Eingang in Reichweite (bis zu 6 Felder davor, gleiche Richtung).',
     tier: (n: number) => `Stufe ${n}`,
     upgrade: 'Auf Stufe 2 aufwerten',
     upgradeHint: 'Doppeltes Tempo (Bergwerk: doppelter Stromverbrauch).',
@@ -382,6 +398,11 @@ export const TEXTS = {
     back: 'Zurück',
     start: 'Los geht’s',
     seed: 'Seed',
+    mapSize: 'Kartengröße',
+    mapSizes: { normal: 'Normal', large: 'Groß', huge: 'Riesig' } as Record<string, string>,
+    mapSizeTip: (n: number) => `${n} × ${n} Felder`,
+    mapSizeHint:
+      'Größere Karten bieten mehr Platz zum Bauen. „Riesig“ braucht etwas mehr Rechenleistung.',
     seedHint: 'Gleicher Seed, gleiche Welt. Leer lassen oder würfeln für eine zufällige Welt.',
     roll: 'Würfeln',
     saveName: 'Name des Spielstands',

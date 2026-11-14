@@ -35,6 +35,11 @@ export type Behavior =
   | { kind: 'storage'; capacity: number }
   /** Depot: alles, was ankommt, landet sofort im Vorrat (wie bei der Zentrale). */
   | { kind: 'depot' }
+  /**
+   * Tunnelband: Eingang (`in`) und Ausgang (`out`) in gleicher Richtung verbinden sich, wenn
+   * höchstens `range` Felder dazwischen liegen. Die Ware läuft unterirdisch, darüber ist Platz.
+   */
+  | { kind: 'tunnel'; role: 'in' | 'out'; range: number }
   /** Dekoration: rein optisch. */
   | { kind: 'decor' };
 
@@ -476,6 +481,30 @@ export const BUILDINGS: readonly BuildingDef[] = [
       { x: 2, y: 1, dir: 1, kind: 'in' },
     ],
     model: 'depotLarge',
+    availableFromStart: false,
+  },
+  {
+    key: 'tunnelIn',
+    power: 0,
+    size: [1, 1],
+    category: 'logistics',
+    cost: { plank: 6, stoneBrick: 4 },
+    placement: 'groundOrDeposit',
+    behavior: { kind: 'tunnel', role: 'in', range: 6 },
+    ports: [{ x: 0, y: 0, dir: 2, kind: 'in' }],
+    model: 'tunnelIn',
+    availableFromStart: false,
+  },
+  {
+    key: 'tunnelOut',
+    power: 0,
+    size: [1, 1],
+    category: 'logistics',
+    cost: { plank: 6, stoneBrick: 4 },
+    placement: 'groundOrDeposit',
+    behavior: { kind: 'tunnel', role: 'out', range: 6 },
+    ports: [{ x: 0, y: 0, dir: 0, kind: 'out' }],
+    model: 'tunnelOut',
     availableFromStart: false,
   },
 ];

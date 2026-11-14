@@ -63,6 +63,13 @@ export const DEPOSITS: readonly DepositDef[] = [
 ];
 
 /** Parameter der Weltgenerierung. */
+/** Wählbare Kartengrößen beim neuen Spiel (Kantenlänge in Feldern, Vielfaches von 32). */
+export const WORLD_SIZES = [
+  { key: 'normal', size: 256 },
+  { key: 'large', size: 384 },
+  { key: 'huge', size: 512 },
+] as const;
+
 export const WORLD_CONFIG = {
   /** Kantenlänge der Karte in Feldern. */
   size: 256,
