@@ -60,7 +60,7 @@ export const TEXTS = {
     pole: {
       name: 'Strommast',
       description:
-        'Versorgt Gebäude im Umkreis und verbindet sich mit Masten in bis zu 14 Feldern Entfernung.',
+        'Versorgt alle Gebäude auf 13 × 13 Feldern rundherum und verbindet sich mit Masten in bis zu 14 Feldern Entfernung.',
     },
     beltMk1: {
       name: 'Förderband',
@@ -138,7 +138,7 @@ export const TEXTS = {
     bigPole: {
       name: 'Großer Strommast',
       description:
-        'Überbrückt weite Strecken: verbindet sich mit Masten in bis zu 32 Feldern Entfernung.',
+        'Überbrückt weite Strecken: verbindet sich mit Masten in bis zu 32 Feldern Entfernung und versorgt 3 Felder rundherum.',
     },
     path: { name: 'Weg', description: 'Ein heller Steinweg. Mit gedrückter Maustaste ziehen.' },
     lantern: { name: 'Laterne', description: 'Eine kleine Laterne für gemütliche Ecken.' },
