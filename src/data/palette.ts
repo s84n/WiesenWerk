@@ -104,6 +104,29 @@ export const PALETTE = {
   sun: 0xffe2b0,
   hemiSky: 0xd6ecff,
   hemiGround: 0x8a7a5c,
+
+  // Tagesverlauf (Nacht bleibt freundlich blau, Morgen und Abend warm)
+  moon: 0xb4c8ff,
+  nightSky: 0x8fa4ec,
+  nightGround: 0x645c8c,
+  nightFog: 0x3e4f8a,
+  dawnSun: 0xffb08a,
+  dawnSky: 0xd8b4d0,
+  dawnGround: 0x7a6250,
+  dawnFog: 0xf2c4ae,
+  morningSun: 0xffe8c4,
+  goldenSun: 0xffc47c,
+  goldenSky: 0xf0dcc4,
+  goldenFog: 0xf2dcb8,
+  sunsetSun: 0xff9060,
+  sunsetSky: 0xc08cb8,
+  sunsetFog: 0xeaa892,
+
+  // Wetter und Nacht
+  rain: 0xd8eaf6,
+  rainFog: 0xb8c8d2,
+  firefly: 0xe0ff8a,
+  blobShadow: 0x3a3040,
 } as const;
 
 export type PaletteKey = keyof typeof PALETTE;

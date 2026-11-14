@@ -2,8 +2,6 @@ import { SOUND_CONFIG } from '../data/config';
 import { ITEMS } from '../data/items';
 import type { SimEvent } from '../sim/events';
 
-const STORAGE_KEY = 'wiesenwerk-ton';
-
 /**
  * Gemütliche Klänge, vollständig im Browser erzeugt (Web Audio, keine Dateien):
  * Holzklopfen beim Bauen, Hacken beim Sammeln, Glöckchen bei Forschung und Aufgaben,
@@ -16,18 +14,17 @@ export class SoundSystem {
   private noise: AudioBuffer | null = null;
   private wind: GainNode | null = null;
   private muted = false;
+  private volume = 0.7;
+  private rain: GainNode | null = null;
   private lastPlayed = new Map<string, number>();
   private nextBird = 0;
   private nextClack = 0;
 
-  constructor() {
-    try {
-      this.muted = localStorage.getItem(STORAGE_KEY) === 'aus';
-    } catch {
-      // Ohne Speicher: Ton bleibt an
-    }
+  /** `onUnlock` läuft nach der ersten Eingabe (z. B. um die Musik zu starten). */
+  constructor(onUnlock: () => void = () => {}) {
     const unlock = (): void => {
       this.start();
+      onUnlock();
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
     };
@@ -39,19 +36,25 @@ export class SoundSystem {
     return this.muted;
   }
 
-  toggleMute(): void {
-    this.muted = !this.muted;
-    try {
-      localStorage.setItem(STORAGE_KEY, this.muted ? 'aus' : 'an');
-    } catch {
-      // egal
-    }
-    this.start();
+  /** Lautstärke (0..1) und stumm – kommen aus den Einstellungen. */
+  configure(volume: number, muted: boolean): void {
+    this.volume = volume;
+    this.muted = muted;
     if (this.master && this.ctx)
-      this.master.gain.setTargetAtTime(
-        this.muted ? 0 : SOUND_CONFIG.volume,
+      this.master.gain.setTargetAtTime(this.gain(), this.ctx.currentTime, 0.05);
+  }
+
+  private gain(): number {
+    return this.muted ? 0 : SOUND_CONFIG.volume * this.volume * 1.4;
+  }
+
+  /** Regenrauschen (0 = trocken, 1 = Regen). */
+  setRain(amount: number): void {
+    if (this.rain && this.ctx)
+      this.rain.gain.setTargetAtTime(
+        amount * SOUND_CONFIG.ambience * 2.2,
         this.ctx.currentTime,
-        0.05,
+        0.5,
       );
   }
 
@@ -123,7 +126,7 @@ export class SoundSystem {
       const comp = ctx.createDynamicsCompressor();
       comp.connect(ctx.destination);
       this.master = ctx.createGain();
-      this.master.gain.value = this.muted ? 0 : SOUND_CONFIG.volume;
+      this.master.gain.value = this.gain();
       this.master.connect(comp);
       // Rauschen für Wind, Hacken und Puffen (2 s, wird wiederverwendet)
       const len = ctx.sampleRate * 2;
@@ -167,6 +170,19 @@ export class SoundSystem {
     src.connect(filter).connect(this.wind).connect(this.master!);
     src.start();
     lfo.start();
+
+    // Regen: helles Rauschen, anfangs stumm
+    const rainSrc = ctx.createBufferSource();
+    rainSrc.buffer = this.noise;
+    rainSrc.loop = true;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'bandpass';
+    hp.frequency.value = 2600;
+    hp.Q.value = 0.4;
+    this.rain = ctx.createGain();
+    this.rain.gain.value = 0;
+    rainSrc.connect(hp).connect(this.rain).connect(this.master!);
+    rainSrc.start(0, 0.7);
   }
 
   // ---------------------------------------------------------------- Klänge

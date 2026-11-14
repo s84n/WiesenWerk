@@ -175,6 +175,29 @@ export const TEXTS = {
     empty: 'Noch keine Produktion. Baue ein Bergwerk oder einen Holzfäller!',
   },
 
+  settings: {
+    quality: 'Grafik',
+    qualities: { low: 'Niedrig', medium: 'Mittel', high: 'Hoch', ultra: 'Ultra' } as Record<
+      string,
+      string
+    >,
+    qualityHints: {
+      low: 'Für schwache Rechner: keine echten Schatten, weniger Kleinkram, geringere Auflösung.',
+      medium: 'Schatten, Blumen und Gras, Bäume wiegen sich im Wind.',
+      high: 'Schärfere Schatten und volle Auflösung.',
+      ultra:
+        'Alles aus „Hoch“ plus Wolkenschatten, leichter Regen, Glühwürmchen, weiche Schatten und sanftes Leuchten. Braucht eine kräftige Grafikkarte.',
+    } as Record<string, string>,
+    autoChosen:
+      'Die Stufe wurde beim ersten Start automatisch passend zu deinem Rechner gewählt. Kantenglättung ändert sich erst nach dem Neuladen der Seite.',
+    dayNight: 'Tag-Nacht-Wechsel (ein Tag dauert 20 Minuten)',
+    muted: 'Ton aus',
+    soundVolume: 'Klänge',
+    musicVolume: 'Musik',
+    noMusic:
+      'Noch keine Musik hinterlegt. Musikdateien kommen nach public/audio/musik/ und in die Liste in src/data/music.ts.',
+  },
+
   inventory: {
     title: 'Vorrat',
     tooltip: 'Vorrat: alle Items (Klick auf die Mengen oben öffnet ihn auch)',
@@ -326,6 +349,7 @@ export const TEXTS = {
     export: 'Exportieren',
     import: 'Importieren',
     keys: 'Tastenbelegung',
+    settings: 'Einstellungen',
     back: 'Zurück',
     start: 'Los geht’s',
     seed: 'Seed',

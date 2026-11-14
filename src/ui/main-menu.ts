@@ -1,4 +1,7 @@
+import { QUALITIES, type Quality } from '../data/config';
+import { MUSIC_TRACKS } from '../data/music';
 import { TEXTS } from '../data/texts';
+import type { Settings } from '../core/settings';
 import type { SlotInfo } from '../core/storage';
 import { el } from './dom';
 
@@ -19,9 +22,12 @@ export interface MenuActions {
   errorText(err: unknown): string;
   /** Menü geöffnet bzw. geschlossen (zum Pausieren). */
   visibilityChanged(open: boolean): void;
+  /** Einstellungen lesen und ändern. */
+  settings(): Settings;
+  setSetting<K extends keyof Settings>(key: K, value: Settings[K]): void;
 }
 
-type View = 'main' | 'new' | 'save' | 'load' | 'keys';
+type View = 'main' | 'new' | 'save' | 'load' | 'keys' | 'settings';
 
 const dateFormat = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -120,6 +126,8 @@ export class MainMenu {
         return void this.showLoad();
       case 'keys':
         return this.showKeys();
+      case 'settings':
+        return this.showSettings();
     }
   }
 
@@ -162,6 +170,7 @@ export class MainMenu {
     }
     list.append(
       this.button(TEXTS.menu.import, () => this.fileInput.click(), 'button secondary'),
+      this.button(TEXTS.menu.settings, () => this.show('settings'), 'button secondary'),
       this.button(TEXTS.menu.keys, () => this.show('keys'), 'button secondary'),
     );
     this.body.append(list, el('p', 'menu-hint', TEXTS.menu.dropHint));
@@ -277,6 +286,80 @@ export class MainMenu {
     const actions = el('div', 'menu-row');
     actions.append(this.back());
     this.body.append(table, actions);
+  }
+
+  private showSettings(): void {
+    const a = this.actions;
+    const s = a.settings();
+
+    // Grafik
+    const quality = el('div', 'menu-section');
+    quality.append(el('div', 'menu-label', TEXTS.settings.quality));
+    const row = el('div', 'quality-row');
+    const hint = el('p', 'menu-hint left', TEXTS.settings.qualityHints[s.quality]);
+    const buttons = new Map<Quality, HTMLButtonElement>();
+    for (const q of QUALITIES) {
+      const b = this.button(
+        TEXTS.settings.qualities[q],
+        () => {
+          a.setSetting('quality', q);
+          a.setSetting('qualityChosen', true);
+          for (const [k, btn] of buttons) btn.classList.toggle('selected', k === q);
+          hint.textContent = TEXTS.settings.qualityHints[q];
+        },
+        `quality-button${q === s.quality ? ' selected' : ''}`,
+      );
+      buttons.set(q, b);
+      row.append(b);
+    }
+    quality.append(row, hint);
+    if (!s.qualityChosen) quality.append(el('p', 'menu-hint left', TEXTS.settings.autoChosen));
+
+    // Schalter
+    const toggles = el('div', 'menu-section');
+    toggles.append(
+      this.checkbox(TEXTS.settings.dayNight, s.dayNight, (v) => a.setSetting('dayNight', v)),
+      this.checkbox(TEXTS.settings.muted, s.muted, (v) => a.setSetting('muted', v)),
+    );
+
+    // Lautstärken
+    const volumes = el('div', 'menu-section');
+    volumes.append(
+      this.slider(TEXTS.settings.soundVolume, s.soundVolume, (v) => a.setSetting('soundVolume', v)),
+      this.slider(TEXTS.settings.musicVolume, s.musicVolume, (v) => a.setSetting('musicVolume', v)),
+    );
+    if (MUSIC_TRACKS.length === 0)
+      volumes.append(el('p', 'menu-hint left', TEXTS.settings.noMusic));
+
+    const actions = el('div', 'menu-row');
+    actions.append(this.back());
+    this.body.append(quality, toggles, volumes, actions);
+  }
+
+  private checkbox(label: string, value: boolean, onChange: (v: boolean) => void): HTMLElement {
+    const wrap = el('label', 'menu-check');
+    const box = el('input');
+    box.type = 'checkbox';
+    box.checked = value;
+    box.addEventListener('change', () => onChange(box.checked));
+    wrap.append(box, el('span', '', label));
+    return wrap;
+  }
+
+  private slider(label: string, value: number, onChange: (v: number) => void): HTMLElement {
+    const wrap = el('label', 'menu-slider');
+    const input = el('input');
+    input.type = 'range';
+    input.min = '0';
+    input.max = '100';
+    input.value = String(Math.round(value * 100));
+    const out = el('span', 'slider-value', `${input.value} %`);
+    input.addEventListener('input', () => {
+      out.textContent = `${input.value} %`;
+      onChange(Number(input.value) / 100);
+    });
+    wrap.append(el('span', '', label), input, out);
+    return wrap;
   }
 
   private slotRow(s: SlotInfo, buttons: HTMLElement[]): HTMLElement {

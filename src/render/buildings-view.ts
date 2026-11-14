@@ -1,4 +1,14 @@
-import { Group, Matrix4, Quaternion, Vector3, type BufferGeometry, type Material } from 'three';
+import {
+  CircleGeometry,
+  Group,
+  Matrix4,
+  MeshBasicMaterial,
+  Quaternion,
+  Vector3,
+  type BufferGeometry,
+  type Material,
+} from 'three';
+import { PALETTE } from '../data/palette';
 import { BUILDINGS } from '../data/buildings';
 import { footprintH, footprintW } from '../sim/buildings';
 import type { Simulation } from '../sim/simulation';
@@ -7,6 +17,7 @@ import { buildingModel, upgradeBadge } from './building-models';
 import { DynamicChunkedInstances } from './dynamic-instances';
 
 const m = new Matrix4();
+const blob = new Matrix4();
 const pos = new Vector3();
 const quat = new Quaternion();
 const one = new Vector3(1, 1, 1);
@@ -50,6 +61,8 @@ export class BuildingsView {
   private readonly perType: DynamicChunkedInstances[];
   /** Kennzeichen „Stufe 2“ auf aufgewerteten Gebäuden. */
   private readonly badges: DynamicChunkedInstances;
+  /** Dunkle Flecken unter Gebäuden, wenn echte Schatten aus sind (Stufe „Niedrig“). */
+  private readonly blobs: DynamicChunkedInstances;
 
   constructor(
     private readonly world: World,
@@ -59,15 +72,42 @@ export class BuildingsView {
     this.perType = staticGeometries().map((g) => new DynamicChunkedInstances(g, material, chunks));
     for (const t of this.perType) this.group.add(t.group);
     this.badges = new DynamicChunkedInstances(upgradeBadge(), material, chunks, false);
-    this.group.add(this.badges.group);
+    this.blobs = new DynamicChunkedInstances(
+      new CircleGeometry(0.5, 14).rotateX(-Math.PI / 2).translate(0, 0.02, 0),
+      new MeshBasicMaterial({
+        color: PALETTE.blobShadow,
+        transparent: true,
+        opacity: 0.22,
+        depthWrite: false,
+      }),
+      chunks,
+      false,
+    );
+    this.blobs.group.visible = false;
+    this.group.add(this.badges.group, this.blobs.group);
+  }
+
+  setBlobShadows(on: boolean): void {
+    this.blobs.group.visible = on;
   }
 
   added(sim: Simulation, id: number): void {
     const b = sim.buildings;
     const type = b.type[id];
     buildingMatrix(type, b.x[id], b.y[id], b.rot[id], m);
-    this.perType[type].add(id, this.world.chunkOf(b.x[id], b.y[id]), m);
+    const chunk = this.world.chunkOf(b.x[id], b.y[id]);
+    this.perType[type].add(id, chunk, m);
     this.refreshBadge(sim, id);
+    // Schattenfleck: etwas größer als die Grundfläche, nach Südosten versetzt
+    const def = BUILDINGS[type];
+    if (def.behavior.kind !== 'decor' || def.size[0] > 1) {
+      const w = footprintW(def, b.rot[id]);
+      const h = footprintH(def, b.rot[id]);
+      blob
+        .makeScale(w * 1.15, 1, h * 1.15)
+        .setPosition(b.x[id] + w / 2 + 0.25, 0, b.y[id] + h / 2 + 0.2);
+      this.blobs.add(id, chunk, blob);
+    }
   }
 
   /** Zeigt oder entfernt das Kennzeichen „Stufe 2“. */
@@ -82,17 +122,20 @@ export class BuildingsView {
   removed(id: number, type: number): void {
     this.perType[type].remove(id);
     this.badges.remove(id);
+    this.blobs.remove(id);
   }
 
   apply(visible: Uint16Array, count: number, force: boolean): void {
     for (const t of this.perType) t.apply(visible, count, force);
     this.badges.apply(visible, count, force);
+    this.blobs.apply(visible, count, force);
   }
 
   dispose(): void {
     // Geometrien gehören dem Cache und bleiben erhalten.
     for (const t of this.perType) t.dispose();
     this.badges.dispose();
+    this.blobs.dispose();
     this.group.clear();
   }
 }

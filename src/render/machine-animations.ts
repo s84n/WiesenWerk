@@ -208,13 +208,14 @@ export class MachineAnimations {
       this.sliders.set(model, new FrameInstances(def.make(), material, this.group));
   }
 
+  private allCache: FrameInstances[] | null = null;
   private all(): FrameInstances[] {
-    return [
+    return (this.allCache ??= [
       ...this.spinners.values(),
       ...this.sliders.values(),
       ...this.figures.values(),
       this.smoke,
-    ];
+    ]);
   }
 
   update(sim: Simulation, now: number, view: ViewRect, show: boolean): void {
@@ -231,7 +232,7 @@ export class MachineAnimations {
         this.phase = next;
       }
       const ms = sim.machines;
-      for (const list of [ms.crafters, ms.extractors, ms.burners, ms.winds]) {
+      for (const list of ms.lists) {
         for (let k = 0; k < list.length; k++) this.animate(sim, list[k], t, dt, view);
       }
       // Lager: Arbeiter stapeln, solange etwas darin liegt

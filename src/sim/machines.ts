@@ -83,6 +83,8 @@ export class MachineSystem {
   readonly burners: number[] = [];
   /** Windräder (Reihenfolge spielt keine Rolle, wird nicht gespeichert). */
   readonly winds: number[] = [];
+  /** Alle Listen zusammen (für Darstellung, ohne jedes Bild ein neues Array zu bauen). */
+  readonly lists: readonly number[][] = [this.crafters, this.extractors, this.burners, this.winds];
   /** Gelieferte Items je Typ (für Statistik und Tests). */
   delivered = 0;
 

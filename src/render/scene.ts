@@ -5,19 +5,28 @@ import {
   HemisphereLight,
   Mesh,
   MeshLambertMaterial,
+  HalfFloatType,
   PCFShadowMap,
+  PCFSoftShadowMap,
   PlaneGeometry,
   Scene,
   SRGBColorSpace,
+  Vector2,
   Vector3,
+  WebGLRenderTarget,
   WebGLRenderer,
 } from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { BUILDINGS } from '../data/buildings';
-import { CAMERA_CONFIG, RENDER_CONFIG } from '../data/config';
+import { CAMERA_CONFIG, RENDER_CONFIG, type QualityPreset } from '../data/config';
 import { PALETTE } from '../data/palette';
 import { footprintH, footprintW } from '../sim/buildings';
 import type { SimEvent } from '../sim/events';
 import type { Simulation } from '../sim/simulation';
+import { Atmosphere } from './atmosphere';
 import { BeltView } from './belt-view';
 import { BuildPreview } from './build-preview';
 import { BuildingsView, buildingGeometries } from './buildings-view';
@@ -33,7 +42,6 @@ import { Terrain } from './terrain';
 import { computeCornerHeights } from './terrain-heights';
 import { ChunkVisibility } from './visibility';
 
-const SUN_DIRECTION = new Vector3(-0.55, 1, 0.3).normalize();
 const corner = new Vector3();
 const SUN_DISTANCE = 120;
 
@@ -49,7 +57,15 @@ export class GameRenderer {
   readonly material = new MeshLambertMaterial({ vertexColors: true, flatShading: true });
 
   private readonly sun: DirectionalLight;
+  private readonly hemi: HemisphereLight;
+  private readonly sunDir = new Vector3(-0.55, 1, 0.3).normalize();
   private readonly fog: Fog;
+  readonly atmosphere = new Atmosphere();
+  private preset: QualityPreset;
+  /** Tag-Nacht-Wechsel an (sonst fester goldener Nachmittag). */
+  dayNight = true;
+  private composer: EffectComposer | null = null;
+  private bloom: UnrealBloomPass | null = null;
   private readonly water: Mesh;
   private readonly seabed: Mesh;
 
@@ -70,24 +86,31 @@ export class GameRenderer {
   private appliedVersion = -1;
   private icons: string[] | null = null;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    preset: QualityPreset,
+  ) {
+    this.preset = preset;
     this.renderer = new WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: preset.antialias,
       powerPreference: 'high-performance',
     });
     this.renderer.outputColorSpace = SRGBColorSpace;
+    // Zähler für die Debug-Anzeige gelten für das ganze Bild (auch mit Nachbearbeitung)
+    this.renderer.info.autoReset = false;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = PCFShadowMap;
+    this.renderer.shadowMap.type = preset.softShadows ? PCFSoftShadowMap : PCFShadowMap;
 
     this.scene.background = new Color(PALETTE.fog);
     this.fog = new Fog(PALETTE.fog, 1, 1000);
     this.scene.fog = this.fog;
 
-    this.scene.add(new HemisphereLight(PALETTE.hemiSky, PALETTE.hemiGround, 1.5));
+    this.hemi = new HemisphereLight(PALETTE.hemiSky, PALETTE.hemiGround, 1.5);
+    this.scene.add(this.hemi);
     this.sun = new DirectionalLight(PALETTE.sun, 2.3);
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(RENDER_CONFIG.shadowMapSize, RENDER_CONFIG.shadowMapSize);
+    this.sun.shadow.mapSize.set(preset.shadowMapSize, preset.shadowMapSize);
     this.sun.shadow.bias = -0.0004;
     this.sun.shadow.normalBias = 0.02;
     this.sun.shadow.camera.near = 1;
@@ -96,10 +119,14 @@ export class GameRenderer {
 
     // Wasser: halbtransparente Oberfläche über einem dunkleren Meeresgrund
     const big = new PlaneGeometry(4000, 4000).rotateX(-Math.PI / 2);
-    this.water = new Mesh(
-      big,
-      new MeshLambertMaterial({ color: PALETTE.water, transparent: true, opacity: 0.72 }),
-    );
+    const waterMat = new MeshLambertMaterial({
+      color: PALETTE.water,
+      transparent: true,
+      opacity: 0.72,
+    });
+    this.atmosphere.patchWater(waterMat);
+    this.atmosphere.patchMaterial(this.material);
+    this.water = new Mesh(big, waterMat);
     this.water.position.y = RENDER_CONFIG.waterLevel;
     this.water.renderOrder = 1;
     this.seabed = new Mesh(big, new MeshLambertMaterial({ color: PALETTE.waterDeep }));
@@ -113,8 +140,42 @@ export class GameRenderer {
     );
 
     this.animations = new MachineAnimations(this.material);
-    this.scene.add(this.animations.group);
+    this.scene.add(this.animations.group, this.atmosphere.group);
     this.resize();
+  }
+
+  /** Grafikstufe ändern (Kantenglättung wirkt erst nach Neuladen). */
+  setQuality(preset: QualityPreset): void {
+    const old = this.preset;
+    this.preset = preset;
+    if (old.shadowMapSize !== preset.shadowMapSize) {
+      this.sun.shadow.mapSize.set(preset.shadowMapSize, preset.shadowMapSize);
+      this.sun.shadow.map?.dispose();
+      this.sun.shadow.map = null;
+    }
+    if (old.softShadows !== preset.softShadows) {
+      this.renderer.shadowMap.type = preset.softShadows ? PCFSoftShadowMap : PCFShadowMap;
+      this.scene.traverse((o) => {
+        const m = (o as Mesh).material;
+        if (m && !Array.isArray(m)) m.needsUpdate = true;
+      });
+    }
+    this.buildings?.setBlobShadows(!preset.shadows);
+    this.resize();
+  }
+
+  /** Nachbearbeitung für „Ultra“: sanftes Leuchten heller Stellen (Glut, Fenster, Wasser). */
+  private ensureComposer(): EffectComposer {
+    if (this.composer) return this.composer;
+    const size = this.renderer.getDrawingBufferSize(new Vector2());
+    const target = new WebGLRenderTarget(size.x, size.y, { type: HalfFloatType, samples: 4 });
+    const composer = new EffectComposer(this.renderer, target);
+    composer.addPass(new RenderPass(this.scene, this.rig.camera));
+    this.bloom = new UnrealBloomPass(size.clone(), 0.38, 0.5, 0.82);
+    composer.addPass(this.bloom);
+    composer.addPass(new OutputPass());
+    this.composer = composer;
+    return composer;
   }
 
   /** Bilder der Gebäude für die Bauleiste (werden beim ersten Aufruf erzeugt). */
@@ -138,6 +199,7 @@ export class GameRenderer {
     this.terrain = new Terrain(world, heights, this.material);
     this.nature = new Nature(world, heights, this.material);
     this.buildings = new BuildingsView(world, this.material);
+    this.buildings.setBlobShadows(!this.preset.shadows);
     this.belts = new BeltView(world, this.material);
     this.ports = new PortMarkers(world, this.material);
     this.visibility = new ChunkVisibility(world);
@@ -228,8 +290,14 @@ export class GameRenderer {
   resize(): void {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, RENDER_CONFIG.maxPixelRatio));
+    this.renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, RENDER_CONFIG.maxPixelRatio, this.preset.pixelRatio),
+    );
     this.renderer.setSize(w, h, false);
+    if (this.composer) {
+      this.composer.setPixelRatio(this.renderer.getPixelRatio());
+      this.composer.setSize(w, h);
+    }
     this.canvas.style.width = `${w}px`;
     this.canvas.style.height = `${h}px`;
     this.rig.setAspect(w / h);
@@ -244,12 +312,27 @@ export class GameRenderer {
   render(alpha: number, now: number): void {
     const rig = this.rig;
 
+    this.renderer.info.reset();
+    // Tageszeit, Wetter und Licht
+    this.atmosphere.update(
+      this.sim ? this.sim.tick + alpha : 0,
+      this.sim ? this.sim.world.seed : 1,
+      now,
+      this.preset,
+      this.dayNight,
+      this.sun,
+      this.sunDir,
+      this.hemi,
+      this.fog,
+      this.scene.background as Color,
+      rig.x,
+      rig.z,
+      rig.viewHeight,
+    );
+
     // Sonne und Schattenbereich folgen dem Bildausschnitt
     this.sun.target.position.set(rig.x, 0, rig.z);
-    this.sun.position
-      .copy(SUN_DIRECTION)
-      .multiplyScalar(SUN_DISTANCE)
-      .add(this.sun.target.position);
+    this.sun.position.copy(this.sunDir).multiplyScalar(SUN_DISTANCE).add(this.sun.target.position);
     const aspect = window.innerWidth / Math.max(1, window.innerHeight);
     const extent = Math.min(
       RENDER_CONFIG.shadowMaxExtent,
@@ -285,13 +368,22 @@ export class GameRenderer {
         this.status.update(this.sim, now);
         this.powerView.update(this.sim, now, this.showPower);
       }
-      this.nature.setDetailVisible(rig.viewHeight < RENDER_CONFIG.detailMaxViewHeight);
+      this.nature.setDetailVisible(
+        this.preset.details && rig.viewHeight < RENDER_CONFIG.detailMaxViewHeight,
+      );
       const far = rig.viewHeight > RENDER_CONFIG.lodViewHeight;
       this.nature.setLowDetail(far);
-      this.sun.castShadow = !far;
+      this.sun.castShadow = !far && this.preset.shadows;
     }
 
-    this.renderer.render(this.scene, rig.camera);
+    if (this.preset.bloom) {
+      const composer = this.ensureComposer();
+      // nachts etwas mehr Leuchten
+      this.bloom!.strength = 0.3 + 0.35 * this.atmosphere.glow;
+      composer.render();
+    } else {
+      this.renderer.render(this.scene, rig.camera);
+    }
   }
 
   /** Items auf Bändern im sichtbaren Ausschnitt (weit herausgezoomt ausgeblendet). */

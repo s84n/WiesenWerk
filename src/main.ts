@@ -1,10 +1,12 @@
 import './ui/style.css';
+import { MusicPlayer } from './audio/music';
 import { SoundSystem } from './audio/sound';
+import { SettingsStore } from './core/settings';
 import { FixedStepLoop } from './core/loop';
 import { SaveManager } from './core/saves';
 import { closeDb } from './core/storage';
 import { BUILDINGS } from './data/buildings';
-import { SAVE_CONFIG, SIM_CONFIG } from './data/config';
+import { QUALITY_PRESETS, QUALITY_PROBE, SAVE_CONFIG, SIM_CONFIG } from './data/config';
 import { TEXTS } from './data/texts';
 import { DebugOverlay } from './dev/debug-overlay';
 import { createStressSimulation } from './dev/stress';
@@ -39,7 +41,9 @@ function start(): void {
   if (!canvas || !ui) throw new Error('Spielfeld oder UI-Ebene fehlt in index.html.');
 
   document.title = TEXTS.gameTitle;
-  const view = new GameRenderer(canvas);
+  const settings = new SettingsStore();
+  const view = new GameRenderer(canvas, QUALITY_PRESETS[settings.value.quality]);
+  view.dayNight = settings.value.dayNight;
   let sim!: Simulation;
   /** Läuft ein echtes Spiel (sonst: Hintergrundwelt hinter dem Startmenü)? */
   let inGame = false;
@@ -66,7 +70,27 @@ function start(): void {
     for (const other of windows) if (other !== w) other.window.close();
     w.window.toggle();
   };
-  const sound = new SoundSystem();
+  const music = new MusicPlayer();
+  const sound = new SoundSystem(() => music.start());
+  const applySettings = (): void => {
+    const s = settings.value;
+    sound.configure(s.soundVolume, s.muted);
+    music.setVolume(s.muted ? 0 : s.musicVolume);
+    view.dayNight = s.dayNight;
+  };
+  applySettings();
+  let shownQuality = settings.value.quality;
+  settings.onChange((s) => {
+    applySettings();
+    if (s.quality !== shownQuality) {
+      shownQuality = s.quality;
+      view.setQuality(QUALITY_PRESETS[s.quality]);
+    }
+  });
+  // Erster Start: Grafikstufe anhand der Bildrate wählen (nach einer Sekunde Anlaufzeit)
+  let probeFrames = 0;
+  let probeStart = -1;
+  let probing = !settings.existed;
   // Leiser Klick bei jedem Knopf der Oberfläche
   ui.addEventListener('click', (e) => {
     if (e.target instanceof Element && e.target.closest('button')) sound.click();
@@ -84,7 +108,10 @@ function start(): void {
       research: () => toggleWindow(research),
       stats: () => toggleWindow(stats),
       inventory: () => toggleWindow(inventory),
-      sound: { toggle: () => sound.toggleMute(), muted: () => sound.isMuted },
+      sound: {
+        toggle: () => settings.set('muted', !settings.value.muted),
+        muted: () => settings.value.muted,
+      },
     },
   );
   const buildBar = new BuildBar(ui, tools, view.buildingIcons());
@@ -155,6 +182,8 @@ function start(): void {
       exportFile: () => saves.exportFile(),
       importFile: (file) => saves.importFile(file),
       errorText: (e) => saves.errorText(e),
+      settings: () => settings.value,
+      setSetting: (key, value) => settings.set(key, value),
       visibilityChanged: (open) => {
         if (open) {
           pausedBeforeMenu = loop.paused;
@@ -309,6 +338,28 @@ function start(): void {
       view.render(loop.paused ? 0 : loop.alpha, now);
       debug.frame(now, tickMs, ticks, view, sim, loop.paused);
       if (inGame && !menu.isOpen) sound.update(now, view.animations.workingInView, loop.paused);
+      sound.setRain(view.atmosphere.rain);
+      music.update(now);
+      if (probing && settings.value.qualityChosen) probing = false;
+      if (probing) {
+        if (probeStart < 0) probeStart = now + 1000;
+        else if (now >= probeStart) {
+          probeFrames++;
+          const elapsed = (now - probeStart) / 1000;
+          if (elapsed >= QUALITY_PROBE.seconds) {
+            probing = false;
+            const fps = probeFrames / elapsed;
+            settings.set(
+              'quality',
+              fps >= QUALITY_PROBE.highFps
+                ? 'high'
+                : fps >= QUALITY_PROBE.mediumFps
+                  ? 'medium'
+                  : 'low',
+            );
+          }
+        }
+      }
 
       if (inGame && !menu.isOpen) {
         autosaveTimer += dt;

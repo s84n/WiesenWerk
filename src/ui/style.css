@@ -1293,3 +1293,67 @@ body {
   height: 16px;
   accent-color: var(--accent);
 }
+
+/* ---------- Einstellungen ---------- */
+.menu-section {
+  margin: 12px 0;
+}
+
+.quality-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.quality-button {
+  flex: 1;
+  font: inherit;
+  font-weight: 700;
+  padding: 8px 4px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.quality-button.selected {
+  border-color: var(--accent);
+  background: #fff;
+}
+
+.menu-hint.left {
+  text-align: left;
+}
+
+.menu-check,
+.menu-slider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.menu-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.menu-slider span:first-child {
+  width: 70px;
+}
+
+.menu-slider input {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.slider-value {
+  width: 44px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-soft);
+}
