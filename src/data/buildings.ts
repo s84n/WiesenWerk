@@ -31,8 +31,10 @@ export type Behavior =
   | { kind: 'merger' }
   /** Bandbrücke: der k-te Eingang gibt an den k-ten Ausgang weiter (Spuren mischen sich nicht). */
   | { kind: 'bridge' }
-  /** Lager: puffert bis zu `capacity` Items in Ankunftsreihenfolge. */
+  /** Lager: puffert bis zu `capacity` Items in Ankunftsreihenfolge, gibt reihum an seine Ausgänge ab. */
   | { kind: 'storage'; capacity: number }
+  /** Depot: alles, was ankommt, landet sofort im Vorrat (wie bei der Zentrale). */
+  | { kind: 'depot' }
   /** Dekoration: rein optisch. */
   | { kind: 'decor' };
 
@@ -397,6 +399,84 @@ export const BUILDINGS: readonly BuildingDef[] = [
     model: 'pathColored',
     availableFromStart: false,
     line: true,
+  },
+  // ---------------------------------------------------------------- Lager und Depots (nach Phase 7)
+  {
+    key: 'depot',
+    power: 0,
+    size: [2, 2],
+    category: 'logistics',
+    cost: { wood: 15, stone: 10 },
+    placement: 'ground',
+    behavior: { kind: 'depot' },
+    ports: [{ x: 0, y: 0, dir: 0, kind: 'in' }],
+    model: 'depot',
+    availableFromStart: true,
+  },
+  {
+    key: 'storageSplit',
+    power: 0,
+    size: [2, 2],
+    category: 'logistics',
+    cost: { plank: 40, stoneBrick: 15 },
+    placement: 'ground',
+    behavior: { kind: 'storage', capacity: 1500 },
+    ports: [
+      { x: 0, y: 0, dir: 0, kind: 'in' },
+      { x: 0, y: 1, dir: 2, kind: 'out' },
+      { x: 1, y: 1, dir: 2, kind: 'out' },
+    ],
+    model: 'storageSplit',
+    availableFromStart: false,
+  },
+  {
+    key: 'storageMerge',
+    power: 0,
+    size: [2, 2],
+    category: 'logistics',
+    cost: { plank: 40, stoneBrick: 15 },
+    placement: 'ground',
+    behavior: { kind: 'storage', capacity: 1500 },
+    ports: [
+      { x: 0, y: 0, dir: 0, kind: 'in' },
+      { x: 1, y: 0, dir: 0, kind: 'in' },
+      { x: 0, y: 1, dir: 2, kind: 'out' },
+    ],
+    model: 'storageMerge',
+    availableFromStart: false,
+  },
+  {
+    key: 'storageLarge',
+    power: 0,
+    size: [3, 3],
+    category: 'logistics',
+    cost: { frame: 20, stoneBrick: 60 },
+    placement: 'ground',
+    behavior: { kind: 'storage', capacity: 5000 },
+    ports: [
+      { x: 0, y: 0, dir: 0, kind: 'in' },
+      { x: 2, y: 0, dir: 0, kind: 'in' },
+      { x: 0, y: 2, dir: 2, kind: 'out' },
+      { x: 2, y: 2, dir: 2, kind: 'out' },
+    ],
+    model: 'storageLarge',
+    availableFromStart: false,
+  },
+  {
+    key: 'depotLarge',
+    power: 0,
+    size: [3, 3],
+    category: 'logistics',
+    cost: { frame: 15, plank: 60, stoneBrick: 40 },
+    placement: 'ground',
+    behavior: { kind: 'depot' },
+    ports: [
+      { x: 1, y: 0, dir: 0, kind: 'in' },
+      { x: 0, y: 1, dir: 3, kind: 'in' },
+      { x: 2, y: 1, dir: 1, kind: 'in' },
+    ],
+    model: 'depotLarge',
+    availableFromStart: false,
   },
 ];
 

@@ -225,6 +225,86 @@ function assembler(): BufferGeometry {
   return merge(parts);
 }
 
+/** Lager-Varianten: Schuppen mit farbigem Streifen am Giebel, damit man sie unterscheidet. */
+function storageVariant(accent: number, doors: number): BufferGeometry {
+  const parts = [
+    box(1.85, 0.1, 1.85, 0, 0, 0, PALETTE.soil),
+    box(1.6, 0.85, 1.3, 0, 0.1, -0.1, PALETTE.wood),
+    gableRoof(1.5, 1.75, 0.5, 0, 0.95, -0.1, PALETTE.roof),
+    box(1.62, 0.1, 0.04, 0, 0.78, 0.56, accent),
+  ];
+  for (let k = 0; k < doors; k++) {
+    const x = doors === 1 ? -0.45 : -0.45 + k * 0.9;
+    parts.push(box(0.5, 0.55, 0.04, x, 0.1, 0.56, PALETTE.woodDark));
+  }
+  parts.push(box(0.26, 0.24, 0.26, 0.7, 0.1, -0.85, PALETTE.woodDark));
+  return merge(parts);
+}
+
+function storageLarge(): BufferGeometry {
+  const parts = [
+    box(2.9, 0.14, 2.9, 0, 0, 0, PALETTE.stone),
+    box(2.6, 1.3, 2.3, 0, 0.14, -0.05, PALETTE.brick),
+    gableRoof(2.5, 2.75, 0.75, 0, 1.44, -0.05, PALETTE.roof),
+    box(0.8, 0.85, 0.05, -1, 0.14, 1.11, PALETTE.woodDark),
+    box(0.8, 0.85, 0.05, 1, 0.14, 1.11, PALETTE.woodDark),
+    box(0.5, 0.3, 0.04, 0, 0.8, 1.11, PALETTE.windowLight),
+  ];
+  // Kistenstapel an der Seite
+  for (let k = 0; k < 3; k++)
+    parts.push(box(0.3, 0.28, 0.3, 1.3, 0.14 + k * 0.28, -1.1 + (k % 2) * 0.05, PALETTE.wood));
+  return merge(parts);
+}
+
+/** Depot: offenes Vordach über einer Holzplattform mit Kisten und Handkarren. */
+function depot(large: boolean): BufferGeometry {
+  const s = large ? 1.5 : 1;
+  const parts = [
+    box(1.85 * s, 0.12, 1.85 * s, 0, 0, 0, PALETTE.woodDark),
+    box(1.75 * s, 0.04, 1.75 * s, 0, 0.12, 0, PALETTE.wood),
+  ];
+  for (const [x, z] of [
+    [-0.75, -0.75],
+    [0.75, -0.75],
+    [-0.75, 0.75],
+    [0.75, 0.75],
+  ])
+    parts.push(box(0.1, 1.0, 0.1, x * s, 0.16, z * s, PALETTE.woodDark));
+  parts.push(gableRoof(1.8 * s, 1.85 * s, 0.45, 0, 1.16, 0, PALETTE.roof));
+  // Kisten und Säcke
+  parts.push(box(0.36, 0.3, 0.36, -0.35 * s, 0.16, -0.3 * s, PALETTE.wood));
+  parts.push(box(0.3, 0.26, 0.3, -0.35 * s, 0.46, -0.3 * s, PALETTE.woodDark));
+  parts.push(box(0.36, 0.3, 0.36, 0.25 * s, 0.16, -0.4 * s, PALETTE.wood));
+  parts.push(
+    colored(
+      new SphereGeometry(0.17, 6, 4).scale(1, 0.75, 1).translate(0.4 * s, 0.28, 0.25 * s),
+      PALETTE.cream,
+    ),
+  );
+  // Handkarren
+  parts.push(box(0.4, 0.14, 0.28, -0.3 * s, 0.3, 0.5 * s, PALETTE.wood));
+  parts.push(
+    colored(
+      new CylinderGeometry(0.12, 0.12, 0.05, 8)
+        .rotateZ(Math.PI / 2)
+        .translate(-0.53 * s, 0.28, 0.5 * s),
+      PALETTE.woodDark,
+    ),
+  );
+  parts.push(
+    colored(
+      new CylinderGeometry(0.12, 0.12, 0.05, 8)
+        .rotateZ(Math.PI / 2)
+        .translate(-0.07 * s, 0.28, 0.5 * s),
+      PALETTE.woodDark,
+    ),
+  );
+  // Schild mit Kupferplatte
+  parts.push(box(0.05, 0.6, 0.05, 0.85 * s, 0.16, 0.95 * s, PALETTE.woodDark));
+  parts.push(box(0.4, 0.22, 0.04, 0.85 * s, 0.6, 0.95 * s, PALETTE.copper));
+  return merge(parts);
+}
+
 /** Ein Zahn des Sheddachs: senkrechte Seite im Norden, Dachfläche fällt nach Süden ab. */
 function sawTooth(width: number, depth: number, height: number, southZ: number, color: number) {
   const shape = new Shape([new Vector2(0, 0), new Vector2(depth, 0), new Vector2(depth, height)]);
@@ -551,6 +631,11 @@ export const SMOKE: Record<string, readonly [number, number, number]> = {
 };
 
 const MODELS: Record<string, () => BufferGeometry> = {
+  storageSplit: () => storageVariant(PALETTE.beltFrameMk2, 2),
+  storageMerge: () => storageVariant(PALETTE.beltFrameMk3, 2),
+  storageLarge,
+  depot: () => depot(false),
+  depotLarge: () => depot(true),
   assembler,
   storage,
   splitter,

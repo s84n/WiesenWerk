@@ -173,3 +173,44 @@ describe('Verteiler, Zusammenführer, Brücke und Lager', () => {
     expect(sim.inventory.get(ORE) - ore).toBe(1000);
   });
 });
+
+describe('Depots und Lager-Varianten', () => {
+  it('Depot zahlt alles direkt in den Vorrat ein (ab Spielbeginn)', () => {
+    const sim = makePoweredSim();
+    belt(sim, line(5, 1, 2, 3)); // (5,1)–(5,3) nach Süden in den Eingang oben links
+    build(sim, B.depot, 5, 4);
+    expect(sim.buildingCount).toBe(4);
+    sim.belts.fill(sim.belts.tileSegment[sim.world.index(5, 1)], ORE);
+    const before = sim.inventory.get(ORE);
+    run(sim, 400);
+    expect(sim.inventory.get(ORE) - before).toBeGreaterThanOrEqual(5);
+  });
+
+  it('Verteillager gibt abwechselnd an zwei Ausgänge ab, Sammellager nimmt von zwei Eingängen', () => {
+    const sim = makeSim();
+    build(sim, B.storageSplit, 4, 4);
+    const id = sim.buildingAt(4, 4);
+    for (let k = 0; k < 20; k++) sim.logistics.accept(id, ORE, 0);
+    belt(sim, line(4, 6, 2, 6));
+    belt(sim, line(5, 6, 2, 6));
+    run(sim, 200);
+    const a = itemsAt(sim, 4, 6).length;
+    const b = itemsAt(sim, 5, 6).length;
+    expect(a).toBeGreaterThan(3);
+    expect(Math.abs(a - b)).toBeLessThanOrEqual(1);
+
+    build(sim, B.storageMerge, 10, 4);
+    const m = sim.buildingAt(10, 4);
+    expect(sim.logistics.accept(m, ORE, 0)).toBe(true);
+    expect(sim.logistics.accept(m, STONE, 1)).toBe(true);
+    expect(sim.logistics.qCount[m]).toBe(2);
+  });
+
+  it('Großlager fasst 5.000 Items', () => {
+    const sim = makeSim();
+    build(sim, B.storageLarge, 4, 4);
+    const id = sim.buildingAt(4, 4);
+    for (let k = 0; k < 5100; k++) sim.logistics.accept(id, ORE, k % 2);
+    expect(sim.logistics.qCount[id]).toBe(5000);
+  });
+});

@@ -177,14 +177,18 @@ export class LogisticsSystem {
         if (buf[base + j] !== 0 && this.tryOutput(id, j, buf[base + j] - 1)) buf[base + j] = 0;
       }
     }
-    // Lager: ältestes Item zuerst
+    // Lager: ältestes Item zuerst, reihum an die Ausgänge (je Ausgang höchstens 1 pro Tick)
     for (let n = 0; n < this.storages.length; n++) {
       const id = this.storages[n];
-      if (this.qCount[id] === 0) continue;
+      const count = this.outCount[id];
       const q = this.queues[id]!;
-      if (this.tryOutput(id, 0, q[this.qHead[id]])) {
-        this.qHead[id] = (this.qHead[id] + 1) % q.length;
-        this.qCount[id]--;
+      for (let k = 0; k < count && this.qCount[id] > 0; k++) {
+        const o = (this.cursor[id] + k) % count;
+        if (this.tryOutput(id, o, q[this.qHead[id]])) {
+          this.qHead[id] = (this.qHead[id] + 1) % q.length;
+          this.qCount[id]--;
+          this.cursor[id] = (o + 1) % count;
+        }
       }
     }
   }

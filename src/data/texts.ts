@@ -61,7 +61,31 @@ export const TEXTS = {
     },
     storage: {
       name: 'Lager',
-      description: 'Puffert bis zu 1.000 Items und gibt sie in derselben Reihenfolge wieder ab.',
+      description:
+        'Puffert bis zu 1.000 Items aller Art und gibt sie in derselben Reihenfolge wieder ab. 1 Eingang, 1 Ausgang.',
+    },
+    storageSplit: {
+      name: 'Verteillager',
+      description:
+        'Puffert bis zu 1.500 Items und gibt sie abwechselnd an zwei Ausgänge ab. 1 Eingang, 2 Ausgänge.',
+    },
+    storageMerge: {
+      name: 'Sammellager',
+      description:
+        'Sammelt zwei Bänder in einem Lager (bis zu 1.500 Items). 2 Eingänge, 1 Ausgang.',
+    },
+    storageLarge: {
+      name: 'Großlager',
+      description: 'Puffert bis zu 5.000 Items. 2 Eingänge, 2 Ausgänge.',
+    },
+    depot: {
+      name: 'Depot',
+      description:
+        'Alles, was hier ankommt, landet sofort im Vorrat – wie bei der Zentrale. Bau es direkt neben deine Produktion.',
+    },
+    depotLarge: {
+      name: 'Großdepot',
+      description: 'Wie das Depot, aber mit drei Eingängen.',
     },
     splitter: {
       name: 'Verteiler',
@@ -140,6 +164,7 @@ export const TEXTS = {
       logistics3: 'Logistik III',
       deepMining: 'Tiefbau',
       beauty2: 'Verschönerung II',
+      warehousing: 'Lagerwirtschaft',
     } as Record<string, string>,
     upgrades: {
       machineSpeed: {
@@ -333,6 +358,7 @@ export const TEXTS = {
     storageFill: (n: number, cap: number) =>
       `${n.toLocaleString('de-DE')} von ${cap.toLocaleString('de-DE')} Plätzen belegt`,
     decor: 'Rein zur Verschönerung.',
+    depot: 'Träger bringen alles, was hier ankommt, gleich in den Vorrat.',
     tier: (n: number) => `Stufe ${n}`,
     upgrade: 'Auf Stufe 2 aufwerten',
     upgradeHint: 'Doppeltes Tempo (Bergwerk: doppelter Stromverbrauch).',

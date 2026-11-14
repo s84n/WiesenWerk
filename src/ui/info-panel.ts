@@ -105,6 +105,14 @@ export class InfoPanel {
       return;
     }
 
+    if (b.kind === 'depot') {
+      this.body.append(
+        el('p', 'info-text', TEXTS.buildings[def.key].description),
+        el('p', 'info-text soft', TEXTS.info.depot),
+      );
+      return;
+    }
+
     if (b.kind === 'decor') {
       this.body.append(el('p', 'info-text soft', TEXTS.buildings[def.key].description));
       return;

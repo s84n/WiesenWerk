@@ -75,6 +75,8 @@ export class MachineSystem {
   needsPower = new Uint8Array(0);
   /** Bergwerk/Holzfäller auf Stufe 2 aufgewertet (1) oder nicht (0). */
   upgraded = new Uint8Array(0);
+  /** Zentrale/Depot: Tick der letzten Anlieferung (nur für die Darstellung, nicht gespeichert). */
+  lastDelivery = new Int32Array(0);
   /** Brenner: holt sich Brennstoff selbst aus dem Vorrat (1) oder nicht (0). */
   autoRefill = new Uint8Array(0);
 
@@ -83,6 +85,8 @@ export class MachineSystem {
   readonly burners: number[] = [];
   /** Windräder (Reihenfolge spielt keine Rolle, wird nicht gespeichert). */
   readonly winds: number[] = [];
+  /** Depots (für die Träger-Animation; Reihenfolge egal, nicht gespeichert). */
+  readonly depots: number[] = [];
   /** Alle Listen zusammen (für Darstellung, ohne jedes Bild ein neues Array zu bauen). */
   readonly lists: readonly number[][] = [this.crafters, this.extractors, this.burners, this.winds];
   /** Gelieferte Items je Typ (für Statistik und Tests). */
@@ -150,6 +154,9 @@ export class MachineSystem {
       this.setState(id, MachineState.WaitingInput);
     } else if (b.kind === 'wind') {
       this.winds.push(id);
+    } else if (b.kind === 'depot') {
+      this.depots.push(id);
+      this.lastDelivery[id] = -1000;
     } else if (b.kind === 'lumberjack') {
       this.extractItem[id] = WOOD;
       this.extractTicks[id] = Math.round((60 * SIM_CONFIG.ticksPerSecond) / b.itemsPerMinute);
@@ -170,6 +177,8 @@ export class MachineSystem {
       if (r >= 0) this.collectBuffers(id, r, result);
     } else if (kind === 'wind') {
       remove(this.winds, id);
+    } else if (kind === 'depot') {
+      remove(this.depots, id);
     } else if (kind === 'burner') {
       remove(this.burners, id);
       const n = this.inBuf[id * MAX_RECIPE_INPUTS];
@@ -244,10 +253,11 @@ export class MachineSystem {
   /** Nimmt ein Item am Eingang an. Rückgabe: angenommen? */
   accept(id: number, item: number): boolean {
     const b = BUILDINGS[this.store.type[id]].behavior;
-    if (b.kind === 'hq') {
+    if (b.kind === 'hq' || b.kind === 'depot') {
       this.inventory.add(item, 1);
       this.delivered++;
       this.stats.deliver(item);
+      this.lastDelivery[id] = this.tick;
       return true;
     }
     if (b.kind === 'burner') return this.addFuel(id, item, 1, b.fuelBuffer) === 1;
@@ -585,6 +595,7 @@ export class MachineSystem {
     this.needsPower = grow(this.needsPower, cap);
     this.upgraded = grow(this.upgraded, cap);
     this.autoRefill = grow(this.autoRefill, cap);
+    this.lastDelivery = grow(this.lastDelivery, cap);
     this.cap = cap;
   }
 }

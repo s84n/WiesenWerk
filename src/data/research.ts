@@ -32,7 +32,7 @@ export const RESEARCH: readonly ResearchDef[] = [
     key: 'storage',
     requires: [],
     cost: { plank: 80, stoneBrick: 40 },
-    buildings: ['storage'],
+    buildings: ['storage', 'storageSplit', 'storageMerge'],
     pos: [0, 1],
   },
   {
@@ -119,6 +119,13 @@ export const RESEARCH: readonly ResearchDef[] = [
     cost: { stoneBrick: 100, frame: 20 },
     buildings: ['fence', 'bench', 'ornamentalTree', 'pathColored'],
     pos: [3, 3],
+  },
+  {
+    key: 'warehousing',
+    requires: ['storage', 'assembler'],
+    cost: { frame: 40, plank: 150 },
+    buildings: ['storageLarge', 'depotLarge'],
+    pos: [3, 4],
   },
 ];
 

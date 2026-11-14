@@ -117,6 +117,71 @@ const ROUTES: Record<string, readonly Route[]> = {
       offset: 0.5,
     },
   ],
+  // Lager-Varianten und Depots: Träger mit Kisten
+  storageSplit: [
+    {
+      points: [
+        [0.3, 1.08],
+        [0.95, 1.2],
+      ],
+      carryOut: 'crate',
+      cycle: 6,
+    },
+  ],
+  storageMerge: [
+    {
+      points: [
+        [0.3, 1.08],
+        [0.95, 1.2],
+      ],
+      carryOut: 'crate',
+      cycle: 6,
+    },
+  ],
+  storageLarge: [
+    {
+      points: [
+        [-0.4, 1.6],
+        [-1.7, 1.6],
+        [-1.7, -0.6],
+      ],
+      carryOut: 'crate',
+      cycle: 8,
+    },
+  ],
+  // Träger bringen die Ware Richtung Zentrale weg und kommen leer zurück
+  depot: [
+    {
+      points: [
+        [0.6, 1.15],
+        [0.6, 2.6],
+        [1.6, 3.2],
+      ],
+      carryOut: 'crate',
+      cycle: 7,
+    },
+  ],
+  depotLarge: [
+    {
+      points: [
+        [1.0, 1.65],
+        [1.0, 3.0],
+        [2.0, 3.6],
+      ],
+      carryOut: 'crate',
+      cycle: 7,
+    },
+    {
+      points: [
+        [-1.0, 1.65],
+        [-1.0, 3.0],
+        [-2.0, 3.6],
+      ],
+      carryOut: 'crate',
+      cycle: 8,
+      offset: 0.5,
+    },
+  ],
   // stapelt Kisten vor dem Lager
   storage: [
     {
@@ -243,6 +308,14 @@ export class MachineAnimations {
       const ms = sim.machines;
       for (const list of ms.lists) {
         for (let k = 0; k < list.length; k++) this.animate(sim, list[k], t, dt, view);
+      }
+      // Depots: Träger laufen, solange in letzter Zeit etwas ankam
+      for (let k = 0; k < ms.depots.length; k++) {
+        const id = ms.depots[k];
+        if (!this.inView(sim, id, view)) continue;
+        const b = sim.buildings;
+        buildingMatrix(b.type[id], b.x[id], b.y[id], b.rot[id], mB);
+        this.routes(BUILDINGS[b.type[id]].model, id, t, sim.tick - ms.lastDelivery[id] < 200);
       }
       // Lager: Arbeiter stapeln, solange etwas darin liegt
       const lg = sim.logistics;
