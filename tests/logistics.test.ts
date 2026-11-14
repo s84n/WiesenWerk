@@ -207,6 +207,27 @@ describe('Depots und Lager-Varianten', () => {
     expect(sim.inventory.get(ORE) - before).toBe(loaded.reduce((a, b) => a + b, 0));
   });
 
+  it('Zentrale nimmt an allen 12 Randfeldern an, in jeder Drehung', () => {
+    for (const rot of [0, 1, 2, 3]) {
+      const sim = makePoweredSim(48);
+      build(sim, B.hq, 15, 15, rot); // belegt (15,15)–(17,17)
+      const feeds = [15, 16, 17].flatMap((k) => [
+        line(k, 12, 2, 3), // von oben
+        line(19, k, 3, 2), // von rechts
+        line(k, 19, 0, 2), // von unten
+        line(12, k, 1, 3), // von links
+      ]);
+      for (const f of feeds) belt(sim, f);
+      for (const f of feeds)
+        sim.belts.fill(sim.belts.tileSegment[sim.world.index(f[0].x, f[0].y)], ITEM_ID.copperIngot);
+      const items = sim.belts.itemCount;
+      const before = sim.inventory.get(ITEM_ID.copperIngot);
+      run(sim, 600);
+      expect(sim.belts.itemCount).toBe(0);
+      expect(sim.inventory.get(ITEM_ID.copperIngot) - before).toBe(items);
+    }
+  });
+
   it('Verteillager gibt abwechselnd an zwei Ausgänge ab, Sammellager nimmt von zwei Eingängen', () => {
     const sim = makeSim();
     build(sim, B.storageSplit, 4, 4);
