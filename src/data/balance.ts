@@ -30,8 +30,8 @@ export const MACHINES = {
   inputBufferCycles: 2,
   /** Ausgangspuffer fasst die Menge für so viele Durchläufe. */
   outputBufferCycles: 2,
-  /** Ausgangspuffer von Bergwerk und Holzfäller (Items). */
-  extractorBuffer: 2,
+  /** Lager von Bergwerk und Holzfäller (Items): arbeiten weiter, auch wenn das Band gerade stockt. */
+  extractorBuffer: 50,
   /** Glättung der angezeigten Auslastung (Anteil pro Tick). */
   utilizationSmoothing: 0.005,
   /** Ein Problem wird erst nach so vielen Ticks als Symbol angezeigt. */

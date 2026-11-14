@@ -107,4 +107,25 @@ describe('Maschinen', () => {
     expect(sim.machines.outBuf[id2 * 2]).toBe(2);
     expect(sim.trees.wood[far]).toBe(4);
   });
+
+  it('Holzfäller ohne Band sammelt bis zu 50 Holz in seiner Hütte, ganz ohne Strom', () => {
+    const sim = makeSim(48);
+    sim.power.factorOf = () => 0; // kein Strom im ganzen Spiel – der Holzfäller braucht keinen
+    for (let y = 0; y < 14; y++)
+      for (let x = 10; x < 14; x++) {
+        const t = sim.world.index(x, y);
+        sim.world.tiles[t] = TileType.Forest;
+        sim.trees.wood[t] = 4;
+      }
+    build(sim, B.lumberjack, 8, 4);
+    const id = sim.buildingAt(8, 4);
+    run(sim, 20 * 60 * 2); // 2 Minuten: 60 Holz möglich, Platz für 50
+    expect(sim.machines.outBuf[id * 2]).toBe(50);
+    expect(sim.machines.state[id]).toBe(MachineState.OutputBlocked);
+    // Abriss gibt das gelagerte Holz zurück
+    const wood = sim.inventory.get(ITEM_ID.wood);
+    sim.enqueue({ type: 'demolish', x: 8, y: 4 });
+    sim.flushCommands();
+    expect(sim.inventory.get(ITEM_ID.wood)).toBe(wood + 50 + 10);
+  });
 });

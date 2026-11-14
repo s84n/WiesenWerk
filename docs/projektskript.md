@@ -185,7 +185,7 @@ Die erste Version enthält 15 Gebäudetypen plus Dekoration. Jedes Gebäude bele
 
 **Änderung nach Phase 6 (Wunsch des Auftraggebers):** Der Holzfäller braucht keinen Strom (Muskelkraft). Sonst bräuchte man Strom, um Holz zu bekommen, das man erst für Strom verbrennt. So ist die Reihenfolge schlüssig: Holzfäller → Holz → Brenner → Strom für Bergwerk und Maschinen. Stufe 2 verdoppelt beim Holzfäller nur das Tempo.
 
-**Weitere Änderung nach Phase 6:** Brenner holen sich Brennstoff selbst aus dem Vorrat, wenn Strom gebraucht wird, und immer nur 2 Stück (im Infofenster abschaltbar, bei neuen Brennern an). Der Verteiler ist ab Spielbeginn baubar (4 Holz, 2 Stein). Grund: Lieferte der erste Holzfäller alles an den Brenner, kam kein Holz mehr in den Vorrat, und ohne Vorrat ließ sich der Verteiler nicht erforschen. Jetzt reicht ein Band vom Holzfäller zur Zentrale, oder ein Verteiler teilt das Holz zwischen Brenner und Zentrale.
+**Weitere Änderung nach Phase 6:** Brenner holen sich Brennstoff selbst aus dem Vorrat, wenn Strom gebraucht wird, und immer nur 2 Stück (im Infofenster abschaltbar, bei neuen Brennern an). Der Verteiler ist ab Spielbeginn baubar (4 Holz, 2 Stein). Holzfäller und Bergwerk lagern bis zu 50 Items selbst (statt eines Puffers für zwei Durchläufe), damit sie nicht sofort stehen bleiben, wenn das Band fehlt oder stockt. Grund: Lieferte der erste Holzfäller alles an den Brenner, kam kein Holz mehr in den Vorrat, und ohne Vorrat ließ sich der Verteiler nicht erforschen. Jetzt reicht ein Band vom Holzfäller zur Zentrale, oder ein Verteiler teilt das Holz zwischen Brenner und Zentrale.
 
 ## 6. Logistik: Förderbänder
 
