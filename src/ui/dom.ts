@@ -28,19 +28,22 @@ export function setItemIcons(urls: readonly string[]): void {
   itemIconUrls = urls;
 }
 
-/** Symbol eines Items: Bild, falls vorhanden, sonst ein farbiges Quadrat. */
+/**
+ * Symbol eines Items: Bild, falls vorhanden, sonst ein farbiges Quadrat. Trägt `data-item`, damit
+ * beim Darüberfahren die Rezeptvorschau erscheint.
+ */
 export function itemIcon(item: number): HTMLElement {
   const url = itemIconUrls[item];
   if (url) {
     const img = el('img', 'item-icon image');
     img.src = url;
     img.alt = itemName(item);
-    img.title = itemName(item);
+    img.dataset.item = String(item); // Rezeptvorschau beim Darüberfahren (ItemTooltip)
     return img;
   }
   const icon = el('span', 'item-icon');
   icon.style.background = hex(PALETTE[ITEMS[item].color]);
-  icon.title = itemName(item);
+  icon.dataset.item = String(item);
   return icon;
 }
 

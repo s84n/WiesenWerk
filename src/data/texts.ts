@@ -196,8 +196,6 @@ export const TEXTS = {
     requiresOther: 'Benötigt:',
     tabReady: 'Hier kannst du gerade etwas erforschen',
     costs: 'Kosten',
-    costTooltip: (name: string, have: string, need: string) =>
-      `${name}: ${have} im Vorrat, ${need} benötigt`,
     upgradesTitle: 'Verbesserungen (wiederholbar)',
     upgradesLocked: 'Nach der Forschung „Antriebe“ verfügbar.',
     level: (n: number) => `Stufe ${n}`,
@@ -285,6 +283,15 @@ export const TEXTS = {
     musicVolume: 'Musik',
     noMusic:
       'Noch keine Musik hinterlegt. Musikdateien kommen nach public/audio/musik/ und in die Liste in src/data/music.ts.',
+  },
+
+  itemTip: {
+    stock: (n: string) => `Vorrat: ${n}`,
+    howTo: 'So bekommst du es',
+    usedFor: 'Wird gebraucht für',
+    fuel: 'Brennstoff für Brenner',
+    seconds: (s: number) => `${s.toLocaleString('de-DE')} s`,
+    needsResearch: (names: string) => `Erst erforschen: ${names}`,
   },
 
   inventory: {

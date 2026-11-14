@@ -1648,3 +1648,129 @@ body {
 .research-requires-chip:hover {
   background: #fff;
 }
+
+/* ---------- Rezeptvorschau (Tooltip über Item-Bildern) ---------- */
+.item-tooltip {
+  position: fixed;
+  z-index: 60;
+  width: max-content;
+  max-width: 320px;
+  padding: 10px 12px;
+  pointer-events: none;
+  font-size: 0.8rem;
+  box-shadow: var(--shadow);
+  background: rgba(255, 250, 238, 0.98);
+}
+
+.tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tip-head .item-icon.tip-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+}
+
+.tip-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.tip-stock {
+  margin-left: auto;
+  padding-left: 12px;
+  font-weight: 600;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.tip-label {
+  margin: 8px 0 4px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-soft);
+}
+
+.tip-text {
+  line-height: 1.35;
+}
+
+.tip-recipe {
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  background: rgba(140, 100, 60, 0.08);
+}
+
+.tip-recipe-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-weight: 700;
+}
+
+.tip-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.tip-chip .item-icon.tip-chip-icon,
+.tip-use .item-icon.tip-use-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.tip-arrow {
+  color: var(--text-soft);
+}
+
+.tip-where {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  color: var(--text-soft);
+}
+
+.tip-building {
+  width: 22px;
+  height: 22px;
+}
+
+.tip-time {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.tip-locked {
+  margin-top: 4px;
+  font-weight: 700;
+  color: #c0533a;
+}
+
+.tip-uses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.tip-use {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+img.tip-use-icon {
+  width: 18px;
+  height: 18px;
+}

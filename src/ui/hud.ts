@@ -2,7 +2,7 @@ import { ITEM_COUNT, ITEM_ID } from '../data/items';
 import { RENDER_CONFIG, SIM_CONFIG } from '../data/config';
 import { TEXTS } from '../data/texts';
 import type { Simulation } from '../sim/simulation';
-import { el, formatNumber, itemIcon, itemName } from './dom';
+import { el, formatNumber, itemIcon } from './dom';
 
 export interface SpeedControl {
   isPaused(): boolean;
@@ -50,7 +50,7 @@ export class Hud {
     items.addEventListener('click', () => windows.inventory());
     for (let i = 0; i < ITEM_COUNT; i++) {
       const chip = el('span', 'hud-chip');
-      chip.title = itemName(i);
+      chip.dataset.item = String(i); // Rezeptvorschau beim Darüberfahren
       const value = el('span', 'hud-value', '0');
       chip.append(itemIcon(i), value);
       chip.style.display = ALWAYS_SHOWN.includes(i) ? '' : 'none';

@@ -203,6 +203,7 @@ export class ResearchWindow {
         const fill = el('div', 'research-cost-fill');
         bar.appendChild(fill);
         row.append(icon, el('span', 'research-cost-name', itemName(c.item)), amounts, bar);
+        row.dataset.item = String(c.item); // ganze Zeile zeigt die Rezeptvorschau
         costBox.appendChild(row);
         return { row, have, fill, item: c.item, amount: c.amount };
       });
@@ -322,11 +323,6 @@ export class ResearchWindow {
         c.row.classList.toggle('enough', ok);
         c.have.textContent = formatNumber(Math.min(have, 999_999));
         c.fill.style.width = `${Math.min(100, (have / c.amount) * 100)}%`;
-        c.row.title = TEXTS.research.costTooltip(
-          itemName(c.item),
-          formatNumber(have),
-          formatNumber(c.amount),
-        );
       }
     });
 

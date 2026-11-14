@@ -26,6 +26,7 @@ import { InventoryWindow } from './ui/inventory-window';
 import { InfoPanel } from './ui/info-panel';
 import { MainMenu } from './ui/main-menu';
 import { Minimap } from './ui/minimap';
+import { ItemTooltip } from './ui/item-tooltip';
 import { ResearchWindow } from './ui/research-window';
 import { StatsWindow } from './ui/stats-window';
 import { Toasts } from './ui/toasts';
@@ -64,6 +65,7 @@ function start(): void {
   /** Öffnet das Menü; wird gesetzt, sobald das Menü existiert. */
   let openMenu = (): void => {};
   const research = new ResearchWindow(ui, () => sim, view.buildingIcons());
+  const itemTip = new ItemTooltip(ui, () => sim, view.buildingIcons());
   const stats = new StatsWindow(ui);
   const inventory = new InventoryWindow(ui);
   const windows = [research, stats, inventory];
@@ -355,6 +357,7 @@ function start(): void {
       research.update(sim, now);
       stats.update(sim, now);
       inventory.update(sim, now);
+      itemTip.update();
       goals.update(sim, inGame);
       minimap.update(now, view.rig.groundCorners(corners) ? corners : null, inGame && !menu.isOpen);
       view.showPower = powerView || tools.placingPower;
