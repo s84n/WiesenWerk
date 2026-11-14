@@ -16,7 +16,7 @@ const off = { x: 0, y: 0 };
 /** Abstand der Pfeilmitte von der Mitte des Anschlussfeldes (liegt knapp vor dem Gebäude). */
 const OFFSET = 0.78;
 /** Höchstzahl an Anschlüssen je Gebäude (für eindeutige Schlüssel). */
-const MAX_PORTS = 8;
+const MAX_PORTS = 12;
 
 /** Flacher Pfeil am Boden, zeigt nach +z. */
 function arrow(color: number) {

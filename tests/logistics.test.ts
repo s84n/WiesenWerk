@@ -186,6 +186,27 @@ describe('Depots und Lager-Varianten', () => {
     expect(sim.inventory.get(ORE) - before).toBeGreaterThanOrEqual(5);
   });
 
+  it('Depot nimmt Bänder von allen vier Seiten an (an jedem Randfeld)', () => {
+    const sim = makePoweredSim();
+    build(sim, B.depot, 10, 10); // belegt (10,10)–(11,11)
+    const feeds = [
+      line(10, 7, 2, 3), // von oben nach Süden in (10,10)
+      line(14, 11, 3, 3), // von rechts nach Westen in (11,11)
+      line(11, 14, 0, 3), // von unten nach Norden in (11,11)
+      line(7, 10, 1, 3), // von links nach Osten in (10,10)
+    ];
+    for (const f of feeds) belt(sim, f);
+    for (const f of feeds)
+      sim.belts.fill(sim.belts.tileSegment[sim.world.index(f[0].x, f[0].y)], ORE);
+    const loaded = feeds.map((f) => itemsAt(sim, f[0].x, f[0].y).length);
+    expect(Math.min(...loaded)).toBeGreaterThan(0);
+    const before = sim.inventory.get(ORE);
+    run(sim, 400);
+    // alle vier Bänder sind leer gelaufen, alles liegt im Vorrat
+    for (const f of feeds) expect(itemsAt(sim, f[0].x, f[0].y)).toEqual([]);
+    expect(sim.inventory.get(ORE) - before).toBe(loaded.reduce((a, b) => a + b, 0));
+  });
+
   it('Verteillager gibt abwechselnd an zwei Ausgänge ab, Sammellager nimmt von zwei Eingängen', () => {
     const sim = makeSim();
     build(sim, B.storageSplit, 4, 4);

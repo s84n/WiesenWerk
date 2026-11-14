@@ -21,7 +21,7 @@ const tint = new Color();
 
 const m = new Matrix4();
 const off = { x: 0, y: 0 };
-const MAX_ARROWS = 8;
+const MAX_ARROWS = 12;
 
 /**
  * Bauvorschau (halbtransparentes Gebäude, grün/rot), Anschlusspfeile und Markierungen

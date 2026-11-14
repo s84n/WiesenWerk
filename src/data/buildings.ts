@@ -12,6 +12,19 @@ export interface PortDef {
   kind: 'in' | 'out';
 }
 
+/**
+ * Eingang an jedem Randfeld in jede Richtung nach außen (Ecken haben zwei). Für Gebäude, die
+ * nur annehmen (Zentrale, Depots): Bänder können dann von überall angeschlossen werden.
+ */
+function inputsOnAllSides(w: number, h: number): PortDef[] {
+  const ports: PortDef[] = [];
+  for (let x = 0; x < w; x++) ports.push({ x, y: 0, dir: 0, kind: 'in' });
+  for (let y = 0; y < h; y++) ports.push({ x: w - 1, y, dir: 1, kind: 'in' });
+  for (let x = w - 1; x >= 0; x--) ports.push({ x, y: h - 1, dir: 2, kind: 'in' });
+  for (let y = h - 1; y >= 0; y--) ports.push({ x: 0, y, dir: 3, kind: 'in' });
+  return ports;
+}
+
 /** Was ein Gebäude tut. Die Simulation kennt nur diese Arten, keine einzelnen Gebäude. */
 export type Behavior =
   | { kind: 'hq' }
@@ -90,12 +103,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
     placement: 'ground',
     unique: true,
     behavior: { kind: 'hq' },
-    ports: [
-      { x: 1, y: 0, dir: 0, kind: 'in' },
-      { x: 2, y: 1, dir: 1, kind: 'in' },
-      { x: 1, y: 2, dir: 2, kind: 'in' },
-      { x: 0, y: 1, dir: 3, kind: 'in' },
-    ],
+    ports: inputsOnAllSides(3, 3),
     model: 'hq',
     availableFromStart: true,
   },
@@ -421,7 +429,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
     cost: { wood: 15, stone: 10 },
     placement: 'ground',
     behavior: { kind: 'depot' },
-    ports: [{ x: 0, y: 0, dir: 0, kind: 'in' }],
+    ports: inputsOnAllSides(2, 2),
     model: 'depot',
     availableFromStart: true,
   },
@@ -482,11 +490,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
     cost: { frame: 15, plank: 60, stoneBrick: 40 },
     placement: 'ground',
     behavior: { kind: 'depot' },
-    ports: [
-      { x: 1, y: 0, dir: 0, kind: 'in' },
-      { x: 0, y: 1, dir: 3, kind: 'in' },
-      { x: 2, y: 1, dir: 1, kind: 'in' },
-    ],
+    ports: inputsOnAllSides(3, 3),
     model: 'depotLarge',
     availableFromStart: false,
   },

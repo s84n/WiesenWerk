@@ -33,7 +33,11 @@ export const TEXTS = {
   } satisfies Record<ItemKey, string>,
 
   buildings: {
-    hq: { name: 'Zentrale', description: 'Herz deiner Fabrik. Gelieferte Items landen im Vorrat.' },
+    hq: {
+      name: 'Zentrale',
+      description:
+        'Herz deiner Fabrik. Gelieferte Items landen im Vorrat. Bänder können von jeder Seite hinein.',
+    },
     lumberjack: {
       name: 'Holzfäller',
       description:
@@ -88,11 +92,11 @@ export const TEXTS = {
     depot: {
       name: 'Depot',
       description:
-        'Alles, was hier ankommt, landet sofort im Vorrat – wie bei der Zentrale. Bau es direkt neben deine Produktion.',
+        'Alles, was hier ankommt, landet sofort im Vorrat – wie bei der Zentrale. Bänder können von jeder Seite hinein (8 Eingänge). Bau es direkt neben deine Produktion.',
     },
     depotLarge: {
       name: 'Großdepot',
-      description: 'Wie das Depot, aber mit drei Eingängen.',
+      description: 'Wie das Depot, aber größer: 12 Eingänge ringsum.',
     },
     tunnelIn: {
       name: 'Tunnel-Eingang',
