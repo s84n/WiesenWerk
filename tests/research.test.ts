@@ -413,7 +413,8 @@ describe('Abnahme Phase 6: der Forschungsbaum ist von Spielbeginn an erreichbar'
       sim.flushCommands();
     }
     expect(sim.research.doneCount).toBe(RESEARCH.length);
-    expect(BUILDINGS.every((_, i) => sim.research.buildingUnlocked[i] === 1)).toBe(true);
+    // alles freigeschaltet außer ausgemusterten Gebäuden (nur noch aus alten Spielständen)
+    BUILDINGS.forEach((b, i) => expect(sim.research.buildingUnlocked[i]).toBe(b.retired ? 0 : 1));
     expect(RECIPES.every((_, i) => sim.research.recipeUnlocked[i] === 1)).toBe(true);
     expect(sim.machines.state.length).toBeGreaterThanOrEqual(0);
     expect(MachineState.Working).toBe(1);

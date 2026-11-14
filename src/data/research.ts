@@ -39,7 +39,7 @@ export const RESEARCH: readonly ResearchDef[] = [
     key: 'storage',
     requires: [],
     cost: { plank: 80, stoneBrick: 40 },
-    buildings: ['storage', 'storageSplit', 'storageMerge'],
+    buildings: ['storage'],
     area: 'logistics',
     pos: [0, 1],
   },

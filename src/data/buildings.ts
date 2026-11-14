@@ -93,6 +93,11 @@ export interface BuildingDef {
   availableFromStart: boolean;
   /** Wird mit gedrückter Maustaste in einer Linie gebaut (Bänder, Wege, Zäune). */
   line?: boolean;
+  /**
+   * Ausgemustert: nicht mehr baubar (keine Forschung schaltet es frei), gebaute Exemplare aus
+   * alten Spielständen arbeiten aber weiter. Einträge nie löschen, sonst verschieben sich die IDs.
+   */
+  retired?: boolean;
 }
 
 /**
@@ -453,6 +458,8 @@ export const BUILDINGS: readonly BuildingDef[] = [
     ],
     model: 'storageSplit',
     availableFromStart: false,
+    // Seit der Ausgabestelle überflüssig (Auftraggeber: aufräumen)
+    retired: true,
   },
   {
     key: 'storageMerge',
@@ -469,6 +476,8 @@ export const BUILDINGS: readonly BuildingDef[] = [
     ],
     model: 'storageMerge',
     availableFromStart: false,
+    // Seit der Ausgabestelle überflüssig (ein Depot hat 8 Eingänge)
+    retired: true,
   },
   {
     key: 'storageLarge',

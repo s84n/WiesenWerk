@@ -78,12 +78,12 @@ export const TEXTS = {
     storageSplit: {
       name: 'Verteillager',
       description:
-        'Puffert bis zu 1.500 Items und gibt sie abwechselnd an zwei Ausgänge ab. 1 Eingang, 2 Ausgänge.',
+        'Puffert bis zu 1.500 Items und gibt sie abwechselnd an zwei Ausgänge ab. 1 Eingang, 2 Ausgänge. Ausgemustert: nicht mehr baubar, vorhandene arbeiten weiter.',
     },
     storageMerge: {
       name: 'Sammellager',
       description:
-        'Sammelt zwei Bänder in einem Lager (bis zu 1.500 Items). 2 Eingänge, 1 Ausgang.',
+        'Sammelt zwei Bänder in einem Lager (bis zu 1.500 Items). 2 Eingänge, 1 Ausgang. Ausgemustert: nicht mehr baubar, vorhandene arbeiten weiter.',
     },
     storageLarge: {
       name: 'Großlager',

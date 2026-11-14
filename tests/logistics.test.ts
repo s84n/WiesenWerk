@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ITEM_ID } from '../src/data/items';
-import { PlaceResult } from '../src/sim/placement';
+import { PlaceResult, checkPlacement } from '../src/sim/placement';
 import { B, belt, beltOf, build, line, makePoweredSim, run, unlockAll } from './helpers';
 
 const ORE = ITEM_ID.copperOre;
@@ -228,8 +228,13 @@ describe('Depots und Lager-Varianten', () => {
     }
   });
 
-  it('Verteillager gibt abwechselnd an zwei Ausgänge ab, Sammellager nimmt von zwei Eingängen', () => {
+  it('Verteil- und Sammellager sind ausgemustert: nicht baubar, alte Exemplare arbeiten weiter', () => {
     const sim = makeSim();
+    expect(checkPlacement(sim, B.storageSplit, 4, 4, 0)).toBe(PlaceResult.Locked);
+    expect(checkPlacement(sim, B.storageMerge, 10, 4, 0)).toBe(PlaceResult.Locked);
+    // wie in einem alten Spielstand: vorhandene Exemplare
+    sim.research.buildingUnlocked[B.storageSplit] = 1;
+    sim.research.buildingUnlocked[B.storageMerge] = 1;
     build(sim, B.storageSplit, 4, 4);
     const id = sim.buildingAt(4, 4);
     for (let k = 0; k < 20; k++) sim.logistics.accept(id, ORE, 0);
