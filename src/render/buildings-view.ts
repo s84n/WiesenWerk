@@ -18,6 +18,9 @@ import { DynamicChunkedInstances } from './dynamic-instances';
 
 const m = new Matrix4();
 const blob = new Matrix4();
+const popScale = new Matrix4();
+/** Dauer der Aufploppen-Animation in Millisekunden. */
+const POP_MS = 380;
 const pos = new Vector3();
 const quat = new Quaternion();
 const one = new Vector3(1, 1, 1);
@@ -87,14 +90,22 @@ export class BuildingsView {
     this.group.add(this.badges.group, this.blobs.group);
   }
 
+  /** Gerade aufploppende Gebäude: ID, Typ, Startzeit. */
+  private readonly popping: { id: number; type: number; start: number }[] = [];
+
   setBlobShadows(on: boolean): void {
     this.blobs.group.visible = on;
   }
 
-  added(sim: Simulation, id: number): void {
+  /** `pop`: mit kurzer Aufploppen-Animation (nur beim Bauen, nicht beim Laden). */
+  added(sim: Simulation, id: number, pop = false): void {
     const b = sim.buildings;
     const type = b.type[id];
     buildingMatrix(type, b.x[id], b.y[id], b.rot[id], m);
+    if (pop) {
+      this.popping.push({ id, type, start: performance.now() });
+      m.multiply(popScale.makeScale(0.01, 0.01, 0.01));
+    }
     const chunk = this.world.chunkOf(b.x[id], b.y[id]);
     this.perType[type].add(id, chunk, m);
     this.refreshBadge(sim, id);
@@ -117,6 +128,26 @@ export class BuildingsView {
     const b = sim.buildings;
     buildingMatrix(b.type[id], b.x[id], b.y[id], 0, m);
     this.badges.add(id, this.world.chunkOf(b.x[id], b.y[id]), m);
+  }
+
+  /** Pro Bild: Aufploppen weiterführen (wächst mit kleinem Überschwingen auf volle Größe). */
+  updatePop(sim: Simulation, now: number): void {
+    const b = sim.buildings;
+    for (let i = this.popping.length - 1; i >= 0; i--) {
+      const p = this.popping[i];
+      if (!b.alive[p.id] || b.type[p.id] !== p.type) {
+        this.popping.splice(i, 1);
+        continue;
+      }
+      const t = Math.min(1, (now - p.start) / POP_MS);
+      const c = 1.9;
+      const u = t - 1;
+      const s = Math.max(0.01, 1 + (c + 1) * u * u * u + c * u * u); // „easeOutBack“
+      buildingMatrix(p.type, b.x[p.id], b.y[p.id], b.rot[p.id], m);
+      if (t < 1) m.multiply(popScale.makeScale(s, s, s));
+      else this.popping.splice(i, 1);
+      this.perType[p.type].setMatrix(p.id, m);
+    }
   }
 
   removed(id: number, type: number): void {

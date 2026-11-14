@@ -50,6 +50,7 @@ export const PALETTE = {
   pathRed: 0xc77a5a,
   hedge: 0x5f9a42,
   smoke: 0xf2ece2,
+  dust: 0xe6d6b8,
   workerShirt: 0x5f8fc0,
   workerPants: 0x6a5240,
   skin: 0xf0c9a0,

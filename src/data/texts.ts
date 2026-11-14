@@ -263,6 +263,9 @@ export const TEXTS = {
     needsDeposit: 'Ein Bergwerk muss auf einem Vorkommen stehen.',
     unique: 'Davon kann es nur eine geben.',
     locked: 'Das musst du erst erforschen (Taste T).',
+    undone: (n: number) =>
+      n === 1 ? 'Rückgängig gemacht' : `Rückgängig gemacht (${n} Änderungen)`,
+    nothingToUndo: 'Nichts mehr rückgängig zu machen',
     missing: (list: string) => `Es fehlt noch: ${list}`,
     built: (name: string) => `${name} gebaut`,
     refunded: (list: string) => `Erstattet: ${list}`,
@@ -399,6 +402,8 @@ export const TEXTS = {
     ['Rechtsklick / Esc', 'Abbrechen, Fenster schließen, Menü'],
     ['R', 'Gebäude drehen'],
     ['X', 'Abrissmodus'],
+    ['F', 'Pipette: Gebäude unter der Maus samt Rezept übernehmen'],
+    ['Strg + Z', 'Letzten Bau- oder Abrissschritt rückgängig machen'],
     ['1 – 9', 'Schnellwahl Gebäude'],
     ['V', 'Strom-Ansicht'],
     ['T', 'Forschung'],

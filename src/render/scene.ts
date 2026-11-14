@@ -27,6 +27,7 @@ import { footprintH, footprintW } from '../sim/buildings';
 import type { SimEvent } from '../sim/events';
 import type { Simulation } from '../sim/simulation';
 import { Atmosphere } from './atmosphere';
+import { Effects } from './effects';
 import { BeltView } from './belt-view';
 import { BuildPreview } from './build-preview';
 import { BuildingsView, buildingGeometries } from './buildings-view';
@@ -61,6 +62,7 @@ export class GameRenderer {
   private readonly sunDir = new Vector3(-0.55, 1, 0.3).normalize();
   private readonly fog: Fog;
   readonly atmosphere = new Atmosphere();
+  readonly effects: Effects;
   private preset: QualityPreset;
   /** Tag-Nacht-Wechsel an (sonst fester goldener Nachmittag). */
   dayNight = true;
@@ -140,7 +142,10 @@ export class GameRenderer {
     );
 
     this.animations = new MachineAnimations(this.material);
-    this.scene.add(this.animations.group, this.atmosphere.group);
+    this.effects = new Effects(this.material);
+    this.effects.amount = preset.particles;
+    this.animations.particles = preset.particles;
+    this.scene.add(this.animations.group, this.atmosphere.group, this.effects.group);
     this.resize();
   }
 
@@ -161,6 +166,8 @@ export class GameRenderer {
       });
     }
     this.buildings?.setBlobShadows(!preset.shadows);
+    this.effects.amount = preset.particles;
+    this.animations.particles = preset.particles;
     this.resize();
   }
 
@@ -234,9 +241,18 @@ export class GameRenderer {
       switch (e.type) {
         case 'treeChanged':
           this.nature.refreshTile(sim, e.tile);
+          if (!sim.trees.hasTree(e.tile))
+            this.effects.leaves(
+              (e.tile % sim.world.size) + 0.5,
+              Math.floor(e.tile / sim.world.size) + 0.5,
+            );
           break;
         case 'buildingAdded':
-          this.onAdded(sim, e.id);
+          this.onAdded(sim, e.id, true);
+          break;
+        case 'researched':
+        case 'upgraded':
+          this.effects.sparkle(this.rig.x, this.rig.z);
           break;
         case 'buildingUpgraded':
           this.buildings.refreshBadge(sim, e.id);
@@ -257,17 +273,39 @@ export class GameRenderer {
             this.belts?.refreshPerimeter(sim, e.buildingType, e.x, e.y, e.rot);
           }
           this.refreshFootprint(sim, e.buildingType, e.x, e.y, e.rot);
+          {
+            const def = BUILDINGS[e.buildingType];
+            this.effects.dust(
+              e.x,
+              e.y,
+              footprintW(def, e.rot),
+              footprintH(def, e.rot),
+              def.behavior.kind !== 'belt',
+            );
+          }
           break;
       }
     }
   }
 
-  private onAdded(sim: Simulation, id: number): void {
+  /** `built`: gerade gebaut (Aufploppen, Staub) statt beim Laden übernommen. */
+  private onAdded(sim: Simulation, id: number, built = false): void {
     const b = sim.buildings;
+    if (built) {
+      const def = BUILDINGS[b.type[id]];
+      const rot = b.rot[id];
+      this.effects.dust(
+        b.x[id],
+        b.y[id],
+        footprintW(def, rot),
+        footprintH(def, rot),
+        !sim.isBelt(id),
+      );
+    }
     if (sim.isBelt(id)) {
       this.belts?.refreshAround(sim, sim.world.index(b.x[id], b.y[id]));
     } else {
-      this.buildings?.added(sim, id);
+      this.buildings?.added(sim, id, built);
       this.ports?.added(sim, id);
       this.belts?.refreshPerimeter(sim, b.type[id], b.x[id], b.y[id], b.rot[id]);
     }
@@ -359,6 +397,8 @@ export class GameRenderer {
       if (this.belts && this.sim) {
         this.belts.apply(this.visibility.visible, this.visibility.count, changed);
         this.updateItems(this.sim, alpha);
+        this.buildings.updatePop(this.sim, now);
+        this.effects.update(now);
         this.animations.update(
           this.sim,
           now,

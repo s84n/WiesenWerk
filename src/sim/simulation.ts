@@ -139,7 +139,7 @@ export class Simulation {
   private apply(cmd: Command): void {
     switch (cmd.type) {
       case 'build':
-        this.build(cmd.building, cmd.x, cmd.y, cmd.rot);
+        this.build(cmd.building, cmd.x, cmd.y, cmd.rot, cmd.recipe ?? -1);
         break;
       case 'demolish': {
         const id = this.buildingAt(cmd.x, cmd.y);
@@ -215,9 +215,10 @@ export class Simulation {
           if (r !== PlaceResult.Ok && (failed < 0 || r === PlaceResult.Cost)) failed = r;
         } else if (this.buildings.rot[id] !== rot) {
           // Vorhandenes Band: nur drehen
+          const oldRot = this.buildings.rot[id];
           this.buildings.rot[id] = rot;
           this.belts.beltChanged(tile);
-          this.events.push({ type: 'buildingRotated', id });
+          this.events.push({ type: 'buildingRotated', id, oldRot });
         }
         continue;
       }
@@ -250,7 +251,7 @@ export class Simulation {
     return PlaceResult.Ok;
   }
 
-  private build(type: number, x: number, y: number, rot: number): void {
+  private build(type: number, x: number, y: number, rot: number, recipe = -1): void {
     rot &= 3;
     const result = checkPlacement(this, type, x, y, rot);
     if (result !== PlaceResult.Ok) {
@@ -281,6 +282,7 @@ export class Simulation {
     } else {
       this.machines.added(id);
       this.logistics.added(id);
+      if (recipe >= 0) this.machines.setRecipe(id, recipe);
       this.belts.buildingChanged();
       this.power.markDirty();
     }
@@ -295,6 +297,7 @@ export class Simulation {
     const x = b.x[id];
     const y = b.y[id];
     const rot = b.rot[id];
+    const recipe = def.behavior.kind === 'crafter' ? this.machines.recipe[id] : -1;
     const w = footprintW(def, rot);
     const h = footprintH(def, rot);
     if (def.behavior.kind !== 'belt') {
@@ -313,7 +316,7 @@ export class Simulation {
     this.inventory.refund(BUILDING_COSTS[type]);
     b.remove(id);
     this.typeCount[type]--;
-    this.events.push({ type: 'buildingRemoved', id, buildingType: type, x, y, rot });
+    this.events.push({ type: 'buildingRemoved', id, buildingType: type, x, y, rot, recipe });
   }
 
   private demolishArea(x0: number, y0: number, x1: number, y1: number): void {

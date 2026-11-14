@@ -27,6 +27,8 @@ export class ToolController {
   rot = 0;
   /** Ausgewähltes Gebäude für das Infofenster (−1 = keins). */
   selected = -1;
+  /** Rezept, das neu gebaute Maschinen bekommen (Pipette; −1 = keins). */
+  recipe = -1;
   /** Wird aufgerufen, wenn sich Modus oder Auswahl ändern (für die Oberfläche). */
   onChange: () => void = () => {};
 
@@ -83,6 +85,7 @@ export class ToolController {
       this.cancel();
       return;
     }
+    this.recipe = -1;
     this.mode = 'build';
     this.buildType = type;
     this.leftDown = false;
@@ -98,6 +101,23 @@ export class ToolController {
       this.selected = -1;
       this.onChange();
     }
+  }
+
+  /** Pipette: Gebäude unter der Maus samt Drehung und Rezept als Bauauswahl übernehmen. */
+  pipette(): void {
+    const sim = this.getSim();
+    this.updateHover();
+    const id = sim.buildingAt(this.hoverX, this.hoverY);
+    if (id < 0) return;
+    const type = sim.buildings.type[id];
+    if (!sim.research.buildingUnlocked[type]) return;
+    this.mode = 'build';
+    this.buildType = type;
+    this.rot = sim.buildings.rot[id];
+    this.recipe = BUILDINGS[type].behavior.kind === 'crafter' ? sim.machines.recipe[id] : -1;
+    this.leftDown = false;
+    this.selected = -1;
+    this.onChange();
   }
 
   /** Wählt ein Gebäude für das Infofenster aus (−1 = nichts). */
@@ -333,6 +353,7 @@ export class ToolController {
         x: this.placeX,
         y: this.placeY,
         rot: this.rot,
+        recipe: this.recipe,
       });
     } else if (this.mode === 'demolish') {
       this.leftDown = true;
@@ -383,6 +404,8 @@ export class ToolController {
       else this.rot = (this.rot + (e.shiftKey ? 3 : 1)) % 4;
     } else if (e.code === 'KeyX') {
       this.toggleDemolish();
+    } else if (e.code === 'KeyF') {
+      this.pipette();
     } else if (e.code === 'Escape') {
       this.cancel();
     } else if (/^Digit[1-9]$/.test(e.code)) {

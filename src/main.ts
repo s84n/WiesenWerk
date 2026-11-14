@@ -2,6 +2,7 @@ import './ui/style.css';
 import { MusicPlayer } from './audio/music';
 import { SoundSystem } from './audio/sound';
 import { SettingsStore } from './core/settings';
+import { UndoManager } from './core/undo';
 import { FixedStepLoop } from './core/loop';
 import { SaveManager } from './core/saves';
 import { closeDb } from './core/storage';
@@ -118,6 +119,7 @@ function start(): void {
   const info = new InfoPanel(ui, tools, view.buildingIcons());
   tools.onChange = () => buildBar.refreshMode();
   const toasts = new Toasts(ui);
+  const undo = new UndoManager();
   const goals = new GoalsPanel(topLeft, () => sim);
 
   const useSimulation = (next: Simulation): void => {
@@ -128,6 +130,7 @@ function start(): void {
     buildBar.invalidate();
     research.invalidate();
     inventory.invalidate();
+    undo.clear();
   };
 
   // ---------------------------------------------------------------- Speichern
@@ -241,6 +244,12 @@ function start(): void {
           menu.open();
           e.stopImmediatePropagation();
         }
+      } else if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey) && !menu.isOpen) {
+        e.preventDefault();
+        if (inGame) {
+          const n = undo.undo(sim);
+          toasts.message(n > 0 ? TEXTS.messages.undone(n) : TEXTS.messages.nothingToUndo);
+        }
       } else if (e.code === 'KeyS' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         if (inGame && saves.canSave())
@@ -323,7 +332,10 @@ function start(): void {
       sim.flushCommands();
 
       view.handleEvents(sim.events);
-      if (inGame) sound.handleEvents(sim.events);
+      if (inGame) {
+        sound.handleEvents(sim.events);
+        undo.record(sim, sim.events);
+      }
       toasts.handleEvents(sim.events, sim);
       sim.clearEvents();
 

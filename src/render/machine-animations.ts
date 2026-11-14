@@ -189,6 +189,9 @@ export class MachineAnimations {
   private last = -1;
   /** Arbeitende Maschinen im Bild (für leise Arbeitsgeräusche). */
   workingInView = 0;
+  /** Anteil der Partikel aus der Grafikstufe (0..1). */
+  particles = 1;
+  private readonly sparks: FrameInstances;
 
   constructor(material: Material) {
     for (const [model, def] of Object.entries(SPINNERS)) {
@@ -202,6 +205,11 @@ export class MachineAnimations {
       flatShading: true,
     });
     this.smoke = new FrameInstances(new IcosahedronGeometry(0.16, 0), smokeMat, this.group);
+    this.sparks = new FrameInstances(
+      merge([colored(new BoxGeometry(0.035, 0.035, 0.035), PALETTE.glow)]),
+      material,
+      this.group,
+    );
     for (const kind of WORKER_KINDS)
       this.figures.set(kind, new FrameInstances(worker(kind), material, this.group));
     for (const [model, def] of Object.entries(SLIDERS))
@@ -215,6 +223,7 @@ export class MachineAnimations {
       ...this.sliders.values(),
       ...this.figures.values(),
       this.smoke,
+      this.sparks,
     ]);
   }
 
@@ -358,14 +367,33 @@ export class MachineAnimations {
     const chimney = SMOKE[def.model];
     if (chimney && working) {
       const seed = hash3Float(id, 3, 11);
-      for (let k = 0; k < SMOKE_PUFFS; k++) {
-        const life = (t / SMOKE_LIFE + k / SMOKE_PUFFS + seed) % 1;
+      const puffs = Math.max(2, Math.round(SMOKE_PUFFS * this.particles));
+      for (let k = 0; k < puffs; k++) {
+        const life = (t / SMOKE_LIFE + k / puffs + seed) % 1;
         v.set(chimney[0], chimney[1], chimney[2]).applyMatrix4(mB);
         pos.set(v.x + life * 0.35, v.y + life * 1.5, v.z + life * 0.12);
         const s = (0.5 + life * 1.3) * (1 - life * life * life * life);
         scl.set(s, s, s);
         q.setFromAxisAngle(UP, life * 3 + seed * 6);
         this.smoke.push(m.compose(pos, q, scl));
+      }
+    }
+
+    // Funken an der glühenden Öffnung des Schmelzofens
+    if (def.model === 'furnace' && working && this.particles > 0.5) {
+      const seed = hash3Float(id, 4, 19);
+      for (let k = 0; k < 4; k++) {
+        const life = (t / 0.9 + k / 4 + seed) % 1;
+        const side = hash3Float(id, k, 7) - 0.5;
+        v.set(
+          -0.1 + side * 0.4 + life * side * 0.3,
+          0.45 + life * 0.7,
+          0.78 + life * 0.25,
+        ).applyMatrix4(mB);
+        const s = 1 - life;
+        scl.set(s, s, s);
+        q.setFromAxisAngle(UP, life * 9);
+        this.sparks.push(m.compose(v, q, scl));
       }
     }
 

@@ -50,6 +50,17 @@ export class DynamicChunkedInstances {
     this.dirty = true;
   }
 
+  /** Ersetzt die Matrix einer Instanz (z. B. für die Aufploppen-Animation). */
+  setMatrix(id: number, matrix: Matrix4): void {
+    const chunk = this.where.get(id);
+    if (chunk === undefined) return;
+    const list = this.chunks[chunk];
+    const idx = list.ids.indexOf(id);
+    if (idx < 0) return;
+    for (let k = 0; k < 16; k++) list.matrices[idx * 16 + k] = matrix.elements[k];
+    this.dirty = true;
+  }
+
   /** Füllt den Puffer neu, wenn sich etwas geändert hat oder `force` gesetzt ist. */
   apply(visible: Uint16Array, count: number, force: boolean): void {
     if (!this.dirty && !force) return;
