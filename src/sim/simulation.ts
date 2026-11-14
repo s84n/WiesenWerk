@@ -162,7 +162,8 @@ export class Simulation {
         this.refuel(cmd.building, cmd.item);
         break;
       case 'research':
-        if (this.research.research(cmd.node)) this.events.push({ type: 'researched', node: cmd.node });
+        if (this.research.research(cmd.node))
+          this.events.push({ type: 'researched', node: cmd.node });
         break;
       case 'buyUpgrade':
         if (this.research.upgrade(cmd.upgrade))
