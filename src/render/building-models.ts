@@ -2,8 +2,11 @@ import {
   BoxGeometry,
   ConeGeometry,
   CylinderGeometry,
+  ExtrudeGeometry,
+  Shape,
   SphereGeometry,
   TorusGeometry,
+  Vector2,
   type BufferGeometry,
 } from 'three';
 import { PALETTE } from '../data/palette';
@@ -199,17 +202,16 @@ function assembler(): BufferGeometry {
   const parts = [
     box(2.9, 0.14, 2.9, 0, 0, 0, PALETTE.stone),
     box(2.5, 1.05, 2.2, 0, 0.14, 0.1, PALETTE.cream),
-    // Sheddach: drei Zacken
-    ...[-0.8, 0, 0.8].map((x) =>
-      colored(
-        new CylinderGeometry(0.5, 0.5, 2.3, 3)
-          .rotateX(Math.PI / 2)
-          .rotateZ(Math.PI / 2)
-          .scale(0.9, 0.9, 1)
-          .translate(x, 1.4, 0.1),
-        PALETTE.roof,
-      ),
-    ),
+    // Sheddach: drei Zacken mit Oberlichtern nach Norden (leuchten nachts)
+    ...[0, 1, 2].flatMap((k) => {
+      const south = 1.2 - k * 0.733;
+      return [
+        sawTooth(2.5, 0.733, 0.45, south, PALETTE.roof),
+        box(2.36, 0.26, 0.04, 0, 1.27, south - 0.733 + 0.025, PALETTE.windowLight),
+      ];
+    }),
+    // Lüftungsschacht mit Lüfter (siehe SPINNERS)
+    box(0.3, 0.5, 0.3, 0.9, 1.19, 0.75, PALETTE.metal),
     // Trichter für die beiden Eingänge (Norden)
     colored(new CylinderGeometry(0.3, 0.14, 0.45, 6).translate(-1, 1.0, -1.15), PALETTE.copper),
     colored(new CylinderGeometry(0.3, 0.14, 0.45, 6).translate(1, 1.0, -1.15), PALETTE.copper),
@@ -221,6 +223,15 @@ function assembler(): BufferGeometry {
     box(0.4, 0.3, 0.04, 0.85, 0.6, 1.21, PALETTE.windowLight),
   ];
   return merge(parts);
+}
+
+/** Ein Zahn des Sheddachs: senkrechte Seite im Norden, Dachfläche fällt nach Süden ab. */
+function sawTooth(width: number, depth: number, height: number, southZ: number, color: number) {
+  const shape = new Shape([new Vector2(0, 0), new Vector2(depth, 0), new Vector2(depth, height)]);
+  const g = new ExtrudeGeometry(shape, { depth: width, bevelEnabled: false });
+  // Form-x zeigt nach Norden (−z), die Extrusion läuft entlang x
+  g.rotateY(Math.PI / 2).translate(-width / 2, 1.19, southZ);
+  return colored(g, color);
 }
 
 function storage(): BufferGeometry {
@@ -498,7 +509,7 @@ export const SPINNERS: Record<string, SpinnerDef> = {
     speed: 0.4,
   },
   windTurbine: { make: rotor, offset: [0, 3.63, 0.43], axis: 'z', speed: 0.35 },
-  assembler: { make: fan, offset: [0, 1.88, 0.1], axis: 'y', speed: 0.8 },
+  assembler: { make: fan, offset: [0.9, 1.7, 0.75], axis: 'y', speed: 0.8 },
 };
 
 /** Lore mit Gestein (Ursprung = Mitte der Unterkante). */

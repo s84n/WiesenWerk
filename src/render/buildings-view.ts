@@ -1,5 +1,8 @@
 import {
+  AdditiveBlending,
   CircleGeometry,
+  Color,
+  Float32BufferAttribute,
   Group,
   Matrix4,
   MeshBasicMaterial,
@@ -57,6 +60,27 @@ export function buildingMatrix(
 }
 
 /**
+ * Lichtschein als Scheibe mit Farbverlauf: hell in der Mitte, schwarz am Rand. Mit additivem
+ * Mischen wirkt Schwarz durchsichtig – so entsteht ein weicher Kreis ganz ohne Textur.
+ */
+function lightPool(): BufferGeometry {
+  const g = new CircleGeometry(1.4, 24).rotateX(-Math.PI / 2).translate(0, 0.085, 0);
+  const n = g.getAttribute('position').count;
+  const colors = new Float32Array(n * 3);
+  const c = new Color(PALETTE.lanternLight);
+  const p = g.getAttribute('position');
+  for (let i = 0; i < n; i++) {
+    const r = Math.min(1, Math.hypot(p.getX(i), p.getZ(i)) / 1.4);
+    const f = (1 - r) * (1 - r);
+    colors[i * 3] = c.r * f;
+    colors[i * 3 + 1] = c.g * f;
+    colors[i * 3 + 2] = c.b * f;
+  }
+  g.setAttribute('color', new Float32BufferAttribute(colors, 3));
+  return g;
+}
+
+/**
  * Alle gebauten Gebäude: pro Gebäudetyp ein Instanz-Mesh (ein Zeichenaufruf je Typ).
  */
 export class BuildingsView {
@@ -87,8 +111,25 @@ export class BuildingsView {
       false,
     );
     this.blobs.group.visible = false;
-    this.group.add(this.badges.group, this.blobs.group);
+    this.lights = new DynamicChunkedInstances(lightPool(), this.lightMaterial, chunks, false);
+    this.group.add(this.badges.group, this.blobs.group, this.lights.group);
   }
+
+  /** Nachtleuchten (0..1) für die Lichtscheine der Laternen. */
+  setNightGlow(glow: number): void {
+    this.lightMaterial.opacity = glow * 0.55;
+    this.lights.group.visible = glow > 0.02;
+  }
+
+  /** Warmer Lichtschein unter Laternen (nur nachts sichtbar). */
+  private readonly lights: DynamicChunkedInstances;
+  private readonly lightMaterial = new MeshBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    blending: AdditiveBlending,
+  });
 
   /** Gerade aufploppende Gebäude: ID, Typ, Startzeit. */
   private readonly popping: { id: number; type: number; start: number }[] = [];
@@ -109,8 +150,12 @@ export class BuildingsView {
     const chunk = this.world.chunkOf(b.x[id], b.y[id]);
     this.perType[type].add(id, chunk, m);
     this.refreshBadge(sim, id);
-    // Schattenfleck: etwas größer als die Grundfläche, nach Südosten versetzt
     const def = BUILDINGS[type];
+    if (def.model === 'lantern') {
+      blob.makeTranslation(b.x[id] + 0.5, 0, b.y[id] + 0.5);
+      this.lights.add(id, chunk, blob);
+    }
+    // Schattenfleck: etwas größer als die Grundfläche, nach Südosten versetzt
     if (def.behavior.kind !== 'decor' || def.size[0] > 1) {
       const w = footprintW(def, b.rot[id]);
       const h = footprintH(def, b.rot[id]);
@@ -154,12 +199,14 @@ export class BuildingsView {
     this.perType[type].remove(id);
     this.badges.remove(id);
     this.blobs.remove(id);
+    this.lights.remove(id);
   }
 
   apply(visible: Uint16Array, count: number, force: boolean): void {
     for (const t of this.perType) t.apply(visible, count, force);
     this.badges.apply(visible, count, force);
     this.blobs.apply(visible, count, force);
+    this.lights.apply(visible, count, force);
   }
 
   dispose(): void {
@@ -167,6 +214,7 @@ export class BuildingsView {
     for (const t of this.perType) t.dispose();
     this.badges.dispose();
     this.blobs.dispose();
+    this.lights.dispose();
     this.group.clear();
   }
 }

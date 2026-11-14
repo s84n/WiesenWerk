@@ -127,6 +127,7 @@ export const PALETTE = {
   rain: 0xd8eaf6,
   rainFog: 0xb8c8d2,
   firefly: 0xe0ff8a,
+  lanternLight: 0xffc070,
   blobShadow: 0x3a3040,
 } as const;
 

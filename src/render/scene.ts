@@ -398,6 +398,7 @@ export class GameRenderer {
         this.belts.apply(this.visibility.visible, this.visibility.count, changed);
         this.updateItems(this.sim, alpha);
         this.buildings.updatePop(this.sim, now);
+        this.buildings.setNightGlow(this.atmosphere.glow);
         this.effects.update(now);
         this.animations.update(
           this.sim,
