@@ -179,12 +179,22 @@ export const TEXTS = {
   research: {
     title: 'Forschung',
     tooltip: 'Forschung (T)',
-    hint: 'Forschung wird sofort aus dem Vorrat bezahlt und gilt direkt.',
+    hint: 'Forschung wird sofort aus dem Vorrat bezahlt und gilt direkt. Ein grüner Punkt am Reiter heißt: Hier geht gerade etwas.',
     research: 'Erforschen',
     done: 'Erforscht',
     locked: 'Erst die Voraussetzungen erforschen',
     missing: 'Noch nicht genug im Vorrat',
     unlocks: 'Schaltet frei:',
+    areas: {
+      production: 'Fertigung',
+      logistics: 'Logistik',
+      energy: 'Energie',
+      industry: 'Eisen & Glas',
+      beauty: 'Verschönerung',
+    } as Record<string, string>,
+    upgradesTab: 'Verbesserungen',
+    requiresOther: 'Benötigt:',
+    tabReady: 'Hier kannst du gerade etwas erforschen',
     costs: 'Kosten',
     costTooltip: (name: string, have: string, need: string) =>
       `${name}: ${have} im Vorrat, ${need} benötigt`,

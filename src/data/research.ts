@@ -5,6 +5,10 @@ import { toAmounts, type ItemAmount, type ItemKey } from './items';
  * Reihenfolge = ID im Spielstand ist egal (gespeichert wird der Schlüssel), neue Knoten trotzdem
  * hinten anhängen.
  */
+/** Bereiche des Forschungsbaums, in dieser Reihenfolge als Reiter. */
+export const RESEARCH_AREAS = ['production', 'logistics', 'energy', 'industry', 'beauty'] as const;
+export type ResearchArea = (typeof RESEARCH_AREAS)[number];
+
 export interface ResearchDef {
   key: string;
   /** Schlüssel der Knoten, die vorher erforscht sein müssen. */
@@ -16,7 +20,9 @@ export interface ResearchDef {
   recipes?: readonly string[];
   /** Schaltet die Aufwertung von Bergwerk und Holzfäller auf Stufe 2 frei. */
   extractorUpgrade?: boolean;
-  /** Platz im Forschungsfenster: Spalte und Zeile. */
+  /** Bereich (Reiter im Forschungsfenster). */
+  area: ResearchArea;
+  /** Platz innerhalb des Bereichs: Spalte und Zeile (höchstens 2 Zeilen, damit nichts scrollt). */
   pos: readonly [number, number];
 }
 
@@ -26,6 +32,7 @@ export const RESEARCH: readonly ResearchDef[] = [
     requires: [],
     cost: { plank: 50, copperWire: 30 },
     buildings: ['merger', 'tunnelIn', 'tunnelOut'],
+    area: 'logistics',
     pos: [0, 0],
   },
   {
@@ -33,6 +40,7 @@ export const RESEARCH: readonly ResearchDef[] = [
     requires: [],
     cost: { plank: 80, stoneBrick: 40 },
     buildings: ['storage', 'storageSplit', 'storageMerge'],
+    area: 'logistics',
     pos: [0, 1],
   },
   {
@@ -40,21 +48,24 @@ export const RESEARCH: readonly ResearchDef[] = [
     requires: [],
     cost: { stoneBrick: 60 },
     recipes: ['charcoal'],
-    pos: [0, 2],
+    area: 'production',
+    pos: [0, 1],
   },
   {
     key: 'beauty1',
     requires: [],
     cost: { stoneBrick: 40, plank: 40 },
     buildings: ['path', 'lantern', 'flowerbed'],
-    pos: [0, 3],
+    area: 'beauty',
+    pos: [0, 0],
   },
   {
     key: 'sheetMetal',
     requires: ['logistics1'],
     cost: { copperIngot: 100 },
     recipes: ['copperSheet'],
-    pos: [1, 0],
+    area: 'production',
+    pos: [0, 0],
   },
   {
     key: 'assembler',
@@ -62,70 +73,80 @@ export const RESEARCH: readonly ResearchDef[] = [
     cost: { plank: 100, stoneBrick: 100, copperSheet: 50 },
     buildings: ['assembler'],
     recipes: ['frame', 'coil'],
-    pos: [2, 0],
+    area: 'production',
+    pos: [1, 0],
   },
   {
     key: 'wind',
     requires: ['assembler'],
     cost: { frame: 30, coil: 30 },
     buildings: ['windTurbine'],
-    pos: [3, 2],
+    area: 'energy',
+    pos: [0, 0],
   },
   {
     key: 'logistics2',
     requires: ['assembler'],
     cost: { frame: 60, copperSheet: 100 },
     buildings: ['beltMk2', 'bridge'],
-    pos: [3, 0],
+    area: 'logistics',
+    pos: [1, 0],
   },
   {
     key: 'electronics',
     requires: ['assembler'],
     cost: { coil: 60, copperWire: 100 },
     recipes: ['circuit'],
-    pos: [3, 1],
+    area: 'production',
+    pos: [2, 0],
   },
   {
     key: 'drives',
     requires: ['electronics'],
     cost: { circuit: 50, frame: 50 },
     recipes: ['motor', 'controlUnit'],
-    pos: [4, 1],
+    area: 'production',
+    pos: [3, 0],
   },
   {
     key: 'longDistance',
     requires: ['wind', 'drives'],
     cost: { coil: 40, motor: 20 },
     buildings: ['bigPole'],
-    pos: [5, 2],
+    area: 'energy',
+    pos: [1, 0],
   },
   {
     key: 'logistics3',
     requires: ['logistics2', 'drives'],
     cost: { motor: 60, controlUnit: 40 },
     buildings: ['beltMk3'],
-    pos: [5, 0],
+    area: 'logistics',
+    pos: [2, 0],
   },
   {
     key: 'deepMining',
     requires: ['drives'],
     cost: { motor: 80 },
     extractorUpgrade: true,
-    pos: [5, 1],
+    area: 'production',
+    pos: [4, 0],
   },
   {
     key: 'beauty2',
     requires: ['beauty1', 'assembler'],
     cost: { stoneBrick: 100, frame: 20 },
     buildings: ['fence', 'bench', 'ornamentalTree', 'pathColored'],
-    pos: [3, 3],
+    area: 'beauty',
+    pos: [1, 0],
   },
   {
     key: 'warehousing',
     requires: ['storage', 'assembler'],
     cost: { frame: 40, plank: 150 },
     buildings: ['storageLarge', 'depotLarge'],
-    pos: [3, 4],
+    area: 'logistics',
+    pos: [1, 1],
   },
   // Erweiterung nach Phase 7: Eisen, Glas, Stahl und neue Stromarten
   {
@@ -133,21 +154,24 @@ export const RESEARCH: readonly ResearchDef[] = [
     requires: [],
     cost: { copperIngot: 60, stoneBrick: 60 },
     recipes: ['ironIngot', 'gear'],
-    pos: [0, 5],
+    area: 'industry',
+    pos: [0, 0],
   },
   {
     key: 'glassmaking',
     requires: [],
     cost: { stoneBrick: 80, plank: 40 },
     recipes: ['glass'],
-    pos: [0, 6],
+    area: 'industry',
+    pos: [0, 1],
   },
   {
     key: 'waterPower',
     requires: ['ironworking'],
     cost: { gear: 40, plank: 80 },
     buildings: ['waterWheel'],
-    pos: [1, 5],
+    area: 'energy',
+    pos: [0, 1],
   },
   {
     key: 'steelmaking',
@@ -155,21 +179,24 @@ export const RESEARCH: readonly ResearchDef[] = [
     cost: { ironIngot: 100, frame: 20 },
     buildings: ['foundry'],
     recipes: ['steel'],
-    pos: [3, 5],
+    area: 'industry',
+    pos: [1, 0],
   },
   {
     key: 'solarPower',
     requires: ['glassmaking', 'electronics'],
     cost: { glass: 80, circuit: 30 },
     buildings: ['solarPanel'],
-    pos: [4, 6],
+    area: 'energy',
+    pos: [1, 1],
   },
   {
     key: 'batteries',
     requires: ['steelmaking', 'solarPower'],
     cost: { steel: 60, coil: 40 },
     buildings: ['battery'],
-    pos: [5, 5],
+    area: 'energy',
+    pos: [2, 1],
   },
 ];
 

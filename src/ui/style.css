@@ -986,13 +986,9 @@ body {
 }
 
 /* ---------- Forschungsbaum ---------- */
-.research-scroll {
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
 .research-tree {
   position: relative;
+  transform-origin: 0 0;
 }
 
 .research-lines {
@@ -1009,7 +1005,7 @@ body {
 
 .research-card {
   position: absolute;
-  height: 234px;
+  min-height: 246px;
   padding: 8px 10px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.5);
@@ -1520,4 +1516,135 @@ body {
   font-size: 0.66rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Forschung: Reiter statt Scrollbalken ---------- */
+.research-window {
+  height: min(860px, calc(100vh - 84px));
+}
+
+.research-window .window-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.research-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(140, 100, 60, 0.15);
+  margin-bottom: 10px;
+}
+
+.research-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  background: rgba(255, 255, 255, 0.45);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.research-tab:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+}
+
+.research-tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.research-tab-dot {
+  display: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #6fae4a;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.research-tab.ready .research-tab-dot {
+  display: inline-block;
+}
+
+.research-pages {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.research-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.research-page[hidden] {
+  display: none;
+}
+
+/* Verbesserungen: Liste oben, volle Breite */
+.research-page:last-child {
+  align-items: stretch;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.research-frame {
+  position: relative;
+  overflow: visible;
+}
+
+.research-requires {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.68rem;
+}
+
+.research-requires[hidden] {
+  display: none;
+}
+
+.research-requires-label {
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+.research-requires-chip {
+  padding: 1px 7px;
+  font: inherit;
+  font-weight: 700;
+  color: #c0533a;
+  background: rgba(192, 83, 58, 0.1);
+  border: 1px solid rgba(192, 83, 58, 0.3);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.research-requires-chip.met {
+  color: #4f8f2f;
+  background: rgba(111, 174, 74, 0.12);
+  border-color: rgba(111, 174, 74, 0.4);
+}
+
+.research-requires-chip:hover {
+  background: #fff;
 }
