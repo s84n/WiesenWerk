@@ -826,3 +826,67 @@ body {
 .hud-menu {
   font-size: 1rem;
 }
+
+/* ---------- Strom ---------- */
+.hud-power {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-power.ok {
+  background: rgba(143, 224, 138, 0.35);
+}
+
+.hud-power.low {
+  background: rgba(246, 208, 77, 0.45);
+}
+
+.hud-power.none {
+  background: rgba(240, 128, 106, 0.3);
+  color: var(--text-soft);
+}
+
+.hud-bolt {
+  font-size: 0.9rem;
+}
+
+.info-text.warn {
+  color: #a5532f;
+  font-size: 0.8rem;
+}
+
+.info-text.small {
+  font-size: 0.7rem;
+}
+
+.util-fill.fuel {
+  background: linear-gradient(90deg, #f6c35a, #ef8f45);
+}
+
+.refill-row {
+  margin-top: 8px;
+}
+
+.recipe.refill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.power-chart {
+  display: block;
+  width: 100%;
+  height: 70px;
+  border-radius: 8px;
+  margin-top: 6px;
+}
+
+.state-dot.nopower {
+  background: #b59be0;
+}

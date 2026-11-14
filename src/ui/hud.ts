@@ -23,6 +23,9 @@ export class Hud {
   private readonly values: HTMLElement[] = [];
   private readonly speedButtons: HTMLButtonElement[] = [];
   private readonly pauseButton: HTMLButtonElement;
+  private readonly powerChip: HTMLElement;
+  private readonly powerText: HTMLElement;
+  private lastPower = 0;
   private shownVersion = -1;
   private lastUpdate = 0;
   private shownSpeed = -1;
@@ -45,6 +48,11 @@ export class Hud {
       this.chips.push(chip);
       this.values.push(value);
     }
+
+    this.powerChip = el('span', 'hud-power none');
+    this.powerChip.title = TEXTS.hud.powerTooltip;
+    this.powerText = el('span', 'hud-value', TEXTS.hud.noPower);
+    this.powerChip.append(el('span', 'hud-bolt', '⚡'), this.powerText);
 
     const speeds = el('div', 'hud-speed');
     this.pauseButton = el('button', 'hud-button', '❚❚');
@@ -74,7 +82,7 @@ export class Hud {
     });
     speeds.appendChild(menu);
 
-    bar.append(items, speeds);
+    bar.append(items, this.powerChip, speeds);
     parent.appendChild(bar);
   }
 
@@ -88,6 +96,22 @@ export class Hud {
       );
       this.shownPaused = paused;
       this.shownSpeed = speed;
+    }
+
+    if (now - this.lastPower >= 1000 / RENDER_CONFIG.uiUpdatesPerSecond) {
+      this.lastPower = now;
+      const p = sim.power;
+      const g = p.largestGrid();
+      if (g < 0) {
+        this.powerText.textContent = TEXTS.hud.noPower;
+        this.powerChip.className = 'hud-power none';
+      } else {
+        this.powerText.textContent = TEXTS.hud.power(
+          Math.round(p.demand[g] / 1000),
+          Math.round(p.capacity[g] / 1000),
+        );
+        this.powerChip.className = `hud-power ${p.factor[g] >= 1000 && p.capacity[g] > 0 ? 'ok' : p.factor[g] > 0 ? 'low' : 'none'}`;
+      }
     }
 
     const inv = sim.inventory;

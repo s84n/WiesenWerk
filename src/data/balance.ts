@@ -44,3 +44,12 @@ export const BELTS = {
   /** Mindestabstand zweier Items (halbes Feld). */
   minSpacing: 60,
 } as const;
+
+export const POWER = {
+  /** Wartende oder blockierte Maschinen ziehen nur diesen Anteil ihres Verbrauchs. */
+  idleShare: 0.1,
+  /** Fester Faktor für Ganzzahl-Rechnung: 1000 = 100 % Tempo. */
+  scale: 1000,
+  /** Verlauf im Mast-Infofenster: so viele Sekunden. */
+  historySeconds: 60,
+} as const;

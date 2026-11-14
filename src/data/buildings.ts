@@ -18,7 +18,11 @@ export type Behavior =
   | { kind: 'miner'; itemsPerMinute: number }
   | { kind: 'lumberjack'; itemsPerMinute: number; radius: number }
   | { kind: 'crafter'; machine: MachineKind }
-  | { kind: 'belt'; tilesPerSecond: number; tier: number };
+  | { kind: 'belt'; tilesPerSecond: number; tier: number }
+  /** Kraftwerk mit Brennstoff: erzeugt `powerKW` bei voller Last. */
+  | { kind: 'burner'; powerKW: number; fuelBuffer: number }
+  /** Strommast: versorgt Gebäude im Quadrat ± `supplyRadius`, verbindet sich bis `connectRange` Felder. */
+  | { kind: 'pole'; supplyRadius: number; connectRange: number };
 
 export type BuildCategory = 'extraction' | 'production' | 'logistics' | 'energy' | 'decoration';
 
@@ -34,6 +38,8 @@ export interface BuildingDef {
    */
   placement: 'ground' | 'deposit' | 'groundOrDeposit';
   behavior: Behavior;
+  /** Stromverbrauch in kW bei der Arbeit (wartend: 10 %). 0 = braucht keinen Strom. */
+  power: number;
   /** Höchstens ein Gebäude dieser Art pro Welt. */
   unique?: boolean;
   ports: readonly PortDef[];
@@ -49,6 +55,7 @@ export interface BuildingDef {
 export const BUILDINGS: readonly BuildingDef[] = [
   {
     key: 'hq',
+    power: 0,
     size: [3, 3],
     category: 'logistics',
     cost: {},
@@ -66,6 +73,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   },
   {
     key: 'lumberjack',
+    power: 5,
     size: [2, 2],
     category: 'extraction',
     cost: { wood: 10, stone: 5 },
@@ -77,6 +85,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   },
   {
     key: 'miner',
+    power: 5,
     size: [2, 2],
     category: 'extraction',
     cost: { wood: 10, stone: 10 },
@@ -88,6 +97,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   },
   {
     key: 'furnace',
+    power: 4,
     size: [2, 2],
     category: 'production',
     cost: { stone: 20 },
@@ -102,6 +112,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   },
   {
     key: 'workshop',
+    power: 4,
     size: [2, 2],
     category: 'production',
     cost: { wood: 15, copperIngot: 5 },
@@ -116,6 +127,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   },
   {
     key: 'beltMk1',
+    power: 0,
     size: [1, 1],
     category: 'logistics',
     cost: { wood: 1 },
@@ -123,6 +135,30 @@ export const BUILDINGS: readonly BuildingDef[] = [
     behavior: { kind: 'belt', tilesPerSecond: 0.5, tier: 1 },
     ports: [],
     model: 'belt',
+    availableFromStart: true,
+  },
+  {
+    key: 'burner',
+    power: 0,
+    size: [2, 2],
+    category: 'energy',
+    cost: { stone: 15, copperOre: 5 },
+    placement: 'ground',
+    behavior: { kind: 'burner', powerKW: 30, fuelBuffer: 10 },
+    ports: [{ x: 0, y: 0, dir: 0, kind: 'in' }],
+    model: 'burner',
+    availableFromStart: true,
+  },
+  {
+    key: 'pole',
+    power: 0,
+    size: [1, 1],
+    category: 'energy',
+    cost: { wood: 3, copperOre: 1 },
+    placement: 'groundOrDeposit',
+    behavior: { kind: 'pole', supplyRadius: 2, connectRange: 8 },
+    ports: [],
+    model: 'pole',
     availableFromStart: true,
   },
 ];

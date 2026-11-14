@@ -61,6 +61,13 @@ export class ToolController {
     window.addEventListener('keydown', this.onKeyDown);
   }
 
+  /** Wird gerade ein Gebäude gebaut, bei dem die Strom-Ansicht hilft? */
+  get placingPower(): boolean {
+    if (this.mode !== 'build') return false;
+    const def = BUILDINGS[this.buildType];
+    return def.power > 0 || def.behavior.kind === 'pole' || def.behavior.kind === 'burner';
+  }
+
   private get isBelt(): boolean {
     return this.mode === 'build' && BUILDINGS[this.buildType].behavior.kind === 'belt';
   }

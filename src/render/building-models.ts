@@ -161,7 +161,61 @@ function workshop(): BufferGeometry {
   return merge(parts);
 }
 
+function burner(): BufferGeometry {
+  const parts = [
+    box(1.85, 0.14, 1.85, 0, 0, 0, PALETTE.stone),
+    box(1.3, 0.75, 1.15, -0.15, 0.14, 0.05, PALETTE.stone),
+    box(1.1, 0.25, 0.95, -0.15, 0.89, 0.05, PALETTE.brick),
+    // Feuerloch vorne
+    box(0.5, 0.32, 0.05, -0.15, 0.3, 0.63, PALETTE.glow),
+    box(0.66, 0.07, 0.1, -0.15, 0.62, 0.64, PALETTE.rockDark),
+    // Schornstein
+    colored(
+      new CylinderGeometry(0.15, 0.19, 1.3, 6)
+        .translate(0.25, 1.14 + 0.65 - 0.65, -0.25)
+        .translate(0, 0.65, 0),
+      PALETTE.brick,
+    ),
+    colored(new CylinderGeometry(0.2, 0.2, 0.08, 6).translate(0.25, 2.47, -0.25), PALETTE.roof),
+    // Kupferspule (Generator) an der Seite
+    colored(
+      new CylinderGeometry(0.18, 0.18, 0.4, 8).rotateZ(Math.PI / 2).translate(0.72, 0.42, 0.2),
+      PALETTE.copper,
+    ),
+  ];
+  // Holzscheite
+  for (let k = 0; k < 3; k++) {
+    const log = new CylinderGeometry(0.07, 0.07, 0.5, 6).rotateX(Math.PI / 2);
+    parts.push(
+      colored(
+        log.translate(0.6 + (k % 2) * 0.14, 0.21 + (k === 2 ? 0.12 : 0), -0.55),
+        PALETTE.trunk,
+      ),
+    );
+  }
+  return merge(parts);
+}
+
+/** Höhe, an der die Kabel am Mast hängen. */
+export const POLE_CABLE_HEIGHT = 2.25;
+
+function pole(): BufferGeometry {
+  return merge([
+    box(0.36, 0.08, 0.36, 0, 0, 0, PALETTE.stone),
+    colored(
+      new CylinderGeometry(0.06, 0.08, 2.35, 6).translate(0, 0.08 + 1.175, 0),
+      PALETTE.woodDark,
+    ),
+    box(0.7, 0.07, 0.08, 0, 2.08, 0, PALETTE.wood),
+    colored(new CylinderGeometry(0.04, 0.05, 0.12, 6).translate(-0.28, 2.21, 0), PALETTE.copper),
+    colored(new CylinderGeometry(0.04, 0.05, 0.12, 6).translate(0.28, 2.21, 0), PALETTE.copper),
+    colored(new CylinderGeometry(0.045, 0.045, 0.1, 6).translate(0, 2.47, 0), PALETTE.copper),
+  ]);
+}
+
 const MODELS: Record<string, () => BufferGeometry> = {
+  burner,
+  pole,
   hq,
   lumberjack,
   miner,

@@ -11,7 +11,8 @@ import { World } from '../sim/world';
  * Läuft ohne Browser und wird auch vom automatischen Tick-Benchmark benutzt.
  *
  * Aufbau:
- * - Produktionsmodule (senkrecht): Bergwerk → Band → Schmelzofen → Band → Werkstatt → Band
+ * - Produktionsmodule (senkrecht): Bergwerk → Band → Schmelzofen → Band → Werkstatt → Band,
+ *   daneben drei Strommasten und ein Biomassebrenner mit reichlich Holz
  * - Geschlossene Bandringe voller Items, die endlos kreisen
  */
 export interface StressResult {
@@ -21,7 +22,7 @@ export interface StressResult {
 }
 
 const BELT_LEN = 4;
-const MODULE_W = 3;
+const MODULE_W = 5; // 2 Felder Maschinen, 2 Felder Strom (Masten, Brenner), 1 Feld Abstand
 const MODULE_H = 6 + 3 * BELT_LEN + 1;
 const RING_SIDE = 25; // Umfang 100 Felder → 200 Items
 const RING_CELL = RING_SIDE + 2;
@@ -76,8 +77,18 @@ export function createStressSimulation(scale = 1): StressResult {
     const wy = fy + 2 + BELT_LEN;
     build(BUILDING_ID.workshop, x, wy);
     sim.enqueue({ type: 'buildBelt', building: belt, path: line(x, wy + 2, 2, BELT_LEN) });
+    // Strom: Masten neben Bergwerk, Ofen und Werkstatt, Brenner dazwischen
+    build(BUILDING_ID.pole, x + 2, y + 1);
+    build(BUILDING_ID.pole, x + 2, fy + 1);
+    build(BUILDING_ID.pole, x + 2, wy + 1);
+    build(BUILDING_ID.burner, x + 2, fy + 3);
   }
   sim.flushCommands();
+  // Brenner mit viel Holz füllen (am Puffer vorbei, nur für den Stresstest)
+  for (const id of sim.machines.burners) {
+    sim.machines.fuelItem[id] = ITEM_ID.wood;
+    sim.machines.inBuf[id * 2] = 1_000_000;
+  }
 
   // Bandringe voller Items
   const moduleRows = Math.ceil(modules / perRow);
@@ -110,5 +121,6 @@ export function createStressSimulation(scale = 1): StressResult {
   }
   sim.clearEvents();
 
-  return { sim, machines: modules * 3, beltTiles: sim.buildingCount - modules * 3 };
+  const beltTiles = sim.belts.segments.reduce((n, seg) => n + (seg ? seg.length : 0), 0);
+  return { sim, machines: modules * 3, beltTiles };
 }

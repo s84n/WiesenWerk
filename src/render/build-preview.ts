@@ -46,6 +46,17 @@ export class BuildPreview {
     this.areaMaterial,
   );
   private readonly arrows: Mesh[] = [];
+  private readonly rangeMaterial = new MeshBasicMaterial({
+    color: PALETTE.powerArea,
+    transparent: true,
+    opacity: 0.25,
+    depthWrite: false,
+    depthTest: false,
+  });
+  private readonly range = new Mesh(
+    new PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
+    this.rangeMaterial,
+  );
   private readonly beltGhosts: InstancedMesh;
   private readonly inMaterial = new MeshBasicMaterial({ color: PALETTE.portIn, depthTest: false });
   private readonly outMaterial = new MeshBasicMaterial({
@@ -70,7 +81,8 @@ export class BuildPreview {
     this.beltGhosts.frustumCulled = false;
     this.beltGhosts.renderOrder = 2;
     this.beltGhosts.setColorAt(0, tint.setHex(0xffffff));
-    this.group.add(this.ghost, this.area, this.beltGhosts);
+    this.range.renderOrder = 3;
+    this.group.add(this.ghost, this.area, this.beltGhosts, this.range);
     this.hide();
   }
 
@@ -91,6 +103,7 @@ export class BuildPreview {
 
   hide(): void {
     this.ghost.visible = false;
+    if (this.range) this.range.visible = false;
     if (this.beltGhosts) this.beltGhosts.count = 0;
     this.area.visible = false;
     for (const a of this.arrows) a.visible = false;
@@ -126,6 +139,15 @@ export class BuildPreview {
       a.visible = true;
     }
     for (let i = n; i < MAX_ARROWS; i++) this.arrows[i].visible = false;
+  }
+
+  /** Zeigt zusätzlich einen Versorgungsbereich (Strommast). */
+  showRange(x0: number, y0: number, x1: number, y1: number): void {
+    const w = x1 - x0 + 1;
+    const h = y1 - y0 + 1;
+    this.range.position.set(x0 + w / 2, 0.075, y0 + h / 2);
+    this.range.scale.set(w, 1, h);
+    this.range.visible = true;
   }
 
   /** Hebt ein bestehendes Gebäude rot hervor (Abrissmodus). */

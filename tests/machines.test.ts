@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ITEM_ID } from '../src/data/items';
 import { TileType } from '../src/data/world';
 import { MachineState } from '../src/sim/machines';
-import { B, build, makeSim, run, setDeposit } from './helpers';
+import { B, build, makePoweredSim as makeSim, run, setDeposit } from './helpers';
 
 describe('Maschinen', () => {
   it('Schmelzofen wartet ohne Rezept und verarbeitet nach Rezeptwahl im festen Takt', () => {

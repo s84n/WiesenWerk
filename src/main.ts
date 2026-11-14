@@ -164,7 +164,9 @@ function start(): void {
     togglePause: () => {
       if (!menu.isOpen) loop.paused = !loop.paused;
     },
+    togglePowerView: () => (powerView = !powerView),
   });
+  let powerView = false;
 
   // Esc: Menü schließen bzw. öffnen, wenn nichts anderes abzubrechen ist (läuft vor den Werkzeugen)
   window.addEventListener(
@@ -263,6 +265,7 @@ function start(): void {
       hud.update(sim, now);
       buildBar.update(sim, now);
       info.update(sim, now);
+      view.showPower = powerView || tools.placingPower;
       view.render(loop.paused ? 0 : loop.alpha, now);
       debug.frame(now, tickMs, ticks, view, sim, loop.paused);
 

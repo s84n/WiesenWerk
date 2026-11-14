@@ -16,6 +16,11 @@ export function makeSim(size = 32): Simulation {
   return sim;
 }
 
+/** Wie `makeSim`, aber mit unbegrenztem Strom. */
+export function makePoweredSim(size = 32): Simulation {
+  return unlimitedPower(makeSim(size));
+}
+
 export function setDeposit(sim: Simulation, x: number, y: number, resource = 2, purity = 2): void {
   const i = sim.world.index(x, y);
   sim.world.tiles[i] = TileType.Deposit;
@@ -42,4 +47,10 @@ export function belt(sim: Simulation, path: BeltStep[]): void {
 
 export function run(sim: Simulation, ticks: number): void {
   for (let t = 0; t < ticks; t++) sim.step();
+}
+
+/** Für Tests, in denen Strom nicht das Thema ist: alle Maschinen laufen mit vollem Tempo. */
+export function unlimitedPower(sim: Simulation): Simulation {
+  sim.power.factorOf = () => 1000;
+  return sim;
 }

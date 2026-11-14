@@ -68,6 +68,12 @@ export const PALETTE = {
   // Hinweise
   hintWait: 0xf6d04d,
   hintIdle: 0x9fb4d8,
+  hintPower: 0xb59be0,
+  powerOk: 0x8fe08a,
+  powerLow: 0xf6d04d,
+  powerNone: 0xf0806a,
+  powerArea: 0x7fc3f0,
+  cable: 0x3d3430,
   hintGood: 0x8fe08a,
   hintBad: 0xf0806a,
   highlight: 0xfff6d8,

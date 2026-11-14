@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ITEM_ID } from '../src/data/items';
-import { B, belt, build, line, makeSim, run } from './helpers';
+import { B, belt, build, line, makePoweredSim as makeSim, run } from './helpers';
 
 const ORE = ITEM_ID.copperOre;
 

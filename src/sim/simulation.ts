@@ -8,6 +8,7 @@ import type { BeltStep, Command } from './commands';
 import type { SimEvent } from './events';
 import { Inventory } from './inventory';
 import { MachineSystem } from './machines';
+import { PowerSystem } from './power';
 import { PlaceResult, checkPlacement } from './placement';
 import { TreeSystem } from './trees';
 import type { World } from './world';
@@ -24,6 +25,7 @@ export class Simulation {
   readonly trees: TreeSystem;
   readonly machines: MachineSystem;
   readonly belts: BeltSystem;
+  readonly power: PowerSystem;
   /** Anzahl lebender Gebäude je Typ. */
   readonly typeCount = new Int32Array(BUILDINGS.length);
   /** Ereignisse seit dem letzten Abholen. */
@@ -43,6 +45,8 @@ export class Simulation {
       this.machines.accept(id, item),
     );
     this.machines.setBelts(this.belts);
+    this.power = new PowerSystem(world, this.buildings, this.machines);
+    this.machines.setPower(this.power);
     this.inventory.refund(toAmounts(START_INVENTORY));
   }
 
@@ -70,10 +74,11 @@ export class Simulation {
     this.pending.length = 0;
   }
 
-  /** Ein Simulationsschritt. Reihenfolge: Befehle → (Strom, ab Phase 5) → Abbau und Maschinen → Bänder → Bäume. */
+  /** Ein Simulationsschritt. Reihenfolge: Befehle → Strom → Abbau und Maschinen → Bänder → Bäume. */
   step(): void {
     this.flushCommands();
     this.tick++;
+    this.power.tick(this.tick);
     this.machines.update(this.tick);
     this.belts.tick();
     this.trees.update(this.tick, this.onRegrow);
@@ -125,7 +130,18 @@ export class Simulation {
       case 'setRecipe':
         if (this.buildings.alive[cmd.building]) this.machines.setRecipe(cmd.building, cmd.recipe);
         break;
+      case 'refuel':
+        this.refuel(cmd.building, cmd.item);
+        break;
     }
+  }
+
+  private refuel(id: number, item: number): void {
+    if (!this.buildings.alive[id]) return;
+    const b = BUILDINGS[this.buildings.type[id]].behavior;
+    if (b.kind !== 'burner') return;
+    const n = this.machines.addFuel(id, item, this.inventory.get(item), b.fuelBuffer);
+    if (n > 0) this.inventory.pay([{ item, amount: n }]);
   }
 
   private buildBelt(type: number, path: readonly BeltStep[]): void {
@@ -181,6 +197,7 @@ export class Simulation {
     } else {
       this.machines.added(id);
       this.belts.buildingChanged();
+      this.power.markDirty();
     }
     this.events.push({ type: 'buildingAdded', id });
   }
@@ -203,6 +220,7 @@ export class Simulation {
       this.belts.beltRemoved(this.world.index(x, y), (item) => this.inventory.add(item, 1));
     } else {
       this.belts.buildingChanged();
+      this.power.markDirty();
     }
     this.inventory.refund(BUILDING_COSTS[type]);
     b.remove(id);

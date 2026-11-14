@@ -104,7 +104,9 @@ export class BuildBar {
       this.modeHint.textContent =
         def.behavior.kind === 'belt'
           ? TEXTS.build.modeBelt
-          : TEXTS.build.modeBuild(TEXTS.buildings[def.key].name);
+          : def.behavior.kind === 'pole'
+            ? TEXTS.build.modePole
+            : TEXTS.build.modeBuild(TEXTS.buildings[def.key].name);
       this.modeHint.style.display = '';
     } else if (t.mode === 'demolish') {
       this.modeHint.textContent = TEXTS.build.modeDemolish;

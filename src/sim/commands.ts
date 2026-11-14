@@ -13,7 +13,9 @@ export type Command =
   /** Baut Bandfelder entlang eines Weges; vorhandene Bänder werden nur gedreht. */
   | { type: 'buildBelt'; building: number; path: readonly BeltStep[] }
   /** Wählt das Rezept einer Maschine (−1 = keins). */
-  | { type: 'setRecipe'; building: number; recipe: number };
+  | { type: 'setRecipe'; building: number; recipe: number }
+  /** Füllt einen Brenner aus dem Vorrat mit Brennstoff. */
+  | { type: 'refuel'; building: number; item: number };
 
 export interface BeltStep {
   x: number;

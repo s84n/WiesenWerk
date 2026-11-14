@@ -40,6 +40,15 @@ export const TEXTS = {
       description: 'Schmilzt Erz zu Barren, brennt Ziegel und Holzkohle.',
     },
     workshop: { name: 'Werkstatt', description: 'Sägt Bretter, zieht Draht und walzt Blech.' },
+    burner: {
+      name: 'Biomassebrenner',
+      description: 'Verbrennt Holz oder Holzkohle und erzeugt 30 kW Strom für Gebäude im Netz.',
+    },
+    pole: {
+      name: 'Strommast',
+      description:
+        'Versorgt Gebäude im Umkreis und verbindet sich mit Masten in bis zu 8 Feldern Entfernung.',
+    },
     beltMk1: {
       name: 'Förderband',
       description: 'Transportiert 60 Items pro Minute. Mit gedrückter Maustaste ziehen.',
@@ -62,6 +71,7 @@ export const TEXTS = {
     modeBelt:
       'Förderband: mit gedrückter Maustaste ziehen · R dreht bzw. wechselt die Ecke · Rechtsklick oder Esc beendet',
     perTile: 'je Feld',
+    modePole: 'Strommast bauen · zeigt die versorgten Felder · Rechtsklick oder Esc beendet',
     modeDemolish: 'Abrissmodus · Klick oder Rahmen ziehen · Rechtsklick oder Esc beendet',
     demolishButton: 'Abreißen (X)',
   },
@@ -86,6 +96,14 @@ export const TEXTS = {
       'Kein Rezept gewählt',
       'Kein Strom',
     ],
+    burnerStates: [
+      'Kein Bedarf',
+      'Erzeugt Strom',
+      'Kein Brennstoff',
+      'Ausgang blockiert',
+      '',
+      'Nicht am Netz',
+    ],
     recipe: 'Rezept',
     recipeHint: 'Kommt das erste passende Item an, wird das Rezept automatisch gewählt.',
     input: 'Eingang',
@@ -98,6 +116,21 @@ export const TEXTS = {
     trees: (ready: number, total: number) => `Bäume in Reichweite: ${ready} von ${total} gewachsen`,
     noDeposit: 'Kein Vorkommen unter dem Bergwerk',
     hq: 'Alle angelieferten Items landen im Vorrat.',
+    power: 'Strom',
+    powerUse: (kw: number) => `${kw.toLocaleString('de-DE')} kW bei der Arbeit`,
+    powerSpeed: (pct: number) => `Tempo durch Strom: ${pct} %`,
+    noGrid: 'Kein Strom: baue einen Strommast in der Nähe und einen Biomassebrenner.',
+    fuel: 'Brennstoff',
+    burning: 'Brennt noch',
+    burnerOutput: (kw: string) => `Leistung gerade: ${kw} kW`,
+    refill: (item: string) => `${item} aus dem Vorrat nachfüllen`,
+    gridTitle: 'Stromnetz',
+    gridLine: (prod: string, demand: string, cap: string) =>
+      `Verbrauch ${demand} kW · Erzeugung ${prod} kW von ${cap} kW möglich`,
+    gridBuildings: (n: number, gen: number) => `${n} Verbraucher · ${gen} Brenner`,
+    gridSpeed: (pct: number) => `Maschinen laufen mit ${pct} % Tempo`,
+    noPoleGrid: 'Dieser Mast ist mit keinem Netz verbunden.',
+    chartLegend: 'Grün: Erzeugung · Orange: Verbrauch (letzte 60 s)',
     delivered: (n: number) => `Bisher angeliefert: ${n.toLocaleString('de-DE')} Items`,
     belt: (perMinute: number) => `Transportiert bis zu ${perMinute} Items pro Minute.`,
     beltItems: (n: number, tiles: number) =>
@@ -162,6 +195,7 @@ export const TEXTS = {
     ['R', 'Gebäude drehen'],
     ['X', 'Abrissmodus'],
     ['1 – 9', 'Schnellwahl Gebäude'],
+    ['V', 'Strom-Ansicht'],
     ['Leertaste', 'Pause'],
     ['Strg + S', 'Speichern'],
     ['F3', 'Debug-Anzeige'],
@@ -171,6 +205,11 @@ export const TEXTS = {
     pause: 'Pause',
     pauseTooltip: 'Pause (Leertaste)',
     speedTooltip: (n: number) => `${n}-fache Geschwindigkeit`,
+    power: (use: number, cap: number) =>
+      `${use.toLocaleString('de-DE')} / ${cap.toLocaleString('de-DE')} kW`,
+    powerTooltip:
+      'Strom im größten Netz: Verbrauch / mögliche Erzeugung. Taste V zeigt die Strom-Ansicht.',
+    noPower: 'kein Strom',
   },
 
   debug: {

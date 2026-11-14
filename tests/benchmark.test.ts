@@ -11,7 +11,7 @@ const LIMIT_MS = 8;
 describe('Leistung', () => {
   it('Referenzfabrik: 2.000 Maschinen, 20.000 Items, Tick unter dem Budget', () => {
     const t0 = performance.now();
-    const { sim, machines } = createStressSimulation(1);
+    const { sim, machines, beltTiles } = createStressSimulation(1);
     const buildMs = performance.now() - t0;
     expect(machines).toBeGreaterThanOrEqual(2000);
     expect(sim.itemCount).toBeGreaterThanOrEqual(19_000);
@@ -23,10 +23,13 @@ describe('Leistung', () => {
     const perTick = (performance.now() - t1) / ticks;
 
     console.log(
-      `Referenzfabrik: ${machines} Maschinen, ${sim.buildingCount - machines} Bandfelder, ` +
+      `Referenzfabrik: ${machines} Maschinen, ${sim.machines.burners.length} Brenner, ${sim.power.gridCount} Netze, ${beltTiles} Bandfelder, ` +
         `${sim.segmentCount} Segmente, ${sim.itemCount} Items · Aufbau ${buildMs.toFixed(0)} ms · ` +
         `Tick ${perTick.toFixed(3)} ms`,
     );
     expect(perTick).toBeLessThan(LIMIT_MS);
+    // Strom kommt an: die Maschinen arbeiten mit vollem Tempo
+    const f = sim.machines.crafters[0];
+    expect(sim.power.factorOf(f)).toBe(1000);
   }, 60_000);
 });

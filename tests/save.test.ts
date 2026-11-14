@@ -64,6 +64,11 @@ function buildFactory(): Simulation {
   sim.enqueue({ type: 'build', building: B.furnace, x: mx, y: my + 5, rot: 0 });
   sim.enqueue({ type: 'buildBelt', building: B.beltMk1, path: line(mx, my + 7, 3) });
   sim.enqueue({ type: 'build', building: B.hq, x: mx - 1, y: my + 10, rot: 0 });
+  sim.enqueue({ type: 'build', building: B.pole, x: mx + 2, y: my + 1, rot: 0 });
+  sim.enqueue({ type: 'build', building: B.pole, x: mx + 2, y: my + 6, rot: 0 });
+  sim.enqueue({ type: 'build', building: B.burner, x: mx + 3, y: my + 3, rot: 0 });
+  sim.flushCommands();
+  sim.enqueue({ type: 'refuel', building: sim.buildingAt(mx + 3, my + 3), item: ITEM_ID.wood });
   // Holzfäller an den nächsten Wald, ein paar Bäume von Hand fällen, einen Ofen abreißen (freie ID)
   sim.enqueue({ type: 'build', building: B.furnace, x: w.startX - 3, y: w.startY - 3, rot: 1 });
   sim.flushCommands();
@@ -95,6 +100,51 @@ describe('Speichern und Laden', () => {
       loaded.step();
     }
     expect(state(loaded)).toBe(state(original));
+  });
+
+  it('wandelt Spielstände der Version 1 (vor dem Strom) korrekt um', () => {
+    // Eine Fabrik ohne Brenner mit vollem Tempo ergibt Werte, die sich verlustfrei zurückrechnen lassen
+    const sim = new Simulation(generateWorld(4711));
+    sim.power.factorOf = () => 1000;
+    for (let i = 0; i < 14; i++) sim.inventory.add(i, 1000);
+    const w = sim.world;
+    let placed = 0;
+    for (let i = 0; i < w.tiles.length && placed < 3; i++) {
+      const x = i % w.size;
+      const y = Math.floor(i / w.size);
+      if (w.resource[i] === 2 && placed === 0) {
+        sim.enqueue({ type: 'build', building: BUILDING_ID.miner, x, y, rot: 0 });
+        sim.flushCommands();
+        if (sim.buildingCount === 1) placed = 1;
+      }
+    }
+    sim.enqueue({ type: 'build', building: BUILDING_ID.furnace, x: w.startX, y: w.startY, rot: 0 });
+    sim.flushCommands();
+    const furnace = sim.buildingAt(w.startX, w.startY);
+    sim.machines.accept(furnace, ITEM_ID.copperOre);
+    sim.machines.accept(furnace, ITEM_ID.copperOre);
+    for (let t = 0; t < 57; t++) sim.step(); // mitten in Durchläufen anhalten
+    const v2 = serialize(sim, META, CAM);
+    expect(sim.machines.progress[furnace]).toBeGreaterThan(0);
+
+    // Version 1 von Hand herstellen: Felder entfernen, Fortschritt in ganzen Ticks
+    const v1 = JSON.parse(JSON.stringify(v2));
+    v1.version = 1;
+    delete v1.machines.burners;
+    const types = new Map<number, number>();
+    for (let k = 0; k < v2.buildings.list.length; k += 5)
+      types.set(v2.buildings.list[k], v2.buildings.list[k + 1]);
+    const data: number[] = [];
+    for (let k = 0; k < v2.machines.data.length; k += 14) {
+      const rec = v2.machines.data.slice(k, k + 11);
+      const crafter = types.get(rec[0]) === BUILDING_ID.furnace;
+      rec[2] = crafter ? (rec[2] === 0 ? 0 : (rec[2] - 1) / 1000 + 1) : rec[2] / 1000;
+      data.push(...rec);
+    }
+    v1.machines.data = data;
+
+    expect(migrate(v1)).toEqual(migrate(v2));
+    expect(state(deserialize(migrate(v1)))).toBe(state(sim));
   });
 
   it('übersteht Export und Import als gepackte Datei', async () => {

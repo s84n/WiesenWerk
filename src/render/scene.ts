@@ -24,6 +24,7 @@ import { BuildingsView, buildingGeometries } from './buildings-view';
 import { CameraRig } from './camera-rig';
 import { renderIcons } from './icons';
 import { itemGeometries } from './item-models';
+import { PowerView } from './power-view';
 import { StatusIcons } from './status-icons';
 import { Nature } from './nature';
 import { Terrain } from './terrain';
@@ -56,6 +57,9 @@ export class GameRenderer {
   private buildings: BuildingsView | null = null;
   private belts: BeltView | null = null;
   private readonly status = new StatusIcons();
+  private readonly powerView = new PowerView();
+  /** Strom-Ansicht (Taste V) bzw. beim Bauen von Strom-Gebäuden. */
+  showPower = false;
   private itemIconUrls: string[] | null = null;
   private visibility: ChunkVisibility | null = null;
   private appliedVersion = -1;
@@ -95,7 +99,13 @@ export class GameRenderer {
     this.water.renderOrder = 1;
     this.seabed = new Mesh(big, new MeshLambertMaterial({ color: PALETTE.waterDeep }));
     this.seabed.position.y = -1.6;
-    this.scene.add(this.water, this.seabed, this.preview.group, this.status.mesh);
+    this.scene.add(
+      this.water,
+      this.seabed,
+      this.preview.group,
+      this.status.mesh,
+      this.powerView.group,
+    );
 
     this.resize();
   }
@@ -124,6 +134,7 @@ export class GameRenderer {
     this.belts = new BeltView(world, this.material);
     this.visibility = new ChunkVisibility(world);
     this.appliedVersion = -1;
+    this.powerView.reset();
     this.scene.add(this.terrain.group, this.nature.group, this.buildings.group, this.belts.group);
     // Vorhandene Gebäude übernehmen (Stresstest, später geladene Spielstände)
     const b = sim.buildings;
@@ -245,6 +256,7 @@ export class GameRenderer {
         this.belts.apply(this.visibility.visible, this.visibility.count, changed);
         this.updateItems(this.sim, alpha);
         this.status.update(this.sim, now);
+        this.powerView.update(this.sim, now, this.showPower);
       }
       this.nature.setDetailVisible(rig.viewHeight < RENDER_CONFIG.detailMaxViewHeight);
       const far = rig.viewHeight > RENDER_CONFIG.lodViewHeight;

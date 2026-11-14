@@ -16,10 +16,14 @@ import { generateWorld } from './worldgen';
 
 export const SAVE_FORMAT = 'wiesenwerk';
 /** Bei jeder Änderung am Format erhöhen und eine Migration in `MIGRATIONS` ergänzen. */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
-/** Werte pro Maschine in `machines.data`. */
-const MACHINE_FIELDS = 11;
+/**
+ * Werte pro Maschine in `machines.data`:
+ * id, Rezept, Fortschritt, Zustand, seit, Auslastung, Eingang 0/1, Ausgang 0/1, Baum-Zeiger,
+ * Brennstoff-Art, Brennstoff-Energie, voller Stromverbrauch (ab Version 2).
+ */
+const MACHINE_FIELDS = 14;
 
 export interface SaveMeta {
   name: string;
@@ -44,6 +48,7 @@ export interface SaveData {
   machines: {
     crafters: number[];
     extractors: number[];
+    burners: number[];
     data: number[];
     treeLists: number[][];
     delivered: number;
@@ -99,6 +104,9 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
       m.outBuf[id * MAX_RECIPE_OUTPUTS],
       m.outBuf[id * MAX_RECIPE_OUTPUTS + 1],
       m.treeCursor[id],
+      m.fuelItem[id],
+      m.fuelEnergy[id],
+      m.drawFull[id],
     );
     const tl = m.treeLists[id];
     if (tl) treeLists.push([id, ...tl]);
@@ -130,6 +138,7 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
     machines: {
       crafters: [...m.crafters],
       extractors: [...m.extractors],
+      burners: [...m.burners],
       data,
       treeLists,
       delivered: m.delivered,
@@ -141,7 +150,37 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
 // ------------------------------------------------------------------ Laden
 
 /** Migrationen: Eintrag `n` macht aus einem Spielstand der Version n einen der Version n + 1. */
-const MIGRATIONS: Record<number, (data: Record<string, unknown>) => Record<string, unknown>> = {};
+const MIGRATIONS: Record<number, (data: Record<string, unknown>) => Record<string, unknown>> = {
+  1: migrate1to2,
+};
+
+/**
+ * Version 1 → 2 (Phase 5, Strom): Fortschritt wird in Tausendstel-Ticks gezählt, damit Maschinen
+ * bei Strommangel langsamer laufen können; je Maschine kommen Brennstoff-Art, Brennstoff-Energie
+ * und Stromverbrauch hinzu; es gibt eine Liste der Brenner.
+ */
+function migrate1to2(d: Record<string, unknown>): Record<string, unknown> {
+  const machines = d.machines as Record<string, unknown> | undefined;
+  const buildings = d.buildings as { list?: unknown } | undefined;
+  if (!machines || !Array.isArray(machines.data) || !Array.isArray(buildings?.list)) {
+    throw new SaveError('damaged', 'Migration 1');
+  }
+  const list = buildings.list as number[];
+  const typeOf = new Map<number, number>();
+  for (let k = 0; k + 4 < list.length; k += 5) typeOf.set(list[k], list[k + 1]);
+  const old = machines.data as number[];
+  const next: number[] = [];
+  for (let k = 0; k + 10 < old.length; k += 11) {
+    const rec = old.slice(k, k + 11);
+    const kind = BUILDINGS[typeOf.get(rec[0]) ?? -1]?.behavior.kind;
+    const p = rec[2];
+    if (kind === 'crafter') rec[2] = p === 0 ? 0 : 1 + (p - 1) * 1000;
+    else rec[2] = p * 1000;
+    // Voller Stromverbrauch, wenn die Maschine gerade arbeitete (Zustand 1 = „Arbeitet“)
+    next.push(...rec, -1, 0, rec[3] === 1 ? 1 : 0);
+  }
+  return { ...d, machines: { ...machines, data: next, burners: [] } };
+}
 
 /** Prüft Grundform und Version und bringt ältere Spielstände auf den aktuellen Stand. */
 export function migrate(raw: unknown): SaveData {
@@ -188,6 +227,7 @@ function validate(d: Record<string, unknown>): void {
     obj(d.machines) &&
     nums(d.machines.crafters) &&
     nums(d.machines.extractors) &&
+    nums(d.machines.burners) &&
     nums(d.machines.data) &&
     Array.isArray(d.machines.treeLists) &&
     (d.machines.treeLists as unknown[]).every(nums) &&
@@ -261,6 +301,8 @@ function restore(d: SaveData): Simulation {
   m.crafters.push(...d.machines.crafters);
   m.extractors.length = 0;
   m.extractors.push(...d.machines.extractors);
+  m.burners.length = 0;
+  m.burners.push(...d.machines.burners);
   const md = d.machines.data;
   for (let k = 0; k < md.length; k += MACHINE_FIELDS) {
     const id = md[k];
@@ -275,6 +317,9 @@ function restore(d: SaveData): Simulation {
     m.outBuf[id * MAX_RECIPE_OUTPUTS] = md[k + 8];
     m.outBuf[id * MAX_RECIPE_OUTPUTS + 1] = md[k + 9];
     m.treeCursor[id] = md[k + 10];
+    m.fuelItem[id] = md[k + 11];
+    m.fuelEnergy[id] = md[k + 12];
+    m.drawFull[id] = md[k + 13];
   }
   for (const [id, ...tiles] of d.machines.treeLists) m.treeLists[id] = Int32Array.from(tiles);
   m.delivered = d.machines.delivered;

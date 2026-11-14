@@ -4,6 +4,7 @@ import type { CameraRig } from '../render/camera-rig';
 export interface HotkeyHandlers {
   toggleDebug(): void;
   togglePause(): void;
+  togglePowerView(): void;
 }
 
 const PAN_KEYS: Readonly<Record<string, readonly [number, number]>> = {
@@ -70,6 +71,9 @@ export class InputController {
       case 'Space':
         e.preventDefault();
         this.hotkeys.togglePause();
+        break;
+      case 'KeyV':
+        this.hotkeys.togglePowerView();
         break;
       case 'KeyQ':
         this.rig.rotate(-1);

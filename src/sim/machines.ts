@@ -1,7 +1,7 @@
-import { MACHINES, TREES } from '../data/balance';
+import { MACHINES, POWER, TREES } from '../data/balance';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
 import { SIM_CONFIG } from '../data/config';
-import { ITEM_ID, type ItemAmount } from '../data/items';
+import { ITEMS, ITEM_ID, type ItemAmount } from '../data/items';
 import {
   MAX_RECIPE_INPUTS,
   MAX_RECIPE_OUTPUTS,
@@ -12,6 +12,7 @@ import {
 } from '../data/recipes';
 import { DEPOSITS, PURITY, TileType } from '../data/world';
 import type { BeltSystem } from './belts';
+import type { PowerSystem } from './power';
 import {
   DIR_X,
   DIR_Y,
@@ -37,6 +38,7 @@ export const MachineState = {
 export type MachineState = (typeof MachineState)[keyof typeof MachineState];
 
 const off = { x: 0, y: 0 };
+const SCALE = POWER.scale;
 const WOOD = ITEM_ID[TREES.item];
 
 /**
@@ -61,9 +63,17 @@ export class MachineSystem {
   /** Holzfäller: Bäume in Reichweite und aktueller Baum. */
   readonly treeLists: (Int32Array | null)[] = [];
   treeCursor = new Int32Array(0);
+  /** Brenner: Art des Brennstoffs im Puffer (Menge in `inBuf[id*2]`) und verbleibende Energie in J. */
+  fuelItem = new Int16Array(0);
+  fuelEnergy = new Int32Array(0);
+  /** Hat im letzten Tick voll gearbeitet (zieht vollen Strom, sonst 10 %). */
+  drawFull = new Uint8Array(0);
+  /** Braucht Strom (1) oder läuft immer (0). */
+  needsPower = new Uint8Array(0);
 
   readonly crafters: number[] = [];
   readonly extractors: number[] = [];
+  readonly burners: number[] = [];
   /** Gelieferte Items je Typ (für Statistik und Tests). */
   delivered = 0;
 
@@ -80,7 +90,16 @@ export class MachineSystem {
   setBelts(belts: BeltSystem): void {
     this.belts = belts;
   }
+  setPower(power: PowerSystem): void {
+    this.power = power;
+  }
   private belts!: BeltSystem;
+  private power!: PowerSystem;
+
+  /** Tempo (0..1000) einer Maschine nach Stromversorgung. */
+  private speedOf(id: number): number {
+    return this.needsPower[id] ? this.power.factorOf(id) : SCALE;
+  }
 
   // ---------------------------------------------------------------- Lebenszyklus
 
@@ -94,6 +113,10 @@ export class MachineSystem {
     this.inBuf.fill(0, id * MAX_RECIPE_INPUTS, (id + 1) * MAX_RECIPE_INPUTS);
     this.outBuf.fill(0, id * MAX_RECIPE_OUTPUTS, (id + 1) * MAX_RECIPE_OUTPUTS);
     this.treeLists[id] = null;
+    this.fuelItem[id] = -1;
+    this.fuelEnergy[id] = 0;
+    this.drawFull[id] = 0;
+    this.needsPower[id] = def.power > 0 ? 1 : 0;
     this.setupOutput(id, def);
     this.setState(id, MachineState.Idle);
 
@@ -103,6 +126,9 @@ export class MachineSystem {
     } else if (b.kind === 'miner') {
       this.setupMiner(id, def, b.itemsPerMinute);
       this.extractors.push(id);
+    } else if (b.kind === 'burner') {
+      this.burners.push(id);
+      this.setState(id, MachineState.WaitingInput);
     } else if (b.kind === 'lumberjack') {
       this.extractItem[id] = WOOD;
       this.extractTicks[id] = Math.round((60 * SIM_CONFIG.ticksPerSecond) / b.itemsPerMinute);
@@ -121,6 +147,10 @@ export class MachineSystem {
       remove(this.crafters, id);
       const r = this.recipe[id];
       if (r >= 0) this.collectBuffers(id, r, result);
+    } else if (kind === 'burner') {
+      remove(this.burners, id);
+      const n = this.inBuf[id * MAX_RECIPE_INPUTS];
+      if (n > 0 && this.fuelItem[id] >= 0) result.push({ item: this.fuelItem[id], amount: n });
     } else if (kind === 'miner' || kind === 'lumberjack') {
       remove(this.extractors, id);
       const n = this.outBuf[id * MAX_RECIPE_OUTPUTS];
@@ -162,6 +192,7 @@ export class MachineSystem {
       this.delivered++;
       return true;
     }
+    if (b.kind === 'burner') return this.addFuel(id, item, 1, b.fuelBuffer) === 1;
     if (b.kind !== 'crafter') return false;
     let r = this.recipe[id];
     if (r < 0) {
@@ -179,6 +210,21 @@ export class MachineSystem {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Legt Brennstoff in einen Brenner. Gibt die angenommene Menge zurück.
+   * Ein Brenner fasst immer nur eine Brennstoffart gleichzeitig.
+   */
+  addFuel(id: number, item: number, amount: number, limit: number): number {
+    if (ITEMS[item].fuelValue <= 0) return 0;
+    const slot = id * MAX_RECIPE_INPUTS;
+    if (this.inBuf[slot] > 0 && this.fuelItem[id] !== item) return 0;
+    const n = Math.max(0, Math.min(amount, limit - this.inBuf[slot]));
+    if (n === 0) return 0;
+    this.inBuf[slot] += n;
+    this.fuelItem[id] = item;
+    return n;
   }
 
   private autoRecipe(machine: string, item: number): number {
@@ -202,21 +248,25 @@ export class MachineSystem {
     for (let n = 0; n < this.extractors.length; n++) {
       const id = this.extractors[n];
       const slot = id * MAX_RECIPE_OUTPUTS;
+      const speed = this.speedOf(id);
+      const full = this.extractTicks[id] * SCALE;
       let working = false;
       if (this.outBuf[slot] >= MACHINES.extractorBuffer) {
         this.setState(id, MachineState.OutputBlocked);
       } else if (this.extractItem[id] < 0) {
         this.setState(id, MachineState.WaitingInput);
+      } else if (speed === 0) {
+        this.setState(id, MachineState.NoPower);
       } else {
-        this.progress[id]++;
+        this.progress[id] += speed;
         working = true;
-        if (this.progress[id] >= this.extractTicks[id]) {
+        if (this.progress[id] >= full) {
           if (this.treeLists[id] === null || this.chopTree(id)) {
             this.outBuf[slot]++;
-            this.progress[id] = 0;
+            this.progress[id] -= full;
             this.setState(id, MachineState.Working);
           } else {
-            this.progress[id] = this.extractTicks[id];
+            this.progress[id] = full;
             working = false;
             this.setState(id, MachineState.WaitingInput);
           }
@@ -224,7 +274,8 @@ export class MachineSystem {
           this.setState(id, MachineState.Working);
         }
       }
-      this.utilization[id] += ((working ? 1 : 0) - this.utilization[id]) * smooth;
+      this.drawFull[id] = working ? 1 : 0;
+      this.utilization[id] += ((working ? speed / SCALE : 0) - this.utilization[id]) * smooth;
       this.pushOutput(id);
     }
 
@@ -232,17 +283,23 @@ export class MachineSystem {
     for (let n = 0; n < this.crafters.length; n++) {
       const id = this.crafters[n];
       const r = this.recipe[id];
+      const speed = this.speedOf(id);
       let working = false;
       if (r < 0) {
         this.setState(id, MachineState.NoRecipe);
       } else if (this.progress[id] > 0) {
-        // progress läuft von 1 (Start) bis Dauer + 1 (fertig): genau `Dauer` Ticks pro Durchlauf
-        if (this.progress[id] <= RECIPE_TICKS[r]) {
-          this.progress[id]++;
-          working = true;
-          this.setState(id, MachineState.Working);
+        // progress: 1 beim Start, dann + Tempo je Tick; fertig über Dauer × 1000
+        const full = RECIPE_TICKS[r] * SCALE;
+        if (this.progress[id] <= full) {
+          if (speed === 0) {
+            this.setState(id, MachineState.NoPower);
+          } else {
+            this.progress[id] += speed;
+            working = true;
+            this.setState(id, MachineState.Working);
+          }
         }
-        if (this.progress[id] > RECIPE_TICKS[r]) {
+        if (this.progress[id] > full) {
           if (this.hasOutputSpace(id, r)) {
             const outs = RECIPE_OUTPUTS[r];
             for (let j = 0; j < outs.length; j++)
@@ -258,17 +315,22 @@ export class MachineSystem {
         if (!this.hasOutputSpace(id, r)) {
           this.setState(id, MachineState.OutputBlocked);
         } else if (this.hasInputs(id, r)) {
-          const ins = RECIPE_INPUTS[r];
-          for (let j = 0; j < ins.length; j++)
-            this.inBuf[id * MAX_RECIPE_INPUTS + j] -= ins[j].amount;
-          this.progress[id] = 1;
-          working = true;
-          this.setState(id, MachineState.Working);
+          if (speed === 0) {
+            this.setState(id, MachineState.NoPower);
+          } else {
+            const ins = RECIPE_INPUTS[r];
+            for (let j = 0; j < ins.length; j++)
+              this.inBuf[id * MAX_RECIPE_INPUTS + j] -= ins[j].amount;
+            this.progress[id] = 1;
+            working = true;
+            this.setState(id, MachineState.Working);
+          }
         } else if (!working) {
           this.setState(id, MachineState.WaitingInput);
         }
       }
-      this.utilization[id] += ((working ? 1 : 0) - this.utilization[id]) * smooth;
+      this.drawFull[id] = working ? 1 : 0;
+      this.utilization[id] += ((working ? speed / SCALE : 0) - this.utilization[id]) * smooth;
       this.pushOutput(id);
     }
   }
@@ -327,7 +389,7 @@ export class MachineSystem {
     return false;
   }
 
-  private setState(id: number, s: MachineState): void {
+  setState(id: number, s: MachineState): void {
     if (this.state[id] === s) return;
     this.state[id] = s;
     this.stateSince[id] = this.tick;
@@ -433,6 +495,10 @@ export class MachineSystem {
     this.outTile = grow(this.outTile, cap);
     this.outDir = grow(this.outDir, cap);
     this.treeCursor = grow(this.treeCursor, cap);
+    this.fuelItem = grow(this.fuelItem, cap);
+    this.fuelEnergy = grow(this.fuelEnergy, cap);
+    this.drawFull = grow(this.drawFull, cap);
+    this.needsPower = grow(this.needsPower, cap);
     this.cap = cap;
   }
 }

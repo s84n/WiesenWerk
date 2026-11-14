@@ -30,7 +30,7 @@ export class StatusIcons {
     this.last = now;
     const ms = sim.machines;
     let n = 0;
-    for (const list of [ms.crafters, ms.extractors]) {
+    for (const list of [ms.crafters, ms.extractors, ms.burners]) {
       for (let k = 0; k < list.length; k++) {
         const id = list[k];
         const s = ms.state[id];
@@ -50,7 +50,9 @@ export class StatusIcons {
             ? PALETTE.hintBad
             : s === MachineState.NoRecipe
               ? PALETTE.hintIdle
-              : PALETTE.hintWait,
+              : s === MachineState.NoPower
+                ? PALETTE.hintPower
+                : PALETTE.hintWait,
         );
         this.mesh.setColorAt(n, col);
         n++;
