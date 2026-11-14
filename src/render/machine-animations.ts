@@ -65,8 +65,8 @@ const ROUTES: Record<string, readonly Route[]> = {
   furnace: [
     {
       points: [
-        [0.75, 1.2],
-        [-0.1, 1.05],
+        [0.8, 1.2],
+        [0.15, 1.08],
       ],
       carryOut: 'crate',
       cycle: 6,
@@ -88,8 +88,8 @@ const ROUTES: Record<string, readonly Route[]> = {
   workshop: [
     {
       points: [
-        [-0.35, 0.95],
-        [0.85, 1.2],
+        [0.2, 1.08],
+        [0.9, 1.2],
       ],
       carryOut: 'plank',
       cycle: 7,
@@ -121,8 +121,8 @@ const ROUTES: Record<string, readonly Route[]> = {
   storage: [
     {
       points: [
-        [0, 0.95],
-        [0.85, 1.15],
+        [0.3, 1.08],
+        [0.9, 1.15],
       ],
       carryOut: 'crate',
       cycle: 6,
@@ -380,7 +380,8 @@ export class MachineAnimations {
     const list = ms.treeLists[id];
     const size = sim.world.size;
     // Tür der Hütte (vorne links, gedreht mit dem Gebäude)
-    const home = v.set(-0.3, 0, 1.15).applyMatrix4(mB);
+    // Start- und Wartepunkt rechts vorne – der Ausgang liegt links vorne, dort liegt das Band
+    const home = v.set(0.7, 0, 1.2).applyMatrix4(mB);
     const hx = home.x;
     const hz = home.z;
     const seed = hash3Float(id, 5, 17);
@@ -396,8 +397,10 @@ export class MachineAnimations {
       }
       if (tree < 0) {
         // Pause vor der Hütte
-        pos.set(hx + (w - 0.5) * 0.3, 0, hz + 0.15);
-        q.setFromAxisAngle(UP, 0);
+        // Pause neben der Hütte (nicht auf dem Band vor dem Ausgang)
+        v.set(1.25, 0, 0.6 - w * 0.45).applyMatrix4(mB);
+        pos.set(v.x, 0, v.z);
+        q.setFromAxisAngle(UP, (-sim.buildings.rot[id] * Math.PI) / 2);
         scl.set(WORKER_SCALE, WORKER_SCALE, WORKER_SCALE);
         this.figures.get('axe')!.push(m.compose(pos, q, scl));
         continue;

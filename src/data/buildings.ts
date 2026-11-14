@@ -87,7 +87,8 @@ export const BUILDINGS: readonly BuildingDef[] = [
   },
   {
     key: 'lumberjack',
-    power: 5,
+    // Muskelkraft: braucht keinen Strom, damit Holz (Brennstoff der Brenner) ohne Strom entsteht
+    power: 0,
     size: [2, 2],
     category: 'extraction',
     cost: { wood: 10, stone: 5 },

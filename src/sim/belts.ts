@@ -133,6 +133,42 @@ export class Segment {
     return true;
   }
 
+  /**
+   * Fügt ein Item an Position `pos` (Einheiten ab Anfang) ein, wenn vor und hinter ihm genug
+   * Abstand ist (Gebäude legt seitlich auf ein vorbeilaufendes Band). Rückgabe: geklappt?
+   */
+  insertAt(item: number, pos: number): boolean {
+    if (this.count >= this.capacity) return false;
+    // Items vor der Stelle überspringen (Positionen werden nach hinten kleiner)
+    let cum = 0;
+    let k = 0;
+    for (; k < this.count; k++) {
+      const g = this.gaps[this.ring(k)];
+      if (this.lengthUnits - (cum + g) < pos) break;
+      cum += g;
+    }
+    const ahead = this.lengthUnits - cum - pos; // Abstand zum Item davor bzw. zum Ende
+    if (ahead < 0 || (k > 0 && ahead < SPACING)) return false;
+    const hasBehind = k < this.count;
+    let behind = 0;
+    if (hasBehind) {
+      behind = this.gaps[this.ring(k)] - ahead;
+      if (behind < SPACING) return false;
+    }
+    // Items dahinter im Ringpuffer um eins nach hinten schieben
+    for (let j = this.count; j > k; j--) {
+      this.gaps[this.ring(j)] = this.gaps[this.ring(j - 1)];
+      this.items[this.ring(j)] = this.items[this.ring(j - 1)];
+    }
+    this.gaps[this.ring(k)] = ahead;
+    this.items[this.ring(k)] = item;
+    if (hasBehind) this.gaps[this.ring(k + 1)] = behind;
+    else this.total += ahead;
+    this.count++;
+    this.active = 0;
+    return true;
+  }
+
   /** Position (Einheiten ab Anfang) des k-ten Items von vorne. */
   positionOf(k: number): number {
     let d = 0;
@@ -413,21 +449,25 @@ export class BeltSystem {
 
   /**
    * Legt ein Item von einem Gebäudeausgang auf das Band am Feld `tile`.
-   * `dir` = Richtung vom Gebäude zum Band. Klappt nur am Anfang eines Segments.
+   * `dir` = Richtung vom Gebäude zum Band. Beginnt das Band dort, kommt das Item an den Anfang;
+   * läuft es vorbei, wird es seitlich in die Feldmitte eingefädelt, sobald dort Platz ist.
+   * Ein Band, das ins Gebäude zeigt, nimmt nichts an. Rückgabe: angenommen?
    */
-  insertFromBuilding(tile: number, dir: number): Segment | null {
-    if (tile < 0) return null;
+  insertFromBuilding(tile: number, dir: number, item: number): boolean {
+    if (tile < 0) return false;
     const id = this.tileSegment[tile];
-    if (id < 0) return null;
+    if (id < 0) return false;
     const seg = this.segments[id]!;
-    if (seg.cyclic || seg.tiles[0] !== tile || seg.dirs[0] === ((dir + 2) & 3)) return null;
-    return seg.canInsert() ? seg : null;
-  }
-
-  /** Legt ein Item an den Anfang eines Segments (nach `insertFromBuilding`). */
-  push(seg: Segment, item: number): void {
-    seg.insert(item);
+    const i = this.tileIndex[tile];
+    if (seg.dirs[i] === ((dir + 2) & 3)) return false;
+    if (i === 0 && !seg.cyclic) {
+      if (!seg.canInsert()) return false;
+      seg.insert(item);
+    } else if (!seg.insertAt(item, i * UNIT + UNIT / 2)) {
+      return false;
+    }
     this.itemCount++;
+    return true;
   }
 
   /** Ein Tick: Items bewegen und am Ende abgeben. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ITEM_ID } from '../src/data/items';
-import { B, belt, build, line, makePoweredSim as makeSim, run } from './helpers';
+import { B, belt, build, line, makePoweredSim as makeSim, run, setDeposit } from './helpers';
 
 const ORE = ITEM_ID.copperOre;
 
@@ -152,14 +152,36 @@ describe('Gebäude und Bänder', () => {
     expect(perMinute).toBeLessThanOrEqual(31);
   });
 
-  it('legt keine Items mitten auf ein Band und nicht auf ein Band, das ins Gebäude zeigt', () => {
+  it('legt Items seitlich auf ein vorbeilaufendes Band, aber nicht auf eines, das ins Gebäude zeigt', () => {
     const sim = makeSim();
     belt(sim, line(5, 2, 2, 5)); // (5,2)–(5,6) nach Süden
     const middle = sim.world.index(5, 4);
-    expect(sim.belts.insertFromBuilding(middle, 1)).toBeNull();
+    expect(sim.belts.insertFromBuilding(middle, 1, ORE)).toBe(true); // seitlich in die Feldmitte
+    expect(sim.belts.insertFromBuilding(middle, 1, ORE)).toBe(false); // dort ist schon ein Item
+    const seg = sim.belts.segments[sim.belts.tileSegment[middle]]!;
+    expect(seg.count).toBe(1);
+    expect(seg.positionOf(0)).toBe(2 * 120 + 60);
     const start = sim.world.index(5, 2);
-    expect(sim.belts.insertFromBuilding(start, 0)).toBeNull(); // Band zeigt Richtung Gebäude
-    expect(sim.belts.insertFromBuilding(start, 2)).not.toBeNull();
+    expect(sim.belts.insertFromBuilding(start, 0, ORE)).toBe(false); // Band zeigt Richtung Gebäude
+    expect(sim.belts.insertFromBuilding(start, 2, ORE)).toBe(true);
+    expect(sim.belts.itemCount).toBe(2);
+    // eingefädelte Items fahren normal weiter und halten Abstand
+    run(sim, 400);
+    expect(seg.count).toBe(2);
+    expect(seg.gaps[seg.ring(1)]).toBeGreaterThanOrEqual(60);
+  });
+
+  it('Bergwerk liefert auch auf ein Band, das an seinem Ausgang vorbeiläuft', () => {
+    const sim = makeSim(48);
+    for (let y = 4; y < 6; y++) for (let x = 4; x < 6; x++) setDeposit(sim, x, y);
+    build(sim, B.miner, 4, 4); // Ausgang unter (4,5), also auf Feld (4,6)
+    belt(sim, line(1, 6, 1, 10)); // läuft von (1,6) nach Osten an (4,6) vorbei
+    belt(sim, line(11, 6, 2, 3));
+    build(sim, B.hq, 10, 9);
+    run(sim, 1200); // Anlaufen (Fahrzeit auf dem Band)
+    const before = sim.inventory.get(ORE);
+    run(sim, 1200); // eine Minute: volle 30 Erz
+    expect(sim.inventory.get(ORE) - before).toBeGreaterThanOrEqual(29);
   });
 
   it('ist deterministisch: gleiche Befehle ergeben gleichen Zustand', () => {

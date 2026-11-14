@@ -421,10 +421,8 @@ export class MachineSystem {
     for (let j = 0; j < slots; j++) {
       const slot = id * MAX_RECIPE_OUTPUTS + j;
       if (this.outBuf[slot] === 0) continue;
-      const seg = this.belts.insertFromBuilding(tile, this.outDir[id]);
-      if (!seg) return;
       const item = r >= 0 ? RECIPE_OUTPUTS[r][j].item : this.extractItem[id];
-      this.belts.push(seg, item);
+      if (!this.belts.insertFromBuilding(tile, this.outDir[id], item)) return;
       this.outBuf[slot]--;
       return;
     }

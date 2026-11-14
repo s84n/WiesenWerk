@@ -29,7 +29,8 @@ export const TEXTS = {
     hq: { name: 'Zentrale', description: 'Herz deiner Fabrik. Gelieferte Items landen im Vorrat.' },
     lumberjack: {
       name: 'Holzfäller',
-      description: 'Fällt Bäume in der Umgebung. Bäume wachsen nach.',
+      description:
+        'Seine Leute fällen Bäume in der Umgebung – mit Muskelkraft, ganz ohne Strom. Bäume wachsen nach.',
     },
     miner: {
       name: 'Bergwerk',
@@ -303,7 +304,12 @@ export const TEXTS = {
     decor: 'Rein zur Verschönerung.',
     tier: (n: number) => `Stufe ${n}`,
     upgrade: 'Auf Stufe 2 aufwerten',
-    upgradeHint: 'Doppeltes Tempo, doppelter Stromverbrauch.',
+    upgradeHint: 'Doppeltes Tempo (Bergwerk: doppelter Stromverbrauch).',
+    blockedNoBelt:
+      'Am Ausgang (oranger Pfeil) liegt kein Band. Zieh ein Band von dort zur Zentrale.',
+    blockedWrongWay:
+      'Das Band am Ausgang läuft auf das Gebäude zu. Dreh es um (neu darüberziehen).',
+    blockedFull: 'Das Band am Ausgang ist voll. Führt es zur Zentrale oder zu einer Maschine?',
     upgradeLocked: 'Mit der Forschung „Tiefbau“ lässt sich das Gebäude auf Stufe 2 aufwerten.',
   },
 

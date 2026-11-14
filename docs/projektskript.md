@@ -128,7 +128,7 @@ Die erste Version enthält 15 Gebäudetypen plus Dekoration. Jedes Gebäude bele
 | Gebäude | Größe | Strom | Funktion | Anschlüsse |
 | --- | --- | --- | --- | --- |
 | Zentrale | 3 × 3 | Keiner | Nimmt Items in den globalen Vorrat auf. Genau eine pro Welt, zu Beginn frei platzierbar. | 4 Eingänge |
-| Holzfäller | 2 × 2 | 5 kW | Fällt Bäume im Umkreis von 4 Feldern, 30 Holz pro Minute. Bäume wachsen nach. | 1 Ausgang |
+| Holzfäller | 2 × 2 | Keiner (geändert, siehe unten) | Fällt Bäume im Umkreis von 4 Feldern, 30 Holz pro Minute. Bäume wachsen nach. | 1 Ausgang |
 | Bergwerk | 2 × 2 | 5 kW | Steht auf einem Vorkommen, 30 Items pro Minute mal Reinheit | 1 Ausgang |
 | Schmelzofen | 2 × 2 | 4 kW | Rezepte mit einem Eingang, Hitze | 1 Eingang, 1 Ausgang |
 | Werkstatt | 2 × 2 | 4 kW | Rezepte mit einem Eingang, Mechanik | 1 Eingang, 1 Ausgang |
@@ -181,6 +181,8 @@ Die erste Version enthält 15 Gebäudetypen plus Dekoration. Jedes Gebäude bele
 | Dekoration | 1 bis 5 Bretter oder Steinziegel |
 
 **Strombilanz:** Ein Biomassebrenner (30 kW) verbraucht bei voller Last 15 Holz pro Minute. Ein Holzfäller versorgt also zwei Brenner. Eine einfache Linie aus Bergwerk, Schmelzofen und Werkstatt braucht 13 kW, ein Brenner trägt zwei solche Linien. Holzkohle liefert aus derselben Holzmenge 50 Prozent mehr Energie.
+
+**Änderung nach Phase 6 (Wunsch des Auftraggebers):** Der Holzfäller braucht keinen Strom (Muskelkraft). Sonst bräuchte man Strom, um Holz zu bekommen, das man erst für Strom verbrennt. So ist die Reihenfolge schlüssig: Holzfäller → Holz → Brenner → Strom für Bergwerk und Maschinen. Stufe 2 verdoppelt beim Holzfäller nur das Tempo.
 
 ## 6. Logistik: Förderbänder
 
@@ -256,7 +258,7 @@ Fortschritt entsteht über einen Forschungsbaum, dessen Knoten mit Items aus dem
 | Antriebe | Rezepte Motor und Steuereinheit | Elektronik | 50 Leiterplatten, 50 Baurahmen |
 | Fernleitung | Großer Strommast | Windkraft, Antriebe | 40 Spulen, 20 Motoren |
 | Logistik III | Förderband Mk3 | Logistik II, Antriebe | 60 Motoren, 40 Steuereinheiten |
-| Tiefbau | Bergwerk und Holzfäller Stufe 2 (doppeltes Tempo, doppelter Strom) | Antriebe | 80 Motoren |
+| Tiefbau | Bergwerk und Holzfäller Stufe 2 (doppeltes Tempo, beim Bergwerk doppelter Strom) | Antriebe | 80 Motoren |
 | Verschönerung II | Zäune, Bänke, Zierbäume, farbige Wege | Verschönerung I, Manufaktur | 100 Steinziegel, 20 Baurahmen |
 
 **Wiederholbare Upgrades (nach Antriebe verfügbar, Grundkosten 50 Motoren und 50 Steuereinheiten, je Stufe 50 Prozent mehr):**

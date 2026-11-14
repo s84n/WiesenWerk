@@ -217,10 +217,7 @@ export class LogisticsSystem {
 
   private tryOutput(id: number, out: number, item: number): boolean {
     const i = id * MAX_PORTS + out;
-    const seg = this.belts.insertFromBuilding(this.outTile[i], this.outDir[i]);
-    if (!seg) return false;
-    this.belts.push(seg, item);
-    return true;
+    return this.belts.insertFromBuilding(this.outTile[i], this.outDir[i], item);
   }
 
   private ensureCapacity(cap: number): void {

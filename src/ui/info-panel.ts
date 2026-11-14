@@ -14,6 +14,7 @@ import { TEXTS } from '../data/texts';
 import type { ToolController } from '../input/tools';
 import { footprintH, footprintW } from '../sim/buildings';
 import { MAX_PORTS } from '../sim/logistics';
+import { MachineState } from '../sim/machines';
 
 import type { Simulation } from '../sim/simulation';
 import { el, formatNumber, hex, itemIcon, itemName } from './dom';
@@ -144,10 +145,17 @@ export class InfoPanel {
         : b.kind === 'wind'
           ? TEXTS.info.windStates
           : TEXTS.info.states;
+    // Bei blockiertem Ausgang: woran es liegt
+    const blockedHint = el('p', 'info-text warn');
+    blockedHint.style.display = 'none';
+    this.body.append(blockedHint);
     this.updaters.push((s) => {
       const st = s.machines.state[id];
       dot.className = `state-dot ${STATE_CLASS[st]}`;
       stateText.textContent = states[st];
+      const hint = st === MachineState.OutputBlocked ? blockedReason(s, id) : '';
+      blockedHint.textContent = hint;
+      blockedHint.style.display = hint ? '' : 'none';
     });
 
     if (b.kind === 'burner') this.buildBurner(sim, id, b.fuelBuffer, b.powerKW);
@@ -518,6 +526,17 @@ export class InfoPanel {
         best = Math.max(best, sim.world.purity[sim.world.index(x, y)]);
     return best;
   }
+}
+
+/** Warum der Ausgang blockiert ist: kein Band, falsche Richtung oder volles Band. */
+function blockedReason(sim: Simulation, id: number): string {
+  const tile = sim.machines.outTile[id];
+  if (tile < 0) return '';
+  const seg = sim.belts.tileSegment[tile];
+  if (seg < 0) return TEXTS.info.blockedNoBelt;
+  const dir = sim.belts.segments[seg]!.dirs[sim.belts.tileIndex[tile]];
+  if (dir === ((sim.machines.outDir[id] + 2) & 3)) return TEXTS.info.blockedWrongWay;
+  return TEXTS.info.blockedFull;
 }
 
 function amountChip(item: number, amount: number): HTMLElement {
