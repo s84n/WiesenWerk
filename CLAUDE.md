@@ -127,13 +127,13 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 
 ## Stand der Phasen
 
-| Phase                         | Stand                                                                                                                       |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 0. Fundament                  | Umgesetzt und lokal geprüft. GitHub Pages wird auf Wunsch des Auftraggebers erst später eingerichtet.                       |
-| 1. Welt und Kamera            | Abgenommen (Auftraggeber: „Sieht gut aus“).                                                                                 |
-| 2. Bauen und Vorrat           | Abgenommen (Auftraggeber: „mache mit der nächsten Phase weiter“).                                                           |
-| 3. Produktion und Bänder      | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                    |
-| 4. Speichern                  | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                    |
-| 5. Strom                      | Abgenommen (Auftraggeber: „Go“, testet parallel eine eingefrorene Testversion).                                             |
+| Phase                         | Stand                                                                                                                                  |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 0. Fundament                  | Umgesetzt und lokal geprüft. GitHub Pages wird auf Wunsch des Auftraggebers erst später eingerichtet.                                  |
+| 1. Welt und Kamera            | Abgenommen (Auftraggeber: „Sieht gut aus“).                                                                                            |
+| 2. Bauen und Vorrat           | Abgenommen (Auftraggeber: „mache mit der nächsten Phase weiter“).                                                                      |
+| 3. Produktion und Bänder      | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                               |
+| 4. Speichern                  | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                               |
+| 5. Strom                      | Abgenommen (Auftraggeber: „Go“, testet parallel eine eingefrorene Testversion).                                                        |
 | 6. Forschung und Ausbau       | Umgesetzt; Abnahme automatisch (`tests/research.test.ts`: Erreichbarkeit des ganzen Baums) und im Browser geprüft. Wartet auf Abnahme. |
-| 7. Atmosphäre und Feinschliff | offen                                                                                                                       |
+| 7. Atmosphäre und Feinschliff | offen                                                                                                                                  |
