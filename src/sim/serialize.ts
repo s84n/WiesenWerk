@@ -1,9 +1,11 @@
 import { TREES } from '../data/balance';
 import { BUILDINGS } from '../data/buildings';
+import { GOALS } from '../data/goals';
 import { ITEM_COUNT } from '../data/items';
 import { MAX_RECIPE_INPUTS, MAX_RECIPE_OUTPUTS } from '../data/recipes';
 import { TileType } from '../data/world';
 import { footprintH, footprintW } from './buildings';
+import { LogisticsSystem, MAX_PORTS } from './logistics';
 import { Simulation } from './simulation';
 import { generateWorld } from './worldgen';
 
@@ -16,14 +18,16 @@ import { generateWorld } from './worldgen';
 
 export const SAVE_FORMAT = 'wiesenwerk';
 /** Bei jeder Änderung am Format erhöhen und eine Migration in `MIGRATIONS` ergänzen. */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 /**
  * Werte pro Maschine in `machines.data`:
  * id, Rezept, Fortschritt, Zustand, seit, Auslastung, Eingang 0/1, Ausgang 0/1, Baum-Zeiger,
- * Brennstoff-Art, Brennstoff-Energie, voller Stromverbrauch (ab Version 2).
+ * Brennstoff-Art, Brennstoff-Energie, voller Stromverbrauch (ab Version 2), Stufe 2 (ab Version 3).
  */
-const MACHINE_FIELDS = 14;
+const MACHINE_FIELDS = 15;
+/** Werte pro Logistik-Gebäude in `logistics.data`: id, Zeiger, Puffer 0..2. */
+const LOGISTICS_FIELDS = 2 + MAX_PORTS;
 
 export interface SaveMeta {
   name: string;
@@ -54,6 +58,17 @@ export interface SaveData {
     delivered: number;
   };
   belts: { free: number[]; segments: number[][] };
+  /** Ab Version 3. */
+  research: { done: string[]; levels: Record<string, number> };
+  logistics: {
+    /** Reihenfolge der Listen: Verteiler, Zusammenführer, Brücken, Lager. */
+    lists: number[][];
+    data: number[];
+    /** Lager: [id, Items in Reihenfolge …] */
+    storage: number[][];
+  };
+  stats: { built: number; produced: number[]; harvested: number[] };
+  goals: { done: string[]; hidden: boolean };
 }
 
 /** Verständlicher Fehler beim Laden. `code` wählt den Text in `TEXTS.save.errors`. */
@@ -88,10 +103,20 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
   const list: number[] = [];
   const data: number[] = [];
   const treeLists: number[][] = [];
+  const lg = sim.logistics;
+  const logData: number[] = [];
+  const storage: number[][] = [];
   for (let id = 0; id < b.highWater; id++) {
     if (!b.alive[id]) continue;
     list.push(id, b.type[id], b.x[id], b.y[id], b.rot[id]);
-    if (sim.isBelt(id)) continue;
+    const kind = BUILDINGS[b.type[id]].behavior.kind;
+    if (kind === 'belt' || kind === 'decor') continue;
+    if (LogisticsSystem.handles(kind)) {
+      logData.push(id, lg.cursor[id]);
+      for (let j = 0; j < MAX_PORTS; j++) logData.push(lg.buf[id * MAX_PORTS + j]);
+      if (kind === 'storage') storage.push([id, ...lg.storageItems(id)]);
+      continue;
+    }
     data.push(
       id,
       m.recipe[id],
@@ -107,6 +132,7 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
       m.fuelItem[id],
       m.fuelEnergy[id],
       m.drawFull[id],
+      m.upgraded[id],
     );
     const tl = m.treeLists[id];
     if (tl) treeLists.push([id, ...tl]);
@@ -144,6 +170,18 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
       delivered: m.delivered,
     },
     belts: { free: [...belts.freeSegmentIds], segments },
+    research: { done: sim.research.doneKeys(), levels: sim.research.levelMap() },
+    logistics: {
+      lists: [[...lg.splitters], [...lg.mergers], [...lg.bridges], [...lg.storages]],
+      data: logData,
+      storage,
+    },
+    stats: {
+      built: sim.stats.buildingsBuilt,
+      produced: Array.from(sim.stats.totalProduced),
+      harvested: Array.from(sim.stats.harvested),
+    },
+    goals: { done: sim.goals.doneKeys(), hidden: sim.goals.hidden },
   };
 }
 
@@ -152,7 +190,41 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
 /** Migrationen: Eintrag `n` macht aus einem Spielstand der Version n einen der Version n + 1. */
 const MIGRATIONS: Record<number, (data: Record<string, unknown>) => Record<string, unknown>> = {
   1: migrate1to2,
+  2: migrate2to3,
 };
+
+/**
+ * Version 2 → 3 (Phase 6, Forschung und Ausbau): je Maschine kommt die Stufe hinzu (alle 1);
+ * neu sind Forschung, Logistik-Gebäude, Statistik und die Aufgabenliste.
+ * Bisherige Spielstände haben das Startgebiet schon hinter sich: Die Sammel-Aufgaben gelten als
+ * erledigt, alle anderen prüft das Spiel beim nächsten Tick selbst.
+ */
+function migrate2to3(d: Record<string, unknown>): Record<string, unknown> {
+  const machines = d.machines as Record<string, unknown> | undefined;
+  const buildings = d.buildings as { list?: unknown } | undefined;
+  if (!machines || !Array.isArray(machines.data) || !Array.isArray(buildings?.list)) {
+    throw new SaveError('damaged', 'Migration 2');
+  }
+  const old = machines.data as number[];
+  const next: number[] = [];
+  for (let k = 0; k + 13 < old.length; k += 14) next.push(...old.slice(k, k + 14), 0);
+  const count = (buildings.list as number[]).length / 5;
+  return {
+    ...d,
+    machines: { ...machines, data: next },
+    research: { done: [], levels: {} },
+    logistics: { lists: [[], [], [], []], data: [], storage: [] },
+    stats: {
+      built: count,
+      produced: new Array<number>(ITEM_COUNT).fill(0),
+      harvested: new Array<number>(ITEM_COUNT).fill(0),
+    },
+    goals: {
+      done: count > 0 ? GOALS.filter((g) => g.condition.kind === 'harvest').map((g) => g.key) : [],
+      hidden: false,
+    },
+  };
+}
 
 /**
  * Version 1 → 2 (Phase 5, Strom): Fortschritt wird in Tausendstel-Ticks gezählt, damit Maschinen
@@ -234,7 +306,25 @@ function validate(d: Record<string, unknown>): void {
     obj(d.belts) &&
     nums(d.belts.free) &&
     Array.isArray(d.belts.segments) &&
-    (d.belts.segments as unknown[]).every(nums);
+    (d.belts.segments as unknown[]).every(nums) &&
+    obj(d.research) &&
+    Array.isArray(d.research.done) &&
+    d.research.done.every((k) => typeof k === 'string') &&
+    obj(d.research.levels) &&
+    obj(d.logistics) &&
+    Array.isArray(d.logistics.lists) &&
+    d.logistics.lists.length === 4 &&
+    (d.logistics.lists as unknown[]).every(nums) &&
+    nums(d.logistics.data) &&
+    Array.isArray(d.logistics.storage) &&
+    (d.logistics.storage as unknown[]).every(nums) &&
+    obj(d.stats) &&
+    num(d.stats.built) &&
+    nums(d.stats.produced) &&
+    nums(d.stats.harvested) &&
+    obj(d.goals) &&
+    Array.isArray(d.goals.done) &&
+    typeof d.goals.hidden === 'boolean';
   if (!ok) throw new SaveError('damaged', 'Aufbau');
 }
 
@@ -261,6 +351,8 @@ function restore(d: SaveData): Simulation {
 
   const sim = new Simulation(world);
   sim.tick = d.tick;
+  // Forschung zuerst: sie bestimmt, welche Rezepte und Tempo-Faktoren gelten
+  sim.research.restore(d.research.done, d.research.levels);
   sim.inventory.amounts.fill(0);
   for (let i = 0; i < Math.min(ITEM_COUNT, d.inventory.length); i++)
     sim.inventory.amounts[i] = d.inventory[i];
@@ -296,7 +388,12 @@ function restore(d: SaveData): Simulation {
   // Maschinen: Grunddaten neu berechnen, dann gespeicherten Zustand übernehmen
   const m = sim.machines;
   m.tick = d.tick;
-  for (let id = 0; id < b.highWater; id++) if (b.alive[id] && !sim.isBelt(id)) m.added(id);
+  const lg = sim.logistics;
+  for (let id = 0; id < b.highWater; id++) {
+    if (!b.alive[id] || sim.isBelt(id)) continue;
+    m.added(id);
+    lg.added(id);
+  }
   m.crafters.length = 0;
   m.crafters.push(...d.machines.crafters);
   m.extractors.length = 0;
@@ -320,9 +417,34 @@ function restore(d: SaveData): Simulation {
     m.fuelItem[id] = md[k + 11];
     m.fuelEnergy[id] = md[k + 12];
     m.drawFull[id] = md[k + 13];
+    m.upgraded[id] = md[k + 14];
   }
   for (const [id, ...tiles] of d.machines.treeLists) m.treeLists[id] = Int32Array.from(tiles);
   m.delivered = d.machines.delivered;
+
+  // Logistik: Listen in gespeicherter Reihenfolge, Puffer und Lagerinhalt
+  const lists = [lg.splitters, lg.mergers, lg.bridges, lg.storages];
+  d.logistics.lists.forEach((saved, i) => {
+    for (const id of saved) if (!b.alive[id]) throw new SaveError('damaged', 'Logistik');
+    lists[i].length = 0;
+    lists[i].push(...saved);
+  });
+  const ld = d.logistics.data;
+  for (let k = 0; k < ld.length; k += LOGISTICS_FIELDS) {
+    const id = ld[k];
+    if (!b.alive[id]) throw new SaveError('damaged', 'Logistik');
+    lg.cursor[id] = ld[k + 1];
+    for (let j = 0; j < MAX_PORTS; j++) lg.buf[id * MAX_PORTS + j] = ld[k + 2 + j];
+  }
+  for (const [id, ...items] of d.logistics.storage) lg.restoreStorage(id, items);
+
+  // Statistik und Aufgaben
+  sim.stats.buildingsBuilt = d.stats.built;
+  for (let i = 0; i < Math.min(ITEM_COUNT, d.stats.produced.length); i++)
+    sim.stats.totalProduced[i] = d.stats.produced[i];
+  for (let i = 0; i < Math.min(ITEM_COUNT, d.stats.harvested.length); i++)
+    sim.stats.harvested[i] = d.stats.harvested[i];
+  sim.goals.restore(d.goals.done, d.goals.hidden);
 
   // Bänder: Segmente neu bilden, IDs zuordnen, Items einsetzen
   const belts = sim.belts;

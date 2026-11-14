@@ -1,7 +1,7 @@
-import { MACHINES, POWER, TREES } from '../data/balance';
+import { EXTRACTOR_UPGRADE, MACHINES, POWER, TREES } from '../data/balance';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
 import { SIM_CONFIG } from '../data/config';
-import { ITEMS, ITEM_ID, type ItemAmount } from '../data/items';
+import { ITEMS, ITEM_ID, toAmounts, type ItemAmount } from '../data/items';
 import {
   MAX_RECIPE_INPUTS,
   MAX_RECIPE_OUTPUTS,
@@ -13,6 +13,8 @@ import {
 import { DEPOSITS, PURITY, TileType } from '../data/world';
 import type { BeltSystem } from './belts';
 import type { PowerSystem } from './power';
+import type { ResearchSystem } from './research';
+import type { StatsSystem } from './stats';
 import {
   DIR_X,
   DIR_Y,
@@ -40,6 +42,7 @@ export type MachineState = (typeof MachineState)[keyof typeof MachineState];
 const off = { x: 0, y: 0 };
 const SCALE = POWER.scale;
 const WOOD = ITEM_ID[TREES.item];
+const UPGRADE_COST = toAmounts(EXTRACTOR_UPGRADE.cost);
 
 /**
  * Alle produzierenden Gebäude: Abbau (Bergwerk, Holzfäller), Verarbeitung (Rezepte) und Zentrale.
@@ -70,10 +73,14 @@ export class MachineSystem {
   drawFull = new Uint8Array(0);
   /** Braucht Strom (1) oder läuft immer (0). */
   needsPower = new Uint8Array(0);
+  /** Bergwerk/Holzfäller auf Stufe 2 aufgewertet (1) oder nicht (0). */
+  upgraded = new Uint8Array(0);
 
   readonly crafters: number[] = [];
   readonly extractors: number[] = [];
   readonly burners: number[] = [];
+  /** Windräder (Reihenfolge spielt keine Rolle, wird nicht gespeichert). */
+  readonly winds: number[] = [];
   /** Gelieferte Items je Typ (für Statistik und Tests). */
   delivered = 0;
 
@@ -93,8 +100,14 @@ export class MachineSystem {
   setPower(power: PowerSystem): void {
     this.power = power;
   }
+  setResearch(research: ResearchSystem, stats: StatsSystem): void {
+    this.research = research;
+    this.stats = stats;
+  }
   private belts!: BeltSystem;
   private power!: PowerSystem;
+  private research!: ResearchSystem;
+  private stats!: StatsSystem;
 
   /** Tempo (0..1000) einer Maschine nach Stromversorgung. */
   private speedOf(id: number): number {
@@ -116,6 +129,7 @@ export class MachineSystem {
     this.fuelItem[id] = -1;
     this.fuelEnergy[id] = 0;
     this.drawFull[id] = 0;
+    this.upgraded[id] = 0;
     this.needsPower[id] = def.power > 0 ? 1 : 0;
     this.setupOutput(id, def);
     this.setState(id, MachineState.Idle);
@@ -129,6 +143,8 @@ export class MachineSystem {
     } else if (b.kind === 'burner') {
       this.burners.push(id);
       this.setState(id, MachineState.WaitingInput);
+    } else if (b.kind === 'wind') {
+      this.winds.push(id);
     } else if (b.kind === 'lumberjack') {
       this.extractItem[id] = WOOD;
       this.extractTicks[id] = Math.round((60 * SIM_CONFIG.ticksPerSecond) / b.itemsPerMinute);
@@ -147,6 +163,8 @@ export class MachineSystem {
       remove(this.crafters, id);
       const r = this.recipe[id];
       if (r >= 0) this.collectBuffers(id, r, result);
+    } else if (kind === 'wind') {
+      remove(this.winds, id);
     } else if (kind === 'burner') {
       remove(this.burners, id);
       const n = this.inBuf[id * MAX_RECIPE_INPUTS];
@@ -155,9 +173,42 @@ export class MachineSystem {
       remove(this.extractors, id);
       const n = this.outBuf[id * MAX_RECIPE_OUTPUTS];
       if (n > 0) result.push({ item: this.extractItem[id], amount: n });
+      // Abriss erstattet auch die Aufwertung
+      if (this.upgraded[id]) for (const a of UPGRADE_COST) result.push({ ...a });
     }
     this.treeLists[id] = null;
     return result;
+  }
+
+  /** Kann dieses Gebäude auf Stufe 2 aufgewertet werden (ohne Kosten zu prüfen)? */
+  canUpgrade(id: number): boolean {
+    const kind = BUILDINGS[this.store.type[id]].behavior.kind;
+    return (
+      (kind === 'miner' || kind === 'lumberjack') &&
+      this.upgraded[id] === 0 &&
+      this.research.extractorUpgrade
+    );
+  }
+
+  /** Wertet Bergwerk oder Holzfäller auf Stufe 2 auf (doppeltes Tempo, doppelter Strom). */
+  upgrade(id: number): boolean {
+    if (!this.canUpgrade(id) || !this.inventory.canAfford(UPGRADE_COST)) return false;
+    this.inventory.pay(UPGRADE_COST);
+    this.upgraded[id] = 1;
+    return true;
+  }
+
+  /** Abbau pro Minute (mit Stufe und Verbesserungen, bei vollem Strom). */
+  extractPerMinute(id: number): number {
+    if (this.extractItem[id] < 0) return 0;
+    const boost = this.extractBoost(id);
+    return (60 * SIM_CONFIG.ticksPerSecond * boost) / SCALE / this.extractTicks[id];
+  }
+
+  /** Tempo-Faktor (Tausendstel) für Abbau aus Stufe und Verbesserung. */
+  private extractBoost(id: number): number {
+    const tier = this.upgraded[id] ? EXTRACTOR_UPGRADE.speedFactor : 1;
+    return tier * this.research.extractorSpeed;
   }
 
   /** Wählt ein Rezept. Der bisherige Pufferinhalt geht in den Vorrat. */
@@ -165,6 +216,7 @@ export class MachineSystem {
     const def = BUILDINGS[this.store.type[id]];
     if (def.behavior.kind !== 'crafter') return false;
     if (recipe >= 0 && RECIPES[recipe]?.machine !== def.behavior.machine) return false;
+    if (recipe >= 0 && !this.research.recipeUnlocked[recipe]) return false;
     const old = this.recipe[id];
     if (old === recipe) return true;
     if (old >= 0) {
@@ -190,6 +242,7 @@ export class MachineSystem {
     if (b.kind === 'hq') {
       this.inventory.add(item, 1);
       this.delivered++;
+      this.stats.deliver(item);
       return true;
     }
     if (b.kind === 'burner') return this.addFuel(id, item, 1, b.fuelBuffer) === 1;
@@ -230,7 +283,7 @@ export class MachineSystem {
   private autoRecipe(machine: string, item: number): number {
     let found = -1;
     for (let r = 0; r < RECIPES.length; r++) {
-      if (RECIPES[r].machine !== machine || !RECIPES[r].availableFromStart) continue;
+      if (RECIPES[r].machine !== machine || !this.research.recipeUnlocked[r]) continue;
       if (!RECIPE_INPUTS[r].some((a) => a.item === item)) continue;
       if (found >= 0) return -1; // mehrdeutig
       found = r;
@@ -248,14 +301,15 @@ export class MachineSystem {
     for (let n = 0; n < this.extractors.length; n++) {
       const id = this.extractors[n];
       const slot = id * MAX_RECIPE_OUTPUTS;
-      const speed = this.speedOf(id);
+      const power = this.speedOf(id);
+      const speed = Math.floor((power * this.extractBoost(id)) / SCALE);
       const full = this.extractTicks[id] * SCALE;
       let working = false;
       if (this.outBuf[slot] >= MACHINES.extractorBuffer) {
         this.setState(id, MachineState.OutputBlocked);
       } else if (this.extractItem[id] < 0) {
         this.setState(id, MachineState.WaitingInput);
-      } else if (speed === 0) {
+      } else if (power === 0) {
         this.setState(id, MachineState.NoPower);
       } else {
         this.progress[id] += speed;
@@ -263,6 +317,7 @@ export class MachineSystem {
         if (this.progress[id] >= full) {
           if (this.treeLists[id] === null || this.chopTree(id)) {
             this.outBuf[slot]++;
+            this.stats.produce(this.extractItem[id], 1);
             this.progress[id] -= full;
             this.setState(id, MachineState.Working);
           } else {
@@ -275,15 +330,17 @@ export class MachineSystem {
         }
       }
       this.drawFull[id] = working ? 1 : 0;
-      this.utilization[id] += ((working ? speed / SCALE : 0) - this.utilization[id]) * smooth;
+      this.utilization[id] += ((working ? power / SCALE : 0) - this.utilization[id]) * smooth;
       this.pushOutput(id);
     }
 
     // Verarbeitung
+    const boost = this.research.crafterSpeed;
     for (let n = 0; n < this.crafters.length; n++) {
       const id = this.crafters[n];
       const r = this.recipe[id];
-      const speed = this.speedOf(id);
+      const power = this.speedOf(id);
+      const speed = Math.floor((power * boost) / SCALE);
       let working = false;
       if (r < 0) {
         this.setState(id, MachineState.NoRecipe);
@@ -291,7 +348,7 @@ export class MachineSystem {
         // progress: 1 beim Start, dann + Tempo je Tick; fertig über Dauer × 1000
         const full = RECIPE_TICKS[r] * SCALE;
         if (this.progress[id] <= full) {
-          if (speed === 0) {
+          if (power === 0) {
             this.setState(id, MachineState.NoPower);
           } else {
             this.progress[id] += speed;
@@ -302,8 +359,10 @@ export class MachineSystem {
         if (this.progress[id] > full) {
           if (this.hasOutputSpace(id, r)) {
             const outs = RECIPE_OUTPUTS[r];
-            for (let j = 0; j < outs.length; j++)
+            for (let j = 0; j < outs.length; j++) {
               this.outBuf[id * MAX_RECIPE_OUTPUTS + j] += outs[j].amount;
+              this.stats.produce(outs[j].item, outs[j].amount);
+            }
             this.progress[id] = 0;
           } else {
             working = false;
@@ -315,12 +374,14 @@ export class MachineSystem {
         if (!this.hasOutputSpace(id, r)) {
           this.setState(id, MachineState.OutputBlocked);
         } else if (this.hasInputs(id, r)) {
-          if (speed === 0) {
+          if (power === 0) {
             this.setState(id, MachineState.NoPower);
           } else {
             const ins = RECIPE_INPUTS[r];
-            for (let j = 0; j < ins.length; j++)
+            for (let j = 0; j < ins.length; j++) {
               this.inBuf[id * MAX_RECIPE_INPUTS + j] -= ins[j].amount;
+              this.stats.consume(ins[j].item, ins[j].amount);
+            }
             this.progress[id] = 1;
             working = true;
             this.setState(id, MachineState.Working);
@@ -330,7 +391,7 @@ export class MachineSystem {
         }
       }
       this.drawFull[id] = working ? 1 : 0;
-      this.utilization[id] += ((working ? speed / SCALE : 0) - this.utilization[id]) * smooth;
+      this.utilization[id] += ((working ? power / SCALE : 0) - this.utilization[id]) * smooth;
       this.pushOutput(id);
     }
   }
@@ -499,6 +560,7 @@ export class MachineSystem {
     this.fuelEnergy = grow(this.fuelEnergy, cap);
     this.drawFull = grow(this.drawFull, cap);
     this.needsPower = grow(this.needsPower, cap);
+    this.upgraded = grow(this.upgraded, cap);
     this.cap = cap;
   }
 }

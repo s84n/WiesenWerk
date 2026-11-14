@@ -60,9 +60,9 @@ function buildFactory(): Simulation {
   const line = (x: number, y: number, n: number) =>
     Array.from({ length: n }, (_, i) => ({ x, y: y + i, dir: 2 }));
   sim.enqueue({ type: 'build', building: B.miner, x: mx, y: my, rot: 0 });
-  sim.enqueue({ type: 'buildBelt', building: B.beltMk1, path: line(mx, my + 2, 3) });
+  sim.enqueue({ type: 'buildLine', building: B.beltMk1, path: line(mx, my + 2, 3) });
   sim.enqueue({ type: 'build', building: B.furnace, x: mx, y: my + 5, rot: 0 });
-  sim.enqueue({ type: 'buildBelt', building: B.beltMk1, path: line(mx, my + 7, 3) });
+  sim.enqueue({ type: 'buildLine', building: B.beltMk1, path: line(mx, my + 7, 3) });
   sim.enqueue({ type: 'build', building: B.hq, x: mx - 1, y: my + 10, rot: 0 });
   sim.enqueue({ type: 'build', building: B.pole, x: mx + 2, y: my + 1, rot: 0 });
   sim.enqueue({ type: 'build', building: B.pole, x: mx + 2, y: my + 6, rot: 0 });
@@ -102,21 +102,22 @@ describe('Speichern und Laden', () => {
     expect(state(loaded)).toBe(state(original));
   });
 
-  it('wandelt Spielstände der Version 1 (vor dem Strom) korrekt um', () => {
+  it('wandelt Spielstände der Versionen 1 und 2 korrekt um', () => {
     // Eine Fabrik ohne Brenner mit vollem Tempo ergibt Werte, die sich verlustfrei zurückrechnen lassen
     const sim = new Simulation(generateWorld(4711));
     sim.power.factorOf = () => 1000;
     for (let i = 0; i < 14; i++) sim.inventory.add(i, 1000);
     const w = sim.world;
-    let placed = 0;
-    for (let i = 0; i < w.tiles.length && placed < 3; i++) {
-      const x = i % w.size;
-      const y = Math.floor(i / w.size);
-      if (w.resource[i] === 2 && placed === 0) {
-        sim.enqueue({ type: 'build', building: BUILDING_ID.miner, x, y, rot: 0 });
-        sim.flushCommands();
-        if (sim.buildingCount === 1) placed = 1;
-      }
+    for (let i = 0; i < w.tiles.length && sim.buildingCount === 0; i++) {
+      if (w.resource[i] !== 2) continue;
+      sim.enqueue({
+        type: 'build',
+        building: BUILDING_ID.miner,
+        x: i % w.size,
+        y: Math.floor(i / w.size),
+        rot: 0,
+      });
+      sim.flushCommands();
     }
     sim.enqueue({ type: 'build', building: BUILDING_ID.furnace, x: w.startX, y: w.startY, rot: 0 });
     sim.flushCommands();
@@ -124,27 +125,47 @@ describe('Speichern und Laden', () => {
     sim.machines.accept(furnace, ITEM_ID.copperOre);
     sim.machines.accept(furnace, ITEM_ID.copperOre);
     for (let t = 0; t < 57; t++) sim.step(); // mitten in Durchläufen anhalten
-    const v2 = serialize(sim, META, CAM);
+    const v3 = serialize(sim, META, CAM);
     expect(sim.machines.progress[furnace]).toBeGreaterThan(0);
 
-    // Version 1 von Hand herstellen: Felder entfernen, Fortschritt in ganzen Ticks
+    // Version 2 von Hand herstellen: Forschung, Logistik, Statistik, Aufgaben und Stufe entfernen
+    const v2 = JSON.parse(JSON.stringify(v3));
+    v2.version = 2;
+    for (const key of ['research', 'logistics', 'stats', 'goals']) delete v2[key];
+    const data2: number[] = [];
+    for (let k = 0; k < v3.machines.data.length; k += 15)
+      data2.push(...v3.machines.data.slice(k, k + 14));
+    v2.machines.data = data2;
+
+    // Version 1: Strom-Felder entfernen, Fortschritt in ganzen Ticks
     const v1 = JSON.parse(JSON.stringify(v2));
     v1.version = 1;
     delete v1.machines.burners;
     const types = new Map<number, number>();
     for (let k = 0; k < v2.buildings.list.length; k += 5)
       types.set(v2.buildings.list[k], v2.buildings.list[k + 1]);
-    const data: number[] = [];
-    for (let k = 0; k < v2.machines.data.length; k += 14) {
-      const rec = v2.machines.data.slice(k, k + 11);
+    const data1: number[] = [];
+    for (let k = 0; k < data2.length; k += 14) {
+      const rec = data2.slice(k, k + 11);
       const crafter = types.get(rec[0]) === BUILDING_ID.furnace;
       rec[2] = crafter ? (rec[2] === 0 ? 0 : (rec[2] - 1) / 1000 + 1) : rec[2] / 1000;
-      data.push(...rec);
+      data1.push(...rec);
     }
-    v1.machines.data = data;
+    v1.machines.data = data1;
 
-    expect(migrate(v1)).toEqual(migrate(v2));
-    expect(state(deserialize(migrate(v1)))).toBe(state(sim));
+    // Statistik und Aufgaben gab es vorher nicht; die Migration setzt Startwerte.
+    const plain = (d: SaveData): SaveData => ({
+      ...d,
+      stats: { built: 0, produced: [], harvested: [] },
+      goals: { done: [], hidden: false },
+    });
+    expect(plain(migrate(v1))).toEqual(plain(migrate(v3)));
+    expect(plain(migrate(v2))).toEqual(plain(migrate(v3)));
+    expect(migrate(v2).stats.built).toBe(2);
+    const loaded = deserialize(migrate(v1));
+    expect(JSON.stringify(plain(serialize(loaded, META, CAM)))).toBe(
+      JSON.stringify(plain(serialize(sim, META, CAM))),
+    );
   });
 
   it('übersteht Export und Import als gepackte Datei', async () => {

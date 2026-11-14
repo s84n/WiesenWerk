@@ -1,5 +1,6 @@
 import { BUILDING_ID } from '../src/data/buildings';
 import { ITEM_COUNT } from '../src/data/items';
+import { RESEARCH } from '../src/data/research';
 import { TileType } from '../src/data/world';
 import type { BeltStep } from '../src/sim/commands';
 import { Simulation } from '../src/sim/simulation';
@@ -41,7 +42,7 @@ export function build(sim: Simulation, building: number, x: number, y: number, r
 }
 
 export function belt(sim: Simulation, path: BeltStep[]): void {
-  sim.enqueue({ type: 'buildBelt', building: B.beltMk1, path });
+  sim.enqueue({ type: 'buildLine', building: B.beltMk1, path });
   sim.flushCommands();
 }
 
@@ -53,4 +54,19 @@ export function run(sim: Simulation, ticks: number): void {
 export function unlimitedPower(sim: Simulation): Simulation {
   sim.power.factorOf = () => 1000;
   return sim;
+}
+
+/** Schaltet den ganzen Forschungsbaum frei (ohne Kosten). */
+export function unlockAll(sim: Simulation): Simulation {
+  sim.research.restore(
+    RESEARCH.map((r) => r.key),
+    {},
+  );
+  return sim;
+}
+
+/** Band einer bestimmten Stufe. */
+export function beltOf(sim: Simulation, type: number, path: BeltStep[]): void {
+  sim.enqueue({ type: 'buildLine', building: type, path });
+  sim.flushCommands();
 }

@@ -1,9 +1,12 @@
-import { POWER } from '../data/balance';
+import { EXTRACTOR_UPGRADE, POWER, WIND } from '../data/balance';
 import { BUILDINGS } from '../data/buildings';
 import { SIM_CONFIG } from '../data/config';
 import { ITEMS } from '../data/items';
 import { footprintH, footprintW, type BuildingStore } from './buildings';
 import { MachineState, type MachineSystem } from './machines';
+import type { ResearchSystem } from './research';
+import { hash3Float } from './rng';
+import type { StatsSystem } from './stats';
 import type { World } from './world';
 
 const SCALE = POWER.scale;
@@ -31,6 +34,7 @@ export class PowerSystem {
   gridCount = 0;
   consumers: number[][] = [];
   burners: number[][] = [];
+  winds: number[][] = [];
   poles: number[][] = [];
   capacity: number[] = [];
   demand: number[] = [];
@@ -39,6 +43,8 @@ export class PowerSystem {
   /** Verlauf je Netz: Erzeugung und Verbrauch in W, eine Probe pro Sekunde (Ringpuffer). */
   history: Float64Array[] = [];
   historyPos = 0;
+  /** Aktuelle Windstärke in Tausendsteln der Nennleistung (für alle Windräder gleich). */
+  wind: number = SCALE;
 
   constructor(
     private readonly world: World,
@@ -47,6 +53,13 @@ export class PowerSystem {
   ) {
     this.coverage = new Int32Array(world.size * world.size).fill(-1);
   }
+
+  setResearch(research: ResearchSystem, stats: StatsSystem): void {
+    this.research = research;
+    this.stats = stats;
+  }
+  private research!: ResearchSystem;
+  private stats!: StatsSystem;
 
   markDirty(): void {
     this.dirty = true;
@@ -79,11 +92,28 @@ export class PowerSystem {
     return best;
   }
 
+  /**
+   * Windstärke zum Tick: sanfter Übergang zwischen zufälligen Stärken (aus dem Seed, daher
+   * bei jedem Laden gleich). Ganzzahlig in Tausendsteln.
+   */
+  windAt(tick: number): number {
+    const period = WIND.periodSeconds * SIM_CONFIG.ticksPerSecond;
+    const k = Math.floor(tick / period);
+    const t = (tick - k * period) / period;
+    const a = hash3Float(k, 7, this.world.seed);
+    const b = hash3Float(k + 1, 7, this.world.seed);
+    const smooth = t * t * (3 - 2 * t);
+    const v = a + (b - a) * smooth;
+    return Math.round(SCALE * (WIND.min + (WIND.max - WIND.min) * v));
+  }
+
   tick(tick: number): void {
     this.ensure();
     const m = this.machines;
     const store = this.store;
     const perTickDiv = SIM_CONFIG.ticksPerSecond;
+    this.wind = this.windAt(tick);
+    const use = this.research.powerUse;
     for (let g = 0; g < this.gridCount; g++) {
       // Brenner: ggf. nächsten Brennstoff anzünden, mögliche Erzeugung summieren
       const bs = this.burners[g];
@@ -93,8 +123,14 @@ export class PowerSystem {
         if (m.fuelEnergy[id] <= 0 && m.inBuf[id * 2] > 0) {
           m.inBuf[id * 2]--;
           m.fuelEnergy[id] += ITEMS[m.fuelItem[id]].fuelValue * 1000;
+          this.stats.consume(m.fuelItem[id], 1);
         }
         if (m.fuelEnergy[id] > 0) cap += burnerWatts(store.type[id]);
+      }
+      // Windräder: Nennleistung × Windstärke
+      const ws = this.winds[g];
+      for (let k = 0; k < ws.length; k++) {
+        cap += Math.floor((windWatts(store.type[ws[k]]) * this.wind) / SCALE);
       }
 
       // Verbrauch: arbeitende Maschinen voll, andere 10 %
@@ -102,7 +138,8 @@ export class PowerSystem {
       let dem = 0;
       for (let k = 0; k < cs.length; k++) {
         const id = cs[k];
-        const w = BUILDINGS[store.type[id]].power * 1000;
+        let w = Math.floor((BUILDINGS[store.type[id]].power * 1000 * use) / SCALE);
+        if (m.upgraded[id]) w *= EXTRACTOR_UPGRADE.powerFactor;
         dem += m.drawFull[id] ? w : Math.round(w * POWER.idleShare);
       }
 
@@ -126,11 +163,20 @@ export class PowerSystem {
         m.utilization[id] +=
           ((m.fuelEnergy[id] > 0 ? load / SCALE : 0) - m.utilization[id]) * 0.005;
       }
+      for (let k = 0; k < ws.length; k++) {
+        const id = ws[k];
+        m.setState(id, load > 0 ? MachineState.Working : MachineState.Idle);
+        m.utilization[id] += (load / SCALE - m.utilization[id]) * 0.005;
+      }
     }
 
-    // Brenner ohne Netz
+    // Erzeuger ohne Netz
     for (let n = 0; n < m.burners.length; n++) {
       const id = m.burners[n];
+      if (this.gridOf[id] < 0) m.setState(id, MachineState.NoPower);
+    }
+    for (let n = 0; n < m.winds.length; n++) {
+      const id = m.winds[n];
       if (this.gridOf[id] < 0) m.setState(id, MachineState.NoPower);
     }
 
@@ -190,9 +236,10 @@ export class PowerSystem {
           for (const j of b) {
             if (j <= i) continue;
             const other = poles[j];
-            const range = Math.max(poleRange(store.type[id]), poleRange(store.type[other]));
-            const ddx = store.x[id] - store.x[other];
-            const ddy = store.y[id] - store.y[other];
+            // Abstand der Mittelpunkte (doppelte Koordinaten, damit 2 × 2-Masten ganzzahlig bleiben)
+            const range = 2 * Math.max(poleRange(store.type[id]), poleRange(store.type[other]));
+            const ddx = this.center2(id, true) - this.center2(other, true);
+            const ddy = this.center2(id, false) - this.center2(other, false);
             if (ddx * ddx + ddy * ddy > range * range) continue;
             const a = find(i);
             const c = find(j);
@@ -216,6 +263,7 @@ export class PowerSystem {
     });
     this.consumers = Array.from({ length: this.gridCount }, () => []);
     this.burners = Array.from({ length: this.gridCount }, () => []);
+    this.winds = Array.from({ length: this.gridCount }, () => []);
     this.poles = Array.from({ length: this.gridCount }, () => []);
     for (const arr of [this.capacity, this.demand, this.production, this.factor])
       arr.length = this.gridCount;
@@ -229,11 +277,14 @@ export class PowerSystem {
     // Versorgungsbereiche
     const size = this.world.size;
     for (const id of poles) {
-      const b = BUILDINGS[store.type[id]].behavior;
+      const def = BUILDINGS[store.type[id]];
+      const b = def.behavior;
       const r = b.kind === 'pole' ? b.supplyRadius : 0;
       const g = this.gridOf[id];
-      for (let y = store.y[id] - r; y <= store.y[id] + r; y++) {
-        for (let x = store.x[id] - r; x <= store.x[id] + r; x++) {
+      const x1 = store.x[id] + footprintW(def, store.rot[id]) - 1 + r;
+      const y1 = store.y[id] + footprintH(def, store.rot[id]) - 1 + r;
+      for (let y = store.y[id] - r; y <= y1; y++) {
+        for (let x = store.x[id] - r; x <= x1; x++) {
           if (x < 0 || y < 0 || x >= size || y >= size) continue;
           const t = y * size + x;
           if (this.coverage[t] < 0) this.coverage[t] = g;
@@ -245,13 +296,29 @@ export class PowerSystem {
     for (let id = 0; id < store.highWater; id++) {
       if (!store.alive[id]) continue;
       const def = BUILDINGS[store.type[id]];
-      const isBurner = def.behavior.kind === 'burner';
-      if (def.power <= 0 && !isBurner) continue;
+      const kind = def.behavior.kind;
+      if (def.power <= 0 && kind !== 'burner' && kind !== 'wind') continue;
       const g = this.gridAtFootprint(id);
       this.gridOf[id] = g;
       if (g < 0) continue;
-      (isBurner ? this.burners : this.consumers)[g].push(id);
+      (kind === 'burner' ? this.burners : kind === 'wind' ? this.winds : this.consumers)[g].push(
+        id,
+      );
     }
+  }
+
+  /** Doppelte Mittelpunkt-Koordinate eines Gebäudes (x oder y). */
+  private center2(id: number, xAxis: boolean): number {
+    const s = this.store;
+    const def = BUILDINGS[s.type[id]];
+    return xAxis
+      ? 2 * s.x[id] + footprintW(def, s.rot[id])
+      : 2 * s.y[id] + footprintH(def, s.rot[id]);
+  }
+
+  /** Erzeuger im Netz (Brenner und Windräder). */
+  generatorCount(g: number): number {
+    return this.burners[g].length + this.winds[g].length;
   }
 
   private gridAtFootprint(id: number): number {
@@ -271,6 +338,11 @@ export class PowerSystem {
 function burnerWatts(type: number): number {
   const b = BUILDINGS[type].behavior;
   return b.kind === 'burner' ? b.powerKW * 1000 : 0;
+}
+
+function windWatts(type: number): number {
+  const b = BUILDINGS[type].behavior;
+  return b.kind === 'wind' ? b.powerKW * 1000 : 0;
 }
 
 function poleRange(type: number): number {

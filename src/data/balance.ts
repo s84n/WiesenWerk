@@ -53,3 +53,24 @@ export const POWER = {
   /** Verlauf im Mast-Infofenster: so viele Sekunden. */
   historySeconds: 60,
 } as const;
+
+export const WIND = {
+  /** Leistung schwankt zwischen diesen Anteilen der Nennleistung (Mittel = 1). */
+  min: 0.7,
+  max: 1.3,
+  /** So viele Sekunden dauert ein Wechsel zwischen zwei Windstärken. */
+  periodSeconds: 40,
+} as const;
+
+/** Aufwertung von Bergwerk und Holzfäller auf Stufe 2 (nach Forschung „Tiefbau“). */
+export const EXTRACTOR_UPGRADE = {
+  cost: { motor: 5 } as Partial<Record<ItemKey, number>>,
+  /** Tempo und Stromverbrauch auf Stufe 2 (Vielfaches). */
+  speedFactor: 2,
+  powerFactor: 2,
+} as const;
+
+/** Statistik: Produktion und Verbrauch werden über so viele Sekunden gemittelt. */
+export const STATS = {
+  windowSeconds: 60,
+} as const;

@@ -10,12 +10,23 @@ export type Command =
   | { type: 'demolishArea'; x0: number; y0: number; x1: number; y1: number }
   /** Abbau von Hand auf Feld (x, y). */
   | { type: 'harvest'; x: number; y: number }
-  /** Baut Bandfelder entlang eines Weges; vorhandene Bänder werden nur gedreht. */
-  | { type: 'buildBelt'; building: number; path: readonly BeltStep[] }
+  /**
+   * Baut Felder entlang eines Weges (Bänder, Wege, Zäune). Vorhandene Bänder werden gedreht,
+   * eine andere Bandstufe ersetzt sie.
+   */
+  | { type: 'buildLine'; building: number; path: readonly BeltStep[] }
   /** Wählt das Rezept einer Maschine (−1 = keins). */
   | { type: 'setRecipe'; building: number; recipe: number }
   /** Füllt einen Brenner aus dem Vorrat mit Brennstoff. */
-  | { type: 'refuel'; building: number; item: number };
+  | { type: 'refuel'; building: number; item: number }
+  /** Erforscht einen Knoten (Index in `RESEARCH`). */
+  | { type: 'research'; node: number }
+  /** Kauft die nächste Stufe einer wiederholbaren Verbesserung (Index in `UPGRADES`). */
+  | { type: 'buyUpgrade'; upgrade: number }
+  /** Wertet Bergwerk oder Holzfäller auf Stufe 2 auf. */
+  | { type: 'upgradeBuilding'; building: number }
+  /** Blendet die Aufgabenliste aus oder ein. */
+  | { type: 'setGoalsHidden'; hidden: boolean };
 
 export interface BeltStep {
   x: number;

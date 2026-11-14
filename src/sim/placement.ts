@@ -11,6 +11,8 @@ export const PlaceResult = {
   NeedsDeposit: 3,
   Unique: 4,
   Cost: 5,
+  /** Noch nicht erforscht. */
+  Locked: 6,
 } as const;
 export type PlaceResult = (typeof PlaceResult)[keyof typeof PlaceResult];
 
@@ -27,6 +29,7 @@ export function checkPlacement(
 ): PlaceResult {
   const def = BUILDINGS[type];
   if (!def) return PlaceResult.Blocked;
+  if (!sim.research.buildingUnlocked[type]) return PlaceResult.Locked;
   if (def.unique && sim.typeCount[type] > 0) return PlaceResult.Unique;
 
   const { world, trees } = sim;

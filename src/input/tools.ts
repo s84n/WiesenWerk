@@ -340,7 +340,7 @@ export class ToolController {
     const sim = this.getSim();
     if (this.isBelt) {
       if (this.beltPath.length > 0) {
-        sim.enqueue({ type: 'buildBelt', building: this.buildType, path: this.beltPath });
+        sim.enqueue({ type: 'buildLine', building: this.buildType, path: this.beltPath });
         // Richtung des letzten Feldes merken, damit Einzelklicks danach passend weiterbauen
         this.rot = this.beltPath[this.beltPath.length - 1].dir;
       }

@@ -8,4 +8,11 @@ export type SimEvent =
   | { type: 'buildingRotated'; id: number }
   | { type: 'treeChanged'; tile: number }
   | { type: 'harvested'; item: number; amount: number }
-  | { type: 'commandFailed'; reason: number; buildingType: number };
+  | { type: 'commandFailed'; reason: number; buildingType: number }
+  /** Bandfeld durch eine andere Bandstufe ersetzt. */
+  | { type: 'buildingReplaced'; id: number; oldType: number }
+  /** Bergwerk oder Holzfäller auf Stufe 2 aufgewertet. */
+  | { type: 'buildingUpgraded'; id: number }
+  | { type: 'researched'; node: number }
+  | { type: 'upgraded'; upgrade: number }
+  | { type: 'goalCompleted'; goal: number };

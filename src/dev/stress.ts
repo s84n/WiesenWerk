@@ -70,13 +70,13 @@ export function createStressSimulation(scale = 1): StressResult {
         world.purity[i] = 2;
       }
     build(BUILDING_ID.miner, x, y);
-    sim.enqueue({ type: 'buildBelt', building: belt, path: line(x, y + 2, 2, BELT_LEN) });
+    sim.enqueue({ type: 'buildLine', building: belt, path: line(x, y + 2, 2, BELT_LEN) });
     const fy = y + 2 + BELT_LEN;
     build(BUILDING_ID.furnace, x, fy);
-    sim.enqueue({ type: 'buildBelt', building: belt, path: line(x, fy + 2, 2, BELT_LEN) });
+    sim.enqueue({ type: 'buildLine', building: belt, path: line(x, fy + 2, 2, BELT_LEN) });
     const wy = fy + 2 + BELT_LEN;
     build(BUILDING_ID.workshop, x, wy);
-    sim.enqueue({ type: 'buildBelt', building: belt, path: line(x, wy + 2, 2, BELT_LEN) });
+    sim.enqueue({ type: 'buildLine', building: belt, path: line(x, wy + 2, 2, BELT_LEN) });
     // Strom: Masten neben Bergwerk, Ofen und Werkstatt, Brenner dazwischen
     build(BUILDING_ID.pole, x + 2, y + 1);
     build(BUILDING_ID.pole, x + 2, fy + 1);
@@ -106,7 +106,7 @@ export function createStressSimulation(scale = 1): StressResult {
     const x = 2 + (r % ringsPerRow) * RING_CELL;
     const y = ringTop + Math.floor(r / ringsPerRow) * RING_CELL;
     sim.enqueue({
-      type: 'buildBelt',
+      type: 'buildLine',
       building: belt,
       path: [
         ...line(x, y, 1, n),

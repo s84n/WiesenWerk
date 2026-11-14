@@ -1,0 +1,181 @@
+import { toAmounts, type ItemAmount, type ItemKey } from './items';
+
+/**
+ * Forschungsbaum. Knoten werden sofort aus dem Vorrat bezahlt und gelten direkt.
+ * Reihenfolge = ID im Spielstand ist egal (gespeichert wird der Schlüssel), neue Knoten trotzdem
+ * hinten anhängen.
+ */
+export interface ResearchDef {
+  key: string;
+  /** Schlüssel der Knoten, die vorher erforscht sein müssen. */
+  requires: readonly string[];
+  cost: Partial<Record<ItemKey, number>>;
+  /** Gebäude-Schlüssel, die freigeschaltet werden. */
+  buildings?: readonly string[];
+  /** Rezept-Schlüssel, die freigeschaltet werden. */
+  recipes?: readonly string[];
+  /** Schaltet die Aufwertung von Bergwerk und Holzfäller auf Stufe 2 frei. */
+  extractorUpgrade?: boolean;
+  /** Platz im Forschungsfenster: Spalte und Zeile. */
+  pos: readonly [number, number];
+}
+
+export const RESEARCH: readonly ResearchDef[] = [
+  {
+    key: 'logistics1',
+    requires: [],
+    cost: { plank: 50, copperWire: 30 },
+    buildings: ['splitter', 'merger'],
+    pos: [0, 0],
+  },
+  {
+    key: 'storage',
+    requires: [],
+    cost: { plank: 80, stoneBrick: 40 },
+    buildings: ['storage'],
+    pos: [0, 1],
+  },
+  {
+    key: 'charcoal',
+    requires: [],
+    cost: { stoneBrick: 60 },
+    recipes: ['charcoal'],
+    pos: [0, 2],
+  },
+  {
+    key: 'beauty1',
+    requires: [],
+    cost: { stoneBrick: 40, plank: 40 },
+    buildings: ['path', 'lantern', 'flowerbed'],
+    pos: [0, 3],
+  },
+  {
+    key: 'sheetMetal',
+    requires: ['logistics1'],
+    cost: { copperIngot: 100 },
+    recipes: ['copperSheet'],
+    pos: [1, 0],
+  },
+  {
+    key: 'assembler',
+    requires: ['sheetMetal'],
+    cost: { plank: 100, stoneBrick: 100, copperSheet: 50 },
+    buildings: ['assembler'],
+    recipes: ['frame', 'coil'],
+    pos: [2, 0],
+  },
+  {
+    key: 'wind',
+    requires: ['assembler'],
+    cost: { frame: 30, coil: 30 },
+    buildings: ['windTurbine'],
+    pos: [3, 2],
+  },
+  {
+    key: 'logistics2',
+    requires: ['assembler'],
+    cost: { frame: 60, copperSheet: 100 },
+    buildings: ['beltMk2', 'bridge'],
+    pos: [3, 0],
+  },
+  {
+    key: 'electronics',
+    requires: ['assembler'],
+    cost: { coil: 60, copperWire: 100 },
+    recipes: ['circuit'],
+    pos: [3, 1],
+  },
+  {
+    key: 'drives',
+    requires: ['electronics'],
+    cost: { circuit: 50, frame: 50 },
+    recipes: ['motor', 'controlUnit'],
+    pos: [4, 1],
+  },
+  {
+    key: 'longDistance',
+    requires: ['wind', 'drives'],
+    cost: { coil: 40, motor: 20 },
+    buildings: ['bigPole'],
+    pos: [5, 2],
+  },
+  {
+    key: 'logistics3',
+    requires: ['logistics2', 'drives'],
+    cost: { motor: 60, controlUnit: 40 },
+    buildings: ['beltMk3'],
+    pos: [5, 0],
+  },
+  {
+    key: 'deepMining',
+    requires: ['drives'],
+    cost: { motor: 80 },
+    extractorUpgrade: true,
+    pos: [5, 1],
+  },
+  {
+    key: 'beauty2',
+    requires: ['beauty1', 'assembler'],
+    cost: { stoneBrick: 100, frame: 20 },
+    buildings: ['fence', 'bench', 'ornamentalTree', 'pathColored'],
+    pos: [3, 3],
+  },
+];
+
+export const RESEARCH_ID = Object.fromEntries(RESEARCH.map((r, i) => [r.key, i])) as Record<
+  string,
+  number
+>;
+export const RESEARCH_COSTS: readonly ItemAmount[][] = RESEARCH.map((r) => toAmounts(r.cost));
+
+/** Wiederholbare Verbesserungen nach dem Baum. Kosten steigen je Stufe um `growth`. */
+export interface UpgradeDef {
+  key: 'machineSpeed' | 'extractionSpeed' | 'efficiency';
+  /** Erst verfügbar, wenn dieser Knoten erforscht ist. */
+  requires: string;
+  baseCost: Partial<Record<ItemKey, number>>;
+  growth: number;
+  /** Wirkung je Stufe (Anteil, z. B. 0.05 = 5 %). */
+  perLevel: number;
+  /** Höchste Stufe (Infinity = endlos). */
+  maxLevel: number;
+}
+
+export const UPGRADES: readonly UpgradeDef[] = [
+  {
+    key: 'machineSpeed',
+    requires: 'drives',
+    baseCost: { motor: 50, controlUnit: 50 },
+    growth: 1.5,
+    perLevel: 0.05,
+    maxLevel: Infinity,
+  },
+  {
+    key: 'extractionSpeed',
+    requires: 'drives',
+    baseCost: { motor: 50, controlUnit: 50 },
+    growth: 1.5,
+    perLevel: 0.05,
+    maxLevel: Infinity,
+  },
+  {
+    key: 'efficiency',
+    requires: 'drives',
+    baseCost: { motor: 50, controlUnit: 50 },
+    growth: 1.5,
+    perLevel: 0.03,
+    maxLevel: 10,
+  },
+];
+
+export const UPGRADE_ID = Object.fromEntries(UPGRADES.map((u, i) => [u.key, i])) as Record<
+  UpgradeDef['key'],
+  number
+>;
+
+/** Kosten einer Verbesserung für die nächste Stufe (Stufe `level` → `level + 1`). */
+export function upgradeCost(upgrade: number, level: number): ItemAmount[] {
+  const u = UPGRADES[upgrade];
+  const f = Math.pow(u.growth, level);
+  return toAmounts(u.baseCost).map((a) => ({ item: a.item, amount: Math.round(a.amount * f) }));
+}

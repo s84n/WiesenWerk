@@ -55,6 +55,8 @@ export class Segment {
   targetVersion = -1;
   targetKind: number = TargetKind.None;
   targetId = 0;
+  /** Anschluss-Index (in `ports`) des Zielgebäudes. */
+  targetPort = 0;
 
   constructor(
     tiles: number[],
@@ -164,8 +166,8 @@ export class BeltSystem {
   constructor(
     private readonly world: World,
     private readonly buildings: BuildingStore,
-    /** Nimmt ein Item an einem Gebäudeeingang an (Rückgabe: angenommen?). */
-    private readonly deliver: (building: number, item: number) => boolean,
+    /** Nimmt ein Item am Anschluss `port` eines Gebäudes an (Rückgabe: angenommen?). */
+    private readonly deliver: (building: number, item: number, port: number) => boolean,
   ) {
     const n = world.size * world.size;
     this.tileSegment = new Int32Array(n).fill(NONE);
@@ -181,6 +183,11 @@ export class BeltSystem {
 
   dirAt(tile: number): Dir {
     return this.buildings.rot[this.world.building[tile] - 1] as Dir;
+  }
+
+  /** Bandstufe (Gebäudetyp) auf einem Bandfeld. */
+  private typeAt(tile: number): number {
+    return this.buildings.type[this.world.building[tile] - 1];
   }
 
   /** Nachbarfeld in Richtung `dir` oder −1 außerhalb der Karte. */
@@ -363,9 +370,11 @@ export class BeltSystem {
     // Rückwärts zum Anfang laufen
     let first = seed;
     let cyclic = false;
+    const type = this.typeAt(seed);
     for (let guard = 0; ; guard++) {
       const p = this.predecessor(first);
-      if (p < 0) break;
+      // Segmente enden, wo die Bandstufe wechselt (jedes Segment hat ein Tempo)
+      if (p < 0 || this.typeAt(p) !== type) break;
       if (p === seed || guard > this.tileSegment.length) {
         cyclic = true;
         first = seed;
@@ -383,7 +392,7 @@ export class BeltSystem {
       tiles.push(cur);
       dirs.push(this.dirAt(cur));
       const next = this.successor(cur);
-      if (next < 0 || next === first) break;
+      if (next < 0 || next === first || this.typeAt(next) !== type) break;
       cur = next;
     }
     const entry = tiles.map((t, i) => (i === 0 ? this.entryDir(t) : dirs[i - 1]));
@@ -453,7 +462,7 @@ export class BeltSystem {
   private output(seg: Segment): void {
     if (seg.targetVersion !== this.topologyVersion) this.resolveTarget(seg);
     if (seg.targetKind === TargetKind.Building) {
-      if (this.deliver(seg.targetId, seg.items[seg.head])) {
+      if (this.deliver(seg.targetId, seg.items[seg.head], seg.targetPort)) {
         seg.pop();
         this.itemCount--;
       }
@@ -492,7 +501,8 @@ export class BeltSystem {
       return;
     }
     const rot = this.buildings.rot[id];
-    for (const port of def.ports) {
+    for (let p = 0; p < def.ports.length; p++) {
+      const port = def.ports[p];
       if (port.kind !== 'in') continue;
       rotateOffset(def, rot, port.x, port.y, off);
       const tx = this.buildings.x[id] + off.x;
@@ -500,6 +510,7 @@ export class BeltSystem {
       if (ty * this.world.size + tx === next && rotateDir(port.dir, rot) === ((d + 2) & 3)) {
         seg.targetKind = TargetKind.Building;
         seg.targetId = id;
+        seg.targetPort = p;
         return;
       }
     }
