@@ -84,6 +84,15 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 - **Arbeitsanimationen** (`render/machine-animations.ts`, vorgezogen aus Phase 7 auf Wunsch des Auftraggebers): Bewegliche Teile sind eigene Geometrien (`SPINNERS` in `building-models.ts`: Sägeblatt, Förderrad, Zahnrad, Lüfter, Rotor) und drehen nur, solange die Maschine arbeitet (Windrad je nach Wind). Rauch aus Schornsteinen (`SMOKE`), fahrende Lore am Bergwerk (`SLIDERS`), kleine Holzfäller laufen zu Bäumen in Reichweite, fällen und tragen Stämme zur Hütte. Weitere Arbeiter laufen feste Wege an Ofen, Brenner, Werkstatt, Manufaktur und Lager (`ROUTES` in `machine-animations.ts`, Gebäudekoordinaten); beim Bergwerk passiert die Arbeit drinnen (Auftraggeber: Arbeiter nur als Optik, keine Spielregel). Bänder: Querleisten laufen mit, solange auf dem Abschnitt Ware fährt (`BeltView.addSlats`, Verschiebung je Segment aus der Simulationszeit, steht bei Stau, leerem Band und Pause). Alles reine Darstellung, jedes Bild nur für den sichtbaren Ausschnitt (`FrameInstances`). Die statischen Gebäude-Instanzen enthalten die beweglichen Teile nicht; Bilder und Vorschau schon (`buildingModel(…, withMoving)`).
 - **Ton** (`src/audio/sound.ts`, vorgezogen aus Phase 7): alle Klänge per Web Audio erzeugt, keine Dateien. Holzklopfen beim Bauen, Axt/Hacke beim Sammeln, Puffen beim Abriss, Glöckchen bei Forschung und Aufgaben, sanftes „Nö“ bei Fehlern, Klick auf Knöpfe, leiser Wind und Vögel, gedämpftes Klappern je nach arbeitenden Maschinen im Bild. Startet nach der ersten Eingabe. Ein/Aus über 🔊 in der Kopfzeile (Merker in `localStorage`, `wiesenwerk-ton`). Lautstärken in `SOUND_CONFIG`. Die vom Auftraggeber angekündigte Musik kommt später dazu.
 - **Vorratsfenster** (`ui/inventory-window.ts`, 📦 oder Klick auf die Mengen in der Kopfzeile): alle Items mit Menge und Herkunft. Die Kopfzeile zeigt Holz, Stein, Kupfererz immer, weitere Items erst, wenn man sie hat. Strom, Tempo und Fensterknöpfe stehen in einem eigenen Feld oben rechts (`hud-controls`).
+- **Einstellungen** (`src/core/settings.ts`, Menü → Einstellungen): Grafikstufe, Tag-Nacht-Wechsel, Lautstärke Klänge/Musik, Ton aus. Liegen in `localStorage` (`wiesenwerk-einstellungen`), nicht im Spielstand. Erster Start ohne gespeicherte Einstellungen: Bildrate 4 s messen (nach 1 s Anlauf) → Hoch/Mittel/Niedrig (`QUALITY_PROBE`); „Ultra“ nur von Hand.
+- **Grafikstufen** (`QUALITY_PRESETS` in `src/data/config.ts`): Schatten (Niedrig: dunkle Flecken unter Gebäuden, `BuildingsView.blobs`), Schattenauflösung, weiche Schatten, Pixelverhältnis, Kantenglättung (wirkt nach Neuladen), Blumen/Gras, Wiegen im Wind, Partikelanteil; Ultra zusätzlich Wolkenschatten, Bloom, Regen, Glühwürmchen. `GameRenderer.setQuality` wechselt live.
+- **Atmosphäre** (`render/atmosphere.ts`): Tageszeit aus der Spielzeit (`DAY_CONFIG`, 20 min/Tag, Start am Vormittag; abgeschaltet: fester goldener Nachmittag). Stützpunkte (`KEYS`) für Sonnen-/Himmels-/Bodenfarbe, Intensitäten, Nebel und Nachtleuchten; Sonnenstand wandert, nachts Mondlicht. Das gemeinsame Material wird per `onBeforeCompile` erweitert: Vertex-Farben `windowLight` und `glow` leuchten nachts (Emissive, keine echten Lichter), Laub- und Grasfarben wiegen sich bei Instanzen (Vertex-Shader), Wolkenschatten als Rauschen über Weltkoordinaten, nasser Boden bei Regen. Wasser: Wellenbänder und Funkeln im Fragment-Shader. Regen: eine `LineSegments` um den Blickpunkt; Schauer aus dem Seed und der Spielzeit (`rainAt`, `WEATHER_CONFIG`). Glühwürmchen: `Points`, nur nachts bei Ultra. Lichtschein unter Laternen: additive Scheibe mit Farbverlauf in den Vertex-Farben.
+- **Bloom** (nur Ultra, Wunsch des Auftraggebers): `EffectComposer` mit `UnrealBloomPass` und `OutputPass` aus three.js (keine neue Abhängigkeit), Render-Ziel mit 4-fach MSAA; nachts etwas stärker. `renderer.info.autoReset = false`, damit die Debug-Anzeige alle Zeichenschritte eines Bildes zählt.
+- **Partikel** (`render/effects.ts`): fester Vorrat (700), Staub beim Bauen/Abreißen, Blätter beim Fällen, Funkeln bei Forschung; Funken am Schmelzofen in `machine-animations.ts`. Menge nach Grafikstufe.
+- **Aufploppen** neu gebauter Gebäude (`BuildingsView.updatePop`, `DynamicChunkedInstances.setMatrix`), nicht beim Laden.
+- **Rückgängig** (`src/core/undo.ts`, Strg + Z): zeichnet je Bild die Bau-Ereignisse auf (bis 30 Schritte) und schickt Gegenbefehle (Abriss, Neubau mit Rezept, alte Bandstufe/Richtung). Ereignisse tragen dafür `recipe` bzw. `oldRot`; der Bau-Befehl kennt ein optionales `recipe`.
+- **Pipette** (Taste F, `ToolController.pipette`): Gebäude unter der Maus samt Drehung und Rezept als Bauauswahl.
+- **Musik** (`src/audio/music.ts`, Liste in `src/data/music.ts`, Dateien in `public/audio/musik/`): zufällige Reihenfolge, Ein-/Ausblenden, Laden erst bei Bedarf, fehlende Dateien werden still übersprungen.
 - **Sichtbare Texte** nur in `src/data/texts.ts`, **Farben** nur in `src/data/palette.ts`.
 
 ## Getroffene technische Entscheidungen
@@ -111,7 +120,7 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 
 ## Bekannte Schwächen
 
-- Schatten-Qualität ist fest eingestellt (Qualitätsstufen kommen in Phase 7); der Schattenbereich ist auf 70 Felder begrenzt.
+- Der Schattenbereich ist auf 70 Felder begrenzt (weit herausgezoomt keine Schatten).
 - Das Gelände hat leichte Unebenheiten (±0,04) auch auf baubaren Feldern; Gebäude sitzen auf Höhe 0 und können minimal einsinken/schweben (durch den Sockel kaum sichtbar).
 - Bandoberflächen laufen noch nicht sichtbar mit (nur die Items bewegen sich; Phase 7).
 - Kurven werden als zwei gerade Hälften dargestellt; Items knicken in der Feldmitte ab.
@@ -126,23 +135,25 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 - Ein Brenner fasst nur eine Brennstoffart gleichzeitig; gemischte Bänder stauen, bis der Puffer leer ist.
 - Spielstände der Stresstest-Welt lassen sich nicht speichern (Welt stammt nicht aus einem Seed).
 - Speichern läuft synchron (Referenzfabrik: ~545 KB JSON); bei sehr großen Fabriken kann das einen kurzen Ruckler geben. Falls nötig, später in Stücken serialisieren.
-- Einstellungen (Grafik, Lautstärke) fehlen im Menü noch; sie kommen mit Phase 7.
-- Gebäude sind noch Platzhalter ohne Animation und ohne Aufploppen (Phase 7).
+- Gebäudemodelle sind einfache Low-Poly-Formen mit 2–3 Details je Gebäude; Feinschliff einzelner Modelle ist jederzeit möglich (nur `building-models.ts`).
+- Wolken sieht man nur als Schatten auf dem Boden (sichtbare Wolken würden in der Schrägansicht die Fabrik verdecken).
+- Bloom und weiche Schatten der Stufe Ultra brauchen eine kräftige Grafikkarte.
 - Kleine Teiche (1–2 Felder) sehen eher wie Sandmulden aus.
 - Messwerte Phase 1 (Seed 4711, 1280 × 800): nah 22 Zeichenaufrufe / ca. 320 000 Dreiecke, ganz herausgezoomt 53 Zeichenaufrufe / ca. 430 000 Dreiecke. Welterzeugung ca. 30 ms.
 - Messwerte Phase 5 (Referenzfabrik mit 667 Brennern, 2.001 Masten): Tick 0,17 ms.
 - Messwerte Phase 6 (gleiche Referenzfabrik, mit Forschung/Statistik/Logistik im Tick): Tick 0,19 ms; Spielstand 724 KB ungepackt.
+- Messwerte Phase 7 (Referenzfabrik, 1280 × 800): Zeichenaufrufe Niedrig 28–36, Hoch 35, Ultra 49 (Grenze 150); Dreiecke 0,3–0,53 Mio.; Tick 0,19 ms (Grenze 4 ms); Build 221 KB gepackt (Grenze 1 MB); Spielstand 733 KB (Grenze 2 MB); Ladezeit bis zum Hauptmenü mit dem fertigen Build 1–2,8 s selbst mit reiner Software-Darstellung (Grenze 3 s). Die Bildrate auf echter Laptop-Grafik (Ziel 60 Bilder/s) lässt sich in der Testumgebung ohne Grafikkarte nicht messen – bitte beim Spielen mit F3 prüfen.
 - Messwerte Phase 3 (Referenzfabrik, 1280 × 800): Tick 0,11 ms (Node) bzw. 0,05 ms (Browser); Zeichenaufrufe 26 (nah), 35 (Ringe), 71 (ganz heraus); Dreiecke 250 000–470 000. Zehnfach: Tick 0,74 ms.
 
 ## Stand der Phasen
 
-| Phase                         | Stand                                                                                                                                  |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| 0. Fundament                  | Umgesetzt und lokal geprüft. GitHub Pages wird auf Wunsch des Auftraggebers erst später eingerichtet.                                  |
-| 1. Welt und Kamera            | Abgenommen (Auftraggeber: „Sieht gut aus“).                                                                                            |
-| 2. Bauen und Vorrat           | Abgenommen (Auftraggeber: „mache mit der nächsten Phase weiter“).                                                                      |
-| 3. Produktion und Bänder      | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                               |
-| 4. Speichern                  | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                               |
-| 5. Strom                      | Abgenommen (Auftraggeber: „Go“, testet parallel eine eingefrorene Testversion).                                                        |
-| 6. Forschung und Ausbau       | Umgesetzt; Abnahme automatisch (`tests/research.test.ts`: Erreichbarkeit des ganzen Baums) und im Browser geprüft. Wartet auf Abnahme. |
-| 7. Atmosphäre und Feinschliff | offen                                                                                                                                  |
+| Phase                         | Stand                                                                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0. Fundament                  | Umgesetzt und lokal geprüft. GitHub Pages wird auf Wunsch des Auftraggebers erst später eingerichtet.                                                        |
+| 1. Welt und Kamera            | Abgenommen (Auftraggeber: „Sieht gut aus“).                                                                                                                  |
+| 2. Bauen und Vorrat           | Abgenommen (Auftraggeber: „mache mit der nächsten Phase weiter“).                                                                                            |
+| 3. Produktion und Bänder      | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                                                     |
+| 4. Speichern                  | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                                                     |
+| 5. Strom                      | Abgenommen (Auftraggeber: „Go“, testet parallel eine eingefrorene Testversion).                                                                              |
+| 6. Forschung und Ausbau       | Abgenommen (Auftraggeber: „ja fahre fort“), inklusive der Änderungen danach (Holzfäller ohne Strom, Brenner aus dem Vorrat, Verteiler ab Start, 50er-Lager). |
+| 7. Atmosphäre und Feinschliff | Umgesetzt (mit Ultra-Stufe auf Wunsch). Budgets gemessen, siehe Messwerte Phase 7. Wartet auf Abnahme.                                                       |

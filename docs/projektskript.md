@@ -510,6 +510,7 @@ Die erste Version entsteht in acht Phasen. Jede Phase endet mit einem lauffähig
 - Speichern kommt bewusst früh (Phase 4), damit das Format mit dem Spiel wächst und jede spätere Phase Migrationen übt.
 - Der Stresstest wird in Phase 3 angelegt und ab dann in jeder Phase ausgeführt.
 - Ergänzung bei der Umsetzung: Die Dekorationsgebäude (Wege, Laternen, Blumenbeete, Zäune, Bänke, Zierbäume, farbige Wege) entstehen schon in Phase 6 als einfache Platzhalter, damit die Forschungsknoten „Verschönerung I und II“ etwas freischalten. Phase 7 ersetzt sie durch die endgültigen Modelle.
+- Phase 7 auf Wunsch des Auftraggebers erweitert: vierte Grafikstufe „Ultra“ mit Wolkenschatten, leichtem Regen (Wetter war ursprünglich erst nach der ersten Version geplant), Glühwürmchen, weichen Schatten und sanftem Leuchten. Für das Leuchten gibt es nur in dieser Stufe einen Nachbearbeitungsschritt (Bloom), abweichend von „kein Nachbearbeitungs-Stapel“ in Abschnitt 12. Die übrigen Stufen bleiben ohne.
 - Auf Wunsch des Auftraggebers vorgezogen (nach Phase 6): dauerhaft sichtbare Pfeile an Bandanschlüssen, einfache Arbeitsanimationen (drehende Teile, Rauch, laufende Holzfäller), selbst erzeugte Klänge mit Ein/Aus-Knopf und ein Vorratsfenster. Phase 7 baut darauf auf.
 
 **Nach der ersten Version (Reihenfolge offen):** Eisen, Kohle und Sand mit neuen Produktionsketten · Wasser und Öl mit Pumpen, Rohren, Tanks und Raffinerie · Blaupausen (Fabrikteile kopieren und einfügen) · größere Karten · Züge · Fotomodus · Wetter · weitere Sprachen · Simulation im Web Worker.

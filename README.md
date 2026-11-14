@@ -35,3 +35,11 @@ Einmalige Einrichtung:
    „GitHub Actions“** auswählen.
 4. Unter **Actions** den Lauf „Veröffentlichen auf GitHub Pages“ abwarten (grüner Haken). Falls
    er vor Schritt 3 schon gelaufen und fehlgeschlagen ist: Lauf öffnen und „Re-run all jobs“.
+
+## Eigene Musik
+
+1. MP3- oder OGG-Dateien in den Ordner `public/audio/musik/` legen (Ordner ggf. anlegen).
+2. Die Dateinamen in `src/data/music.ts` in die Liste `MUSIC_TRACKS` eintragen, z. B.
+   `export const MUSIC_TRACKS = ['morgenwiese.mp3', 'abendrot.ogg'];`
+3. Neu bauen bzw. `npm run dev` neu starten. Die Stücke laufen in zufälliger Reihenfolge mit
+   weichem Überblenden; die Lautstärke regelst du im Menü unter **Einstellungen**.
