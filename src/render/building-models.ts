@@ -110,12 +110,9 @@ function miner(): BufferGeometry {
     box(1.05, 0.12, 0.16, 0, 1.9, -0.35, PALETTE.wood),
     box(0.7, 0.55, 0.7, 0, 0.25, -0.35, PALETTE.wood),
     gableRoof(0.85, 0.85, 0.35, 0, 0.8, -0.35, PALETTE.roof),
-    // Lore mit Gestein
-    box(0.5, 0.25, 0.35, 0.35, 0.3, 0.5, PALETTE.woodDark),
-    colored(
-      new SphereGeometry(0.17, 5, 3).scale(1.2, 0.6, 0.8).translate(0.35, 0.57, 0.5),
-      PALETTE.stone,
-    ),
+    // Schienen aus dem Stollen (die Lore fährt darauf, siehe SLIDERS)
+    box(0.04, 0.03, 1.05, 0.23, 0.25, 0.3, PALETTE.metalDark),
+    box(0.04, 0.03, 1.05, 0.47, 0.25, 0.3, PALETTE.metalDark),
   ];
   return merge(parts);
 }
@@ -504,6 +501,38 @@ export const SPINNERS: Record<string, SpinnerDef> = {
   assembler: { make: fan, offset: [0, 1.88, 0.1], axis: 'y', speed: 0.8 },
 };
 
+/** Lore mit Gestein (Ursprung = Mitte der Unterkante). */
+function cart(): BufferGeometry {
+  return merge([
+    box(0.36, 0.2, 0.3, 0, 0.03, 0, PALETTE.woodDark),
+    colored(
+      new SphereGeometry(0.13, 5, 3).scale(1.2, 0.6, 0.9).translate(0, 0.24, 0),
+      PALETTE.stone,
+    ),
+    colored(
+      new CylinderGeometry(0.045, 0.045, 0.4, 6).rotateZ(Math.PI / 2).translate(0, 0.04, 0.09),
+      PALETTE.metalDark,
+    ),
+    colored(
+      new CylinderGeometry(0.045, 0.045, 0.4, 6).rotateZ(Math.PI / 2).translate(0, 0.04, -0.09),
+      PALETTE.metalDark,
+    ),
+  ]);
+}
+
+/** Teil, das bei der Arbeit hin- und herfährt (Lore). Ruhestellung = `to`. */
+export interface SliderDef {
+  make: () => BufferGeometry;
+  from: readonly [number, number, number];
+  to: readonly [number, number, number];
+  /** Sekunden für einmal hin und zurück. */
+  period: number;
+}
+
+export const SLIDERS: Record<string, SliderDef> = {
+  miner: { make: cart, from: [0.35, 0.25, -0.15], to: [0.35, 0.25, 0.65], period: 4 },
+};
+
 /** Rauch steigt aus diesen Punkten (Schornsteine), solange das Gebäude arbeitet. */
 export const SMOKE: Record<string, readonly [number, number, number]> = {
   furnace: [0.45, 2.05, -0.4],
@@ -549,7 +578,11 @@ export function buildingModel(
 ): BufferGeometry {
   const make = MODELS[name];
   const base = make ? make() : merge([box(w - 0.15, 0.8, h - 0.15, 0, 0, 0, PALETTE.cream)]);
+  if (!withMoving) return base;
+  const parts = [base];
   const spin = SPINNERS[name];
-  if (!withMoving || !spin) return base;
-  return merge([base, spin.make().translate(...spin.offset)]);
+  if (spin) parts.push(spin.make().translate(...spin.offset));
+  const slide = SLIDERS[name];
+  if (slide) parts.push(slide.make().translate(...slide.to));
+  return parts.length > 1 ? merge(parts) : base;
 }

@@ -17,7 +17,7 @@ import { POWER } from '../data/balance';
 import { MachineState } from '../sim/machines';
 import { hash3Float } from '../sim/rng';
 import type { Simulation } from '../sim/simulation';
-import { SMOKE, SPINNERS } from './building-models';
+import { SLIDERS, SMOKE, SPINNERS } from './building-models';
 import { buildingMatrix } from './buildings-view';
 import { colored, merge } from './geometry';
 import { FrameInstances } from './frame-instances';
@@ -41,8 +41,97 @@ const WORKERS_PER_HUT = 2;
 /** Arbeiter etwas größer als maßstabsgetreu, damit man sie zwischen den Bäumen sieht. */
 const WORKER_SCALE = 1.4;
 
-/** Kleiner Holzfäller: Blick nach +z, Unterkante auf y = 0. */
-function worker(carrying: boolean): BufferGeometry {
+/** Was ein Arbeiter in der Hand hat. */
+type WorkerKind = 'axe' | 'plain' | 'log' | 'crate' | 'plank';
+const WORKER_KINDS: readonly WorkerKind[] = ['axe', 'plain', 'log', 'crate', 'plank'];
+
+/**
+ * Arbeitsweg an einem Gebäude (Punkte in Gebäudekoordinaten, x und z, ungedreht; vorne = +z).
+ * Ablauf je Durchgang: hinlaufen (mit `carryOut`), am Ziel arbeiten, zurück (mit `carryBack`),
+ * kurz verschnaufen. Steht das Gebäude still, wartet der Arbeiter am Startpunkt.
+ */
+interface Route {
+  points: readonly (readonly [number, number])[];
+  carryOut?: WorkerKind;
+  carryBack?: WorkerKind;
+  /** Sekunden je Durchgang. */
+  cycle: number;
+  /** Versatz im Ablauf (0..1), damit mehrere Arbeiter nicht gleichzeitig laufen. */
+  offset?: number;
+}
+
+const ROUTES: Record<string, readonly Route[]> = {
+  // schaufelt Erz in die glühende Öffnung
+  furnace: [
+    {
+      points: [
+        [0.75, 1.2],
+        [-0.1, 1.05],
+      ],
+      carryOut: 'crate',
+      cycle: 6,
+    },
+  ],
+  // bringt Brennholz vom Stapel an der Seite zum Feuerloch
+  burner: [
+    {
+      points: [
+        [1.15, -0.55],
+        [1.15, 0.95],
+        [-0.15, 0.95],
+      ],
+      carryOut: 'log',
+      cycle: 7,
+    },
+  ],
+  // trägt Bretter aus der Tür zum Stapel daneben
+  workshop: [
+    {
+      points: [
+        [-0.35, 0.95],
+        [0.85, 1.2],
+      ],
+      carryOut: 'plank',
+      cycle: 7,
+    },
+  ],
+  // zwei Arbeiter holen Teile von den Trichtern und bringen sie zum Tor
+  assembler: [
+    {
+      points: [
+        [-0.25, 1.7],
+        [-1.65, 1.7],
+        [-1.65, -1.2],
+      ],
+      carryBack: 'crate',
+      cycle: 10,
+    },
+    {
+      points: [
+        [0.25, 1.7],
+        [1.65, 1.7],
+        [1.65, -1.2],
+      ],
+      carryBack: 'crate',
+      cycle: 10,
+      offset: 0.5,
+    },
+  ],
+  // stapelt Kisten vor dem Lager
+  storage: [
+    {
+      points: [
+        [0, 0.95],
+        [0.85, 1.15],
+      ],
+      carryOut: 'crate',
+      cycle: 6,
+    },
+  ],
+};
+
+/** Kleiner Arbeiter: Blick nach +z, Unterkante auf y = 0. */
+function worker(kind: WorkerKind): BufferGeometry {
   const box = (w: number, h: number, d: number, x: number, y: number, z: number, c: number) =>
     colored(new BoxGeometry(w, h, d).translate(x, y + h / 2, z), c);
   const parts = [
@@ -52,7 +141,7 @@ function worker(carrying: boolean): BufferGeometry {
     colored(new SphereGeometry(0.065, 6, 4).translate(0, 0.37, 0), PALETTE.skin),
     colored(new CylinderGeometry(0.05, 0.09, 0.05, 6).translate(0, 0.43, 0), PALETTE.hat),
   ];
-  if (carrying) {
+  if (kind === 'log') {
     // Holzstamm auf der Schulter
     parts.push(
       colored(
@@ -60,10 +149,18 @@ function worker(carrying: boolean): BufferGeometry {
         PALETTE.trunk,
       ),
     );
-  } else {
+  } else if (kind === 'axe') {
     // Axt in der rechten Hand
     parts.push(box(0.025, 0.24, 0.025, 0.11, 0.12, 0.05, PALETTE.woodDark));
     parts.push(box(0.025, 0.06, 0.08, 0.11, 0.32, 0.08, PALETTE.metal));
+  } else if (kind === 'crate') {
+    // Kiste vor dem Bauch
+    parts.push(box(0.16, 0.12, 0.12, 0, 0.18, 0.1, PALETTE.wood));
+    parts.push(box(0.17, 0.02, 0.13, 0, 0.25, 0.1, PALETTE.woodDark));
+  } else if (kind === 'plank') {
+    // Bretter auf der Schulter
+    parts.push(box(0.05, 0.03, 0.4, 0.07, 0.33, 0, PALETTE.itemPlank));
+    parts.push(box(0.05, 0.03, 0.38, 0.07, 0.36, 0.01, PALETTE.wood));
   }
   return merge(parts);
 }
@@ -86,8 +183,8 @@ export class MachineAnimations {
   readonly group = new Group();
   private readonly spinners = new Map<string, FrameInstances>();
   private readonly smoke: FrameInstances;
-  private readonly workers: FrameInstances;
-  private readonly carriers: FrameInstances;
+  private readonly sliders = new Map<string, FrameInstances>();
+  private readonly figures = new Map<WorkerKind, FrameInstances>();
   private phase = new Float32Array(256);
   private last = -1;
   /** Arbeitende Maschinen im Bild (für leise Arbeitsgeräusche). */
@@ -105,18 +202,27 @@ export class MachineAnimations {
       flatShading: true,
     });
     this.smoke = new FrameInstances(new IcosahedronGeometry(0.16, 0), smokeMat, this.group);
-    this.workers = new FrameInstances(worker(false), material, this.group);
-    this.carriers = new FrameInstances(worker(true), material, this.group);
+    for (const kind of WORKER_KINDS)
+      this.figures.set(kind, new FrameInstances(worker(kind), material, this.group));
+    for (const [model, def] of Object.entries(SLIDERS))
+      this.sliders.set(model, new FrameInstances(def.make(), material, this.group));
+  }
+
+  private all(): FrameInstances[] {
+    return [
+      ...this.spinners.values(),
+      ...this.sliders.values(),
+      ...this.figures.values(),
+      this.smoke,
+    ];
   }
 
   update(sim: Simulation, now: number, view: ViewRect, show: boolean): void {
     const dt = this.last < 0 ? 0 : Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
     const t = now / 1000;
-    for (const s of this.spinners.values()) s.begin();
-    this.smoke.begin();
-    this.workers.begin();
-    this.carriers.begin();
+    const parts = this.all();
+    for (const p of parts) p.begin();
     this.workingInView = 0;
     if (show) {
       if (this.phase.length < sim.buildings.capacity) {
@@ -128,11 +234,98 @@ export class MachineAnimations {
       for (const list of [ms.crafters, ms.extractors, ms.burners, ms.winds]) {
         for (let k = 0; k < list.length; k++) this.animate(sim, list[k], t, dt, view);
       }
+      // Lager: Arbeiter stapeln, solange etwas darin liegt
+      const lg = sim.logistics;
+      for (let k = 0; k < lg.storages.length; k++) {
+        const id = lg.storages[k];
+        if (!this.inView(sim, id, view)) continue;
+        const b = sim.buildings;
+        buildingMatrix(b.type[id], b.x[id], b.y[id], b.rot[id], mB);
+        this.routes(BUILDINGS[b.type[id]].model, id, t, lg.qCount[id] > 0);
+      }
     }
-    for (const s of this.spinners.values()) s.end();
-    this.smoke.end();
-    this.workers.end();
-    this.carriers.end();
+    for (const p of parts) p.end();
+  }
+
+  private inView(sim: Simulation, id: number, view: ViewRect): boolean {
+    const x = sim.buildings.x[id];
+    const y = sim.buildings.y[id];
+    return x >= view.minX - 3 && x <= view.maxX + 1 && y >= view.minY - 3 && y <= view.maxY + 1;
+  }
+
+  /** Lore: fährt bei der Arbeit aus dem Stollen und zurück. */
+  private slide(model: string, t: number, working: boolean, seed: number): void {
+    const def = SLIDERS[model];
+    if (!def) return;
+    let u = 1;
+    if (working) {
+      const p = (t / def.period + seed) % 1;
+      // hin, kurz stehen, zurück, kurz stehen
+      u = p < 0.4 ? smooth(p / 0.4) : p < 0.5 ? 1 : p < 0.9 ? 1 - smooth((p - 0.5) / 0.4) : 0;
+    }
+    pos.set(
+      def.from[0] + (def.to[0] - def.from[0]) * u,
+      def.from[1] + (def.to[1] - def.from[1]) * u,
+      def.from[2] + (def.to[2] - def.from[2]) * u,
+    );
+    mT.makeTranslation(pos.x, pos.y, pos.z);
+    this.sliders.get(model)!.push(m.multiplyMatrices(mB, mT));
+  }
+
+  /** Arbeiter auf ihren Wegen am Gebäude (`mB` muss gesetzt sein). */
+  private routes(model: string, id: number, t: number, working: boolean): void {
+    const list = ROUTES[model];
+    if (!list) return;
+    const seed = hash3Float(id, 9, 23);
+    for (const r of list) {
+      const pts = r.points;
+      const p = (t / r.cycle + (r.offset ?? 0) + seed) % 1;
+      let kind: WorkerKind = 'plain';
+      let along: number; // 0 = Start, 1 = Ziel
+      let forward = true;
+      let tilt = 0;
+      let bob = 0;
+      if (!working || p >= 0.85) {
+        along = 0;
+        forward = false;
+      } else if (p < 0.3) {
+        along = p / 0.3;
+        kind = r.carryOut ?? 'plain';
+        bob = Math.abs(Math.sin(t * 13)) * 0.03;
+      } else if (p < 0.55) {
+        along = 1;
+        tilt = Math.max(0, Math.sin(t * 8)) * 0.4;
+      } else {
+        along = 1 - (p - 0.55) / 0.3;
+        forward = false;
+        kind = r.carryBack ?? 'plain';
+        bob = Math.abs(Math.sin(t * 13)) * 0.03;
+      }
+      // Position auf dem Streckenzug (gleichmäßig je Teilstück)
+      const segs = pts.length - 1;
+      const f = Math.min(segs - 1e-6, along * segs);
+      const i = Math.floor(f);
+      const u = f - i;
+      const ax = pts[i][0];
+      const az = pts[i][1];
+      const bx = pts[i + 1][0];
+      const bz = pts[i + 1][1];
+      v.set(ax + (bx - ax) * u, 0, az + (bz - az) * u).applyMatrix4(mB);
+      const px = v.x;
+      const pz = v.z;
+      // Blickrichtung entlang des Teilstücks (Weltkoordinaten)
+      const a = pos.set(ax, 0, az).applyMatrix4(mB);
+      const ax2 = a.x;
+      const az2 = a.z;
+      const bw = pos.set(bx, 0, bz).applyMatrix4(mB);
+      let yaw = Math.atan2(bw.x - ax2, bw.z - az2);
+      if (!forward) yaw += Math.PI;
+      pos.set(px, bob, pz);
+      q.setFromAxisAngle(UP, yaw);
+      if (tilt > 0) q.multiply(q2.setFromAxisAngle(AXES.x, tilt));
+      scl.set(WORKER_SCALE, WORKER_SCALE, WORKER_SCALE);
+      this.figures.get(kind)!.push(m.compose(pos, q, scl));
+    }
   }
 
   private animate(sim: Simulation, id: number, t: number, dt: number, view: ViewRect): void {
@@ -175,6 +368,9 @@ export class MachineAnimations {
       }
     }
 
+    const seed = hash3Float(id, 1, 31);
+    this.slide(def.model, t, working, seed);
+    this.routes(def.model, id, t, working);
     if (def.behavior.kind === 'lumberjack') this.animateWorkers(sim, id, t, working);
   }
 
@@ -203,7 +399,7 @@ export class MachineAnimations {
         pos.set(hx + (w - 0.5) * 0.3, 0, hz + 0.15);
         q.setFromAxisAngle(UP, 0);
         scl.set(WORKER_SCALE, WORKER_SCALE, WORKER_SCALE);
-        this.workers.push(m.compose(pos, q, scl));
+        this.figures.get('axe')!.push(m.compose(pos, q, scl));
         continue;
       }
       const tx = (tree % size) + 0.5;
@@ -243,14 +439,15 @@ export class MachineAnimations {
       q.setFromAxisAngle(UP, yaw);
       if (tilt > 0) q.multiply(q2.setFromAxisAngle(AXES.x, tilt));
       scl.set(WORKER_SCALE, WORKER_SCALE, WORKER_SCALE);
-      (carry ? this.carriers : this.workers).push(m.compose(pos, q, scl));
+      this.figures.get(carry ? 'log' : 'axe')!.push(m.compose(pos, q, scl));
     }
   }
 
   dispose(): void {
-    for (const s of this.spinners.values()) s.dispose();
-    this.smoke.dispose();
-    this.workers.dispose();
-    this.carriers.dispose();
+    for (const p of this.all()) p.dispose();
   }
+}
+
+function smooth(x: number): number {
+  return x * x * (3 - 2 * x);
 }
