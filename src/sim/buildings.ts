@@ -15,7 +15,8 @@ export class BuildingStore {
   highWater = 0;
   /** Anzahl lebender Gebäude. */
   count = 0;
-  private readonly free: number[] = [];
+  /** Freie IDs in der Reihenfolge, in der sie wiederverwendet werden (Stapel). */
+  readonly free: number[] = [];
 
   constructor(capacity = 256) {
     this.capacity = capacity;
@@ -46,6 +47,18 @@ export class BuildingStore {
     this.alive[id] = 0;
     this.free.push(id);
     this.count--;
+  }
+
+  /** Stellt ein Gebäude mit fester ID wieder her (beim Laden). */
+  restore(id: number, type: number, x: number, y: number, rot: number): void {
+    while (id >= this.capacity) this.grow();
+    this.type[id] = type;
+    this.x[id] = x;
+    this.y[id] = y;
+    this.rot[id] = rot;
+    this.alive[id] = 1;
+    this.count++;
+    if (id >= this.highWater) this.highWater = id + 1;
   }
 
   private grow(): void {

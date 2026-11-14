@@ -31,6 +31,7 @@ export class Hud {
   constructor(
     parent: HTMLElement,
     private readonly speed: SpeedControl,
+    onMenu: () => void,
   ) {
     const bar = el('div', 'panel hud');
     const items = el('div', 'hud-items');
@@ -64,6 +65,14 @@ export class Hud {
       speeds.appendChild(b);
       this.speedButtons.push(b);
     }
+
+    const menu = el('button', 'hud-button hud-menu', '☰');
+    menu.title = TEXTS.menu.menuTooltip;
+    menu.addEventListener('click', () => {
+      menu.blur();
+      onMenu();
+    });
+    speeds.appendChild(menu);
 
     bar.append(items, speeds);
     parent.appendChild(bar);

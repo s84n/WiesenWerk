@@ -429,7 +429,7 @@ Ziel sind stabile 60 Bilder pro Sekunde auf einem Laptop mit integrierter Grafik
 
 Spielstände liegen lokal im Browser in IndexedDB und lassen sich als Datei exportieren und wieder importieren.
 
-- **Speicherort:** IndexedDB statt `localStorage`, weil `localStorage` auf wenige Megabyte begrenzt ist und große Fabriken nicht fasst. Nur Einstellungen (Grafik, Lautstärke) liegen in `localStorage`.
+- **Speicherort:** IndexedDB statt `localStorage`, weil `localStorage` auf wenige Megabyte begrenzt ist und große Fabriken nicht fasst. Nur Einstellungen (Grafik, Lautstärke) liegen in `localStorage`. Ausnahme (in der Umsetzung ergänzt): Beim Schließen des Tabs bricht der Browser das Schreiben in IndexedDB oft ab. Deshalb wird der Spielstand in diesem Moment kurz als Notfall-Kopie in `localStorage` abgelegt und beim nächsten Start in den Autosave-Platz übernommen.
 - **Speicherplätze:** mehrere benannte Spielstände mit Datum, Spielzeit und Seed.
 - **Automatisches Speichern:** alle 2 Minuten und beim Schließen des Tabs in einen eigenen Autosave-Platz. Das Speichern darf kein sichtbares Ruckeln auslösen.
 - **Inhalt:** Formatversion, Seed, Kartengröße, Spielzeit, globaler Vorrat, Forschungsstand, alle Gebäude mit Position, Drehung, Rezept und Puffern, alle Bandsegmente mit Items, gefällte und nachwachsende Bäume, Kameraposition.

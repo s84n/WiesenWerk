@@ -104,6 +104,69 @@ export const TEXTS = {
       `Auf diesem Abschnitt: ${n} Items auf ${tiles} Feldern`,
   },
 
+  menu: {
+    continue: 'Weiterspielen',
+    newGame: 'Neues Spiel',
+    save: 'Speichern',
+    load: 'Laden',
+    export: 'Exportieren',
+    import: 'Importieren',
+    keys: 'Tastenbelegung',
+    back: 'Zurück',
+    start: 'Los geht’s',
+    seed: 'Seed',
+    seedHint: 'Gleicher Seed, gleiche Welt. Leer lassen oder würfeln für eine zufällige Welt.',
+    roll: 'Würfeln',
+    saveName: 'Name des Spielstands',
+    saveAs: 'Als neuen Spielstand speichern',
+    overwrite: 'Überschreiben',
+    delete: 'Löschen',
+    confirmDelete: (name: string) => `„${name}“ wirklich löschen?`,
+    noSaves: 'Noch keine Spielstände vorhanden.',
+    autosave: 'Automatisch gespeichert',
+    slotLine: (date: string, play: string, seed: number) =>
+      `${date} · Spielzeit ${play} · Seed ${seed}`,
+    storageHint:
+      'Spielstände liegen nur in diesem Browser. Beim Löschen der Browserdaten gehen sie verloren – exportiere wichtige Fabriken als Datei.',
+    dropHint: 'Du kannst eine .fabrik-Datei auch einfach ins Fenster ziehen.',
+    notSaveable: 'Diese Welt (Stresstest) kann nicht gespeichert werden.',
+    defaultName: (seed: number) => `Fabrik ${seed}`,
+    menuTooltip: 'Menü (Esc)',
+  },
+
+  save: {
+    saved: (name: string) => `Gespeichert: ${name}`,
+    autosaved: 'Automatisch gespeichert',
+    loaded: (name: string) => `Geladen: ${name}`,
+    exported: 'Datei wird heruntergeladen',
+    failed: (reason: string) => `Speichern nicht möglich: ${reason}`,
+    errors: {
+      notJson: 'Diese Datei ist kein Wiesenwerk-Spielstand oder sie ist beschädigt.',
+      notWiesenwerk: 'Diese Datei ist kein Wiesenwerk-Spielstand.',
+      tooNew:
+        'Dieser Spielstand stammt aus einer neueren Version von Wiesenwerk. Bitte lade die Seite neu.',
+      damaged: 'Dieser Spielstand ist beschädigt und kann nicht geladen werden.',
+      storage:
+        'Der Browser erlaubt hier keine Spielstände (z. B. im privaten Fenster). Exportieren geht trotzdem.',
+    },
+  },
+
+  keys: [
+    ['W A S D / Pfeiltasten', 'Kamera verschieben'],
+    ['Mittlere Maustaste ziehen', 'Kamera verschieben'],
+    ['Mausrad', 'Zoomen'],
+    ['Q / E', 'Kamera drehen'],
+    ['Linksklick', 'Bauen, auswählen, von Hand abbauen'],
+    ['Linksklick ziehen', 'Förderband bauen, Abriss-Rahmen'],
+    ['Rechtsklick / Esc', 'Abbrechen, Fenster schließen, Menü'],
+    ['R', 'Gebäude drehen'],
+    ['X', 'Abrissmodus'],
+    ['1 – 9', 'Schnellwahl Gebäude'],
+    ['Leertaste', 'Pause'],
+    ['Strg + S', 'Speichern'],
+    ['F3', 'Debug-Anzeige'],
+  ] as const,
+
   hud: {
     pause: 'Pause',
     pauseTooltip: 'Pause (Leertaste)',
@@ -123,19 +186,13 @@ export const TEXTS = {
     items: 'Items auf Bändern',
     paused: 'Pausiert',
   },
-  seed: {
-    label: 'Seed',
-    roll: 'Würfeln',
-    rollTooltip: 'Zufälligen Seed würfeln und neue Welt erzeugen',
-    generate: 'Erzeugen',
-    generateTooltip: 'Welt aus diesem Seed erzeugen',
-    confirmReplace: 'Eine neue Welt ersetzt deine aktuelle Fabrik. Wirklich neu erzeugen?',
-  },
   error: {
     title: 'Hoppla, da ist etwas schiefgelaufen',
     body: 'Das Spiel wurde angehalten, damit nichts kaputtgeht. Lade die Seite neu, um weiterzuspielen.',
     details: 'Technische Details',
     reload: 'Seite neu laden',
+    export: 'Spielstand exportieren',
+    exportFailed: 'Export leider nicht möglich',
   },
   hint: 'Klick auf Bäume und Vorkommen sammelt Rohstoffe · Klick auf Gebäude zeigt Infos · WASD: bewegen · Mausrad: zoomen · Q/E: drehen · Leertaste: Pause',
 } as const;

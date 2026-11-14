@@ -70,6 +70,7 @@ export function generateWorld(
 
   // 3. Startgebiet in der Kartenmitte
   prepareStartArea(world, seed, deposits);
+  world.generated = true;
   return world;
 }
 

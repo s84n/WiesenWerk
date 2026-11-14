@@ -65,6 +65,10 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 - **Werkzeug Band:** Ziehen ergibt einen L-förmigen Weg (Achse nach der ersten Bewegung, R wechselt die Ecke). Das letzte Feld zeigt automatisch in einen angrenzenden passenden Eingang (`belts.inputDirFor`). Vorhandene Bänder im Weg werden gedreht statt neu gebaut.
 - **Darstellung Bänder** (`render/belt-view.ts`): gerade Stücke und Kurven als `DynamicChunkedInstances`; Form aus `belts.entryDir`. Items: ein `InstancedMesh` je Item-Art, jedes Bild nur für Segmente im Bildausschnitt aus den Abständen berechnet, mit `alpha` zwischen den Ticks weitergeschoben; weit herausgezoomt ausgeblendet. Problemsymbole: `render/status-icons.ts` (4×/s, erst nach `problemDelayTicks`).
 - **Oberfläche:** Kopfzeile (`ui/hud.ts`), Bauleiste mit 3D-gerenderten Gebäudebildern (`ui/build-bar.ts`, `render/icons.ts`), Infofenster mit Rezeptwahl (`ui/info-panel.ts`), Meldungen und „+1“-Zahlen (`ui/toasts.ts`). Item-Bilder werden aus den Item-Modellen gerendert (`setItemIcons`). Alles aktualisiert nur bei Änderungen, höchstens 4×/s.
+- **Speichern** (`src/sim/serialize.ts`): `serialize`/`migrate`/`deserialize`, ohne Browser. Gespeichert werden Abweichungen vom Gelände (`world.changedTiles`), Bäume (Holz ≠ voll, Nachwachs-Warteschlange in Reihenfolge), alle Gebäude **mit ihren IDs** und der Freiliste, Maschinenzustand (11 Werte je Maschine, Reihenfolge der Listen `crafters`/`extractors`, Baumlisten der Holzfäller), Bandsegmente **mit ihren IDs** (Anfangsfeld, `active`, Items + Abstände) und freie Segment-IDs. Damit läuft ein geladener Stand exakt identisch weiter (Test in `tests/save.test.ts`). Formatnummer `SAVE_VERSION`; jede Formatänderung braucht einen Eintrag in `MIGRATIONS` plus Test. Fehler beim Laden sind `SaveError` mit Code → Text in `TEXTS.save.errors`.
+- **Speicherorte** (`src/core/storage.ts`, `saves.ts`, `save-files.ts`): IndexedDB mit Tabellen `meta` (Liste) und `data` (Spielstände); Speicherplatz `autosave` plus benannte Plätze. Export: JSON → gzip (`CompressionStream`) → `.fabrik`. Import: gzip oder reines JSON, per Menü oder Hineinziehen ins Fenster.
+- **Automatisch speichern:** alle 2 Minuten (Echtzeit, nur im laufenden Spiel) in IndexedDB. Beim Unsichtbarwerden/Schließen des Tabs **nur** eine synchrone Notfall-Kopie in `localStorage` (`wiesenwerk-notfall`), die beim nächsten Start in den Autosave-Platz übernommen wird (`recoverEmergency`). Grund: Ein IndexedDB-Vorgang in einer Seite, die der Browser für „Zurück“ einfriert, blockierte die Datenbank für die nächste Seite. Beim `pagehide` wird die Verbindung geschlossen (`closeDb`), das Öffnen hat eine Zeitgrenze von 4 s.
+- **Hauptmenü** (`src/ui/main-menu.ts`): beim Start ohne `?seed`/`?stress` über einer Hintergrundwelt; im Spiel per Esc (wenn nichts anderes abzubrechen ist) oder ☰-Knopf in der Kopfzeile. Pausiert das Spiel, solange es offen ist. „Weiterspielen“ ohne laufendes Spiel lädt den neuesten Spielstand. Vor Laden/Neuem Spiel wird automatisch gespeichert. Strg + S speichert in den aktuellen Platz (sonst neuer Platz).
 - **Sichtbare Texte** nur in `src/data/texts.ts`, **Farben** nur in `src/data/palette.ts`.
 
 ## Getroffene technische Entscheidungen
@@ -75,7 +79,7 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 - **Architekturgrenze per ESLint:** In `src/sim` und `src/data` sind Importe von `three`, `render`, `ui`, `input`, `core`, `dev` sowie Browser-Globals wie `window`/`document`/`performance` verboten.
 - **Zufallsgenerator und Noise** liegen in `src/sim` (nicht `src/core`, wie ursprünglich skizziert), weil die Weltgenerierung zur Simulation gehört und `sim` nicht auf `core` zugreifen darf. Projektskript ist angepasst.
 - **Geländeblöcke 32 × 32 statt 16 × 16:** Logische Chunks bleiben 16 × 16 (Instanzen, Culling), gezeichnet wird das Gelände aber in größeren Blöcken, damit weit herausgezoomt die Zeichenaufrufe unter 150 bleiben.
-- **Seed** steht in der Adresse (`?seed=123`), damit Neuladen dieselbe Welt zeigt. Das Seed-Feld oben links ist vorläufig und wandert in Phase 4 ins Hauptmenü.
+- **Seed:** Neues Spiel mit Seed im Hauptmenü. `?seed=123` in der Adresse startet (Entwicklerhilfe) sofort ein neues Spiel ohne Menü.
 - **Entwicklerhilfe:** `?zoom=110` startet mit anderer Zoomstufe (für Bildschirmfotos/Messungen). `?stress=1` lädt die Referenzfabrik, `?stress=10` die zehnfache Variante (sehr große Karte, im Browser schwer).
 - **Stresstest** (`src/dev/stress.ts`): Produktionsmodule (Bergwerk → Band → Schmelzofen → Band → Werkstatt → Band) plus volle Bandringe. Maßstab 1 = 2.001 Maschinen, ~17.600 Bandfelder, 20.000–30.000 Items. `tests/benchmark.test.ts` misst den Tick und schlägt ab 8 ms fehl.
 - **Schlafende Maschinen** (Projektskript Abschnitt 11) sind vorerst nicht als eigene aktive Liste umgesetzt: Jede Maschine prüft pro Tick nur ein paar Zahlen, die Messung liegt bei 0,1 ms für die Referenzfabrik und 0,7 ms für die zehnfache. Wird es nötig, lässt sich das Wecken ohne Datenumbau nachrüsten.
@@ -90,7 +94,10 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 - Das Gelände hat leichte Unebenheiten (±0,04) auch auf baubaren Feldern; Gebäude sitzen auf Höhe 0 und können minimal einsinken/schweben (durch den Sockel kaum sichtbar).
 - Bandoberflächen laufen noch nicht sichtbar mit (nur die Items bewegen sich; Phase 7).
 - Kurven werden als zwei gerade Hälften dargestellt; Items knicken in der Feldmitte ab.
-- Strom ist in Phase 3 unbegrenzt; der Zustand „Kein Strom“ ist vorbereitet, wird aber noch nicht gesetzt.
+- Strom ist bis Phase 5 unbegrenzt; der Zustand „Kein Strom“ ist vorbereitet, wird aber noch nicht gesetzt.
+- Spielstände der Stresstest-Welt lassen sich nicht speichern (Welt stammt nicht aus einem Seed).
+- Speichern läuft synchron (Referenzfabrik: ~545 KB JSON); bei sehr großen Fabriken kann das einen kurzen Ruckler geben. Falls nötig, später in Stücken serialisieren.
+- Einstellungen (Grafik, Lautstärke) fehlen im Menü noch; sie kommen mit Phase 7.
 - Gebäude sind noch Platzhalter ohne Animation und ohne Aufploppen (Phase 7).
 - Kleine Teiche (1–2 Felder) sehen eher wie Sandmulden aus.
 - Messwerte Phase 1 (Seed 4711, 1280 × 800): nah 22 Zeichenaufrufe / ca. 320 000 Dreiecke, ganz herausgezoomt 53 Zeichenaufrufe / ca. 430 000 Dreiecke. Welterzeugung ca. 30 ms.
@@ -98,13 +105,13 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 
 ## Stand der Phasen
 
-| Phase                         | Stand                                                                                                  |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 0. Fundament                  | Umgesetzt und lokal geprüft. GitHub Pages wird auf Wunsch des Auftraggebers erst später eingerichtet.  |
-| 1. Welt und Kamera            | Abgenommen (Auftraggeber: „Sieht gut aus“).                                                            |
-| 2. Bauen und Vorrat           | Abgenommen (Auftraggeber: „mache mit der nächsten Phase weiter“).                                      |
-| 3. Produktion und Bänder      | Umgesetzt; Abnahmetest automatisch (`tests/belts.test.ts`) und im Browser geprüft. Wartet auf Abnahme. |
-| 4. Speichern                  | offen                                                                                                  |
-| 5. Strom                      | offen                                                                                                  |
-| 6. Forschung und Ausbau       | offen                                                                                                  |
-| 7. Atmosphäre und Feinschliff | offen                                                                                                  |
+| Phase                         | Stand                                                                                                                       |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 0. Fundament                  | Umgesetzt und lokal geprüft. GitHub Pages wird auf Wunsch des Auftraggebers erst später eingerichtet.                       |
+| 1. Welt und Kamera            | Abgenommen (Auftraggeber: „Sieht gut aus“).                                                                                 |
+| 2. Bauen und Vorrat           | Abgenommen (Auftraggeber: „mache mit der nächsten Phase weiter“).                                                           |
+| 3. Produktion und Bänder      | Abgenommen (Auftraggeber: „Fahre fort“).                                                                                    |
+| 4. Speichern                  | Umgesetzt; Abnahme automatisch (`tests/save.test.ts`) und im Browser (Neuladen, Export/Import) geprüft. Wartet auf Abnahme. |
+| 5. Strom                      | offen                                                                                                                       |
+| 6. Forschung und Ausbau       | offen                                                                                                                       |
+| 7. Atmosphäre und Feinschliff | offen                                                                                                                       |

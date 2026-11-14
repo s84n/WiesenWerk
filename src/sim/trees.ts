@@ -63,6 +63,22 @@ export class TreeSystem {
     }
   }
 
+  /** Warteschlange zum Nachwachsen als Liste [Feld, fälliger Tick, ...] in Reihenfolge. */
+  queueEntries(): number[] {
+    const out: number[] = [];
+    for (let k = 0; k < this.queued; k++) {
+      const idx = (this.head + k) % this.queueTile.length;
+      out.push(this.queueTile[idx], this.queueTick[idx]);
+    }
+    return out;
+  }
+
+  /** Stellt die Warteschlange wieder her (beim Laden). */
+  restoreQueue(entries: readonly number[]): void {
+    this.head = this.tail = this.queued = 0;
+    for (let k = 0; k + 1 < entries.length; k += 2) this.enqueue(entries[k], entries[k + 1]);
+  }
+
   private enqueue(i: number, due: number): void {
     this.queueTile[this.tail] = i;
     this.queueTick[this.tail] = due;

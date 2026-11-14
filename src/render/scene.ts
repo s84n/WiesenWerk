@@ -5,7 +5,7 @@ import {
   HemisphereLight,
   Mesh,
   MeshLambertMaterial,
-  PCFSoftShadowMap,
+  PCFShadowMap,
   PlaneGeometry,
   Scene,
   SRGBColorSpace,
@@ -69,7 +69,7 @@ export class GameRenderer {
     });
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = PCFSoftShadowMap;
+    this.renderer.shadowMap.type = PCFShadowMap;
 
     this.scene.background = new Color(PALETTE.fog);
     this.fog = new Fog(PALETTE.fog, 1, 1000);

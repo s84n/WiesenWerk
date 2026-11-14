@@ -670,3 +670,159 @@ body {
   font-weight: 700;
   line-height: 16px;
 }
+
+/* ---------- Hauptmenü ---------- */
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at center, rgba(255, 240, 210, 0.25), rgba(60, 40, 30, 0.45));
+  z-index: 50;
+  pointer-events: auto;
+  animation: toast-in 0.2s ease-out;
+}
+
+.menu-card {
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 24px 28px 18px;
+}
+
+.menu-head {
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.menu-title {
+  margin: 0;
+  font-size: 2.2rem;
+  letter-spacing: 0.02em;
+}
+
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-buttons .button {
+  width: 100%;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.menu-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.menu-row .button {
+  flex: 1;
+}
+
+.menu-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.menu-input {
+  font: inherit;
+  font-size: 1rem;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: #fffdf6;
+  color: var(--text);
+}
+
+.menu-hint {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  text-align: center;
+  margin: 10px 0 0;
+}
+
+.menu-foot {
+  font-size: 0.72rem;
+  color: var(--text-soft);
+  margin: 16px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--panel-border);
+  line-height: 1.4;
+}
+
+.menu-message {
+  display: none;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fde3d8;
+  color: #8a3b22;
+  font-size: 0.88rem;
+}
+
+.slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.slot-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.slot-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.slot-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot-line {
+  font-size: 0.72rem;
+  color: var(--text-soft);
+}
+
+.keys-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.keys-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.keys-table .key {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.hud-menu {
+  font-size: 1rem;
+}

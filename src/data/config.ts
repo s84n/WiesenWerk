@@ -48,3 +48,10 @@ export const CAMERA_CONFIG = {
   /** Glättung: höher = schneller am Ziel. */
   smoothing: 12,
 } as const;
+
+export const SAVE_CONFIG = {
+  /** Automatisch speichern alle … Sekunden (Echtzeit, nur im laufenden Spiel). */
+  autosaveSeconds: 120,
+  /** Dateiendung für Exporte. */
+  fileExtension: '.fabrik',
+} as const;

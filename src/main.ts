@@ -1,7 +1,9 @@
 import './ui/style.css';
 import { FixedStepLoop } from './core/loop';
+import { SaveManager } from './core/saves';
+import { closeDb } from './core/storage';
 import { BUILDINGS } from './data/buildings';
-import { SIM_CONFIG } from './data/config';
+import { SAVE_CONFIG, SIM_CONFIG } from './data/config';
 import { TEXTS } from './data/texts';
 import { DebugOverlay } from './dev/debug-overlay';
 import { createStressSimulation } from './dev/stress';
@@ -13,10 +15,10 @@ import { Simulation } from './sim/simulation';
 import { generateWorld } from './sim/worldgen';
 import { BuildBar } from './ui/build-bar';
 import { setItemIcons } from './ui/dom';
-import { showErrorScreen } from './ui/error-screen';
+import { setErrorExport, showErrorScreen } from './ui/error-screen';
 import { Hud } from './ui/hud';
 import { InfoPanel } from './ui/info-panel';
-import { SeedPanel } from './ui/seed-panel';
+import { MainMenu } from './ui/main-menu';
 import { Toasts } from './ui/toasts';
 
 /** Längste Bildpause, die noch nachgeholt wird (z. B. nach einem Ruckler). */
@@ -24,11 +26,6 @@ const MAX_FRAME_MS = 250;
 
 function urlNumber(name: string): number {
   return Number(new URLSearchParams(location.search).get(name));
-}
-
-function initialSeed(): number {
-  const fromUrl = urlNumber('seed');
-  return Number.isFinite(fromUrl) && fromUrl >= 1 ? Math.floor(fromUrl) : randomSeed(Math.random);
 }
 
 function start(): void {
@@ -39,24 +36,32 @@ function start(): void {
   document.title = TEXTS.gameTitle;
   const view = new GameRenderer(canvas);
   let sim!: Simulation;
+  /** Läuft ein echtes Spiel (sonst: Hintergrundwelt hinter dem Startmenü)? */
+  let inGame = false;
 
   const loop = new FixedStepLoop(SIM_CONFIG.ticksPerSecond, SIM_CONFIG.maxTicksPerFrame, () =>
     sim.step(),
   );
 
-  // Oberfläche
+  // ---------------------------------------------------------------- Oberfläche
   setItemIcons(view.itemIcons());
-  const top = buildStaticUi(ui);
+  buildStaticUi(ui);
   const hotbar = BUILDINGS.map((_, i) => i)
     .filter((i) => BUILDINGS[i].availableFromStart)
     .slice(0, 9);
   const tools = new ToolController(canvas, view.rig, () => sim, view.preview, hotbar);
-  const hud = new Hud(ui, {
-    isPaused: () => loop.paused,
-    togglePause: () => (loop.paused = !loop.paused),
-    getSpeed: () => loop.speed,
-    setSpeed: (s) => (loop.speed = s),
-  });
+  /** Öffnet das Menü; wird gesetzt, sobald das Menü existiert. */
+  let openMenu = (): void => {};
+  const hud = new Hud(
+    ui,
+    {
+      isPaused: () => loop.paused,
+      togglePause: () => (loop.paused = !loop.paused),
+      getSpeed: () => loop.speed,
+      setSpeed: (s) => (loop.speed = s),
+    },
+    () => openMenu(),
+  );
   const buildBar = new BuildBar(ui, tools, view.buildingIcons());
   const info = new InfoPanel(ui, tools, view.buildingIcons());
   tools.onChange = () => buildBar.refreshMode();
@@ -70,36 +75,149 @@ function start(): void {
     buildBar.invalidate();
   };
 
-  const newWorld = (seed: number): void => {
+  // ---------------------------------------------------------------- Speichern
+  const saves = new SaveManager({
+    getSim: () => sim,
+    camera: () => view.rig.snapshot(),
+    apply: (next, camera) => {
+      useSimulation(next);
+      view.rig.restore(camera);
+      inGame = true;
+    },
+    toast: (m) => toasts.message(m),
+  });
+  setErrorExport(() =>
+    inGame && saves.canSave()
+      ? saves.exportFile()
+      : Promise.reject(new Error('nichts zu exportieren')),
+  );
+
+  const newGame = (seed: number): void => {
     useSimulation(new Simulation(generateWorld(seed)));
-    // Seed in die Adresse schreiben, damit Neuladen dieselbe Welt zeigt
-    const url = new URL(location.href);
-    url.searchParams.set('seed', String(seed));
-    history.replaceState(null, '', url);
+    saves.reset();
+    inGame = true;
   };
 
-  const seed = initialSeed();
-  // Entwicklerhilfe: ?stress=1 (Referenzfabrik) oder ?stress=10 (zehnfach) statt einer normalen Welt
+  let pausedBeforeMenu = false;
+  const menu = new MainMenu(
+    ui,
+    {
+      inGame: () => inGame,
+      canSave: () => saves.canSave(),
+      defaultName: () => saves.defaultName(),
+      currentSeed: () => sim.world.seed,
+      rollSeed: () => randomSeed(Math.random),
+      continueGame: async () => {
+        if (inGame) return;
+        const slots = await saves.list().catch(() => []);
+        if (slots.length > 0) await saves.load(slots[0].slot);
+        else newGame(randomSeed(Math.random));
+      },
+      newGame: (seed) => {
+        if (inGame) void saves.autosave().catch(() => undefined);
+        newGame(seed);
+      },
+      save: (slot, name) => saves.save(slot, name),
+      load: async (slot) => {
+        if (inGame) await saves.autosave().catch(() => undefined);
+        await saves.load(slot);
+      },
+      remove: (slot) => saves.remove(slot),
+      list: () => saves.list(),
+      exportFile: () => saves.exportFile(),
+      importFile: (file) => saves.importFile(file),
+      errorText: (e) => saves.errorText(e),
+      visibilityChanged: (open) => {
+        if (open) {
+          pausedBeforeMenu = loop.paused;
+          loop.paused = true;
+          tools.cancel();
+        } else {
+          loop.paused = pausedBeforeMenu;
+        }
+      },
+    },
+    TEXTS.version(__APP_VERSION__, __BUILD_DATE__),
+  );
+  openMenu = () => menu.open();
+
+  // ---------------------------------------------------------------- Start
+  // Entwicklerhilfen: ?stress=1 lädt die Referenzfabrik, ?seed=123 startet sofort ein neues Spiel.
   const stress = urlNumber('stress');
-  if (stress > 0) useSimulation(createStressSimulation(stress).sim);
-  else newWorld(seed);
-  // Entwicklerhilfe: ?zoom=<sichtbare Höhe> startet mit anderer Zoomstufe
+  const urlSeed = urlNumber('seed');
+  if (stress > 0) {
+    useSimulation(createStressSimulation(stress).sim);
+    inGame = true;
+  } else if (Number.isFinite(urlSeed) && urlSeed >= 1) {
+    newGame(Math.floor(urlSeed));
+  } else {
+    // Hintergrundwelt hinter dem Startmenü
+    useSimulation(new Simulation(generateWorld(randomSeed(Math.random))));
+    menu.open();
+  }
   const devZoom = urlNumber('zoom');
   if (devZoom > 0) view.rig.zoomAt(devZoom / view.rig.viewHeight, 0, 0);
 
-  new SeedPanel(
-    top,
-    seed,
-    (s) => {
-      if (sim.buildingCount === 0 || window.confirm(TEXTS.seed.confirmReplace)) newWorld(s);
-    },
-    () => randomSeed(Math.random),
-  );
   const debug = new DebugOverlay(ui);
   const input = new InputController(canvas, view.rig, {
     toggleDebug: () => debug.toggle(),
-    togglePause: () => (loop.paused = !loop.paused),
+    togglePause: () => {
+      if (!menu.isOpen) loop.paused = !loop.paused;
+    },
   });
+
+  // Esc: Menü schließen bzw. öffnen, wenn nichts anderes abzubrechen ist (läuft vor den Werkzeugen)
+  window.addEventListener(
+    'keydown',
+    (e) => {
+      if (e.code === 'Escape') {
+        if (menu.isOpen) {
+          if (inGame) menu.close();
+          e.stopImmediatePropagation();
+        } else if (tools.mode === 'select' && tools.selected < 0) {
+          menu.open();
+          e.stopImmediatePropagation();
+        }
+      } else if (e.code === 'KeyS' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        if (inGame && saves.canSave())
+          saves.quickSave().catch((err) => toasts.message(saves.errorText(err)));
+      } else if (menu.isOpen && !(e.target instanceof HTMLInputElement)) {
+        // Im Menü keine Spieltasten
+        e.stopImmediatePropagation();
+      }
+    },
+    { capture: true },
+  );
+
+  // Spielstand-Datei ins Fenster ziehen
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer?.files[0];
+    if (!file) return;
+    saves
+      .importFile(file)
+      .then(() => menu.close())
+      .catch((err) => menu.showError(saves.errorText(err)));
+  });
+
+  // Automatisch speichern: alle 2 Minuten (IndexedDB) und beim Verlassen des Tabs (Notfall-Kopie)
+  let autosaveTimer = 0;
+  const autosave = (): void => {
+    autosaveTimer = 0;
+    if (inGame) saves.autosave().catch((err) => console.warn('Autosave fehlgeschlagen', err));
+  };
+  // Beim Verlassen (Tab-Wechsel, Schließen) nur die schnelle Notfall-Kopie schreiben: Ein laufender
+  // IndexedDB-Vorgang in einer eingefrorenen Seite würde die Datenbank für die nächste Seite blockieren.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && inGame) saves.emergencySave();
+  });
+  window.addEventListener('pagehide', () => {
+    if (inGame) saves.emergencySave();
+    closeDb();
+  });
+  void saves.recoverEmergency();
 
   window.addEventListener('resize', () => view.resize());
 
@@ -112,6 +230,8 @@ function start(): void {
       view,
       tools,
       loop,
+      saves,
+      menu,
     };
   }
 
@@ -145,6 +265,11 @@ function start(): void {
       info.update(sim, now);
       view.render(loop.paused ? 0 : loop.alpha, now);
       debug.frame(now, tickMs, ticks, view, sim, loop.paused);
+
+      if (inGame && !menu.isOpen) {
+        autosaveTimer += dt;
+        if (autosaveTimer >= SAVE_CONFIG.autosaveSeconds) autosave();
+      }
       requestAnimationFrame(frame);
     } catch (err) {
       running = false;
@@ -160,8 +285,8 @@ function start(): void {
   requestAnimationFrame(frame);
 }
 
-/** Baut Titel, Version und Hinweiszeile. Gibt die obere linke Spalte zurück. */
-function buildStaticUi(ui: HTMLElement): HTMLElement {
+/** Baut Titel, Version und Hinweiszeile. */
+function buildStaticUi(ui: HTMLElement): void {
   const column = document.createElement('div');
   column.className = 'top-left';
 
@@ -180,7 +305,6 @@ function buildStaticUi(ui: HTMLElement): HTMLElement {
   hint.textContent = TEXTS.hint;
 
   ui.append(column, hint);
-  return column;
 }
 
 window.addEventListener('error', (e) => showErrorScreen(e.error ?? e.message));

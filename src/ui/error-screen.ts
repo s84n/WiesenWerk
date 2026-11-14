@@ -1,10 +1,16 @@
 import { TEXTS } from '../data/texts';
 
 let shown = false;
+let exporter: (() => Promise<void>) | null = null;
+
+/** Legt fest, wie der Fehlerbildschirm den aktuellen Spielstand exportiert. */
+export function setErrorExport(fn: (() => Promise<void>) | null): void {
+  exporter = fn;
+}
 
 /**
  * Zeigt bei einem Fehler eine verständliche Meldung statt eines eingefrorenen Bildes.
- * Ab Phase 4 kommt hier zusätzlich ein Knopf zum Exportieren des Spielstands hinzu.
+ * Ein Knopf erlaubt, den Spielstand vorher zu exportieren.
  */
 export function showErrorScreen(error: unknown): void {
   console.error(error);
@@ -34,7 +40,23 @@ export function showErrorScreen(error: unknown): void {
   button.textContent = TEXTS.error.reload;
   button.addEventListener('click', () => location.reload());
 
-  card.append(h, p, details, button);
+  const buttons = document.createElement('div');
+  buttons.className = 'menu-row';
+  if (exporter) {
+    const exp = document.createElement('button');
+    exp.className = 'button secondary';
+    exp.textContent = TEXTS.error.export;
+    const fn = exporter;
+    exp.addEventListener('click', () => {
+      fn().catch((e) => {
+        exp.textContent = TEXTS.error.exportFailed;
+        console.error(e);
+      });
+    });
+    buttons.appendChild(exp);
+  }
+  buttons.appendChild(button);
+  card.append(h, p, details, buttons);
   box.appendChild(card);
   document.body.appendChild(box);
 }

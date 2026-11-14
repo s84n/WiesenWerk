@@ -169,7 +169,10 @@ export class Simulation {
         const i = world.index(tx, ty);
         world.building[i] = id + 1;
         // Gefällter Wald wird beim Bebauen zu Wiese und wächst nicht mehr nach.
-        if (world.tiles[i] === TileType.Forest) world.tiles[i] = TileType.Meadow;
+        if (world.tiles[i] === TileType.Forest) {
+          world.tiles[i] = TileType.Meadow;
+          world.changedTiles.add(i);
+        }
       }
     }
     this.typeCount[type]++;

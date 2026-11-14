@@ -53,6 +53,21 @@ export class CameraRig {
     this.apply();
   }
 
+  /** Kamerazustand für den Spielstand: x, z, sichtbare Höhe, Winkel. */
+  snapshot(): number[] {
+    return [this.tx, this.tz, this.tViewHeight, this.tAngle];
+  }
+
+  /** Stellt einen gespeicherten Kamerazustand ohne Glättung wieder her. */
+  restore(state: readonly number[]): void {
+    if (state.length < 4) return;
+    this.x = this.tx = state[0];
+    this.z = this.tz = state[1];
+    this.viewHeight = this.tViewHeight = clamp(state[2], C.viewHeightMin, C.viewHeightMax);
+    this.angle = this.tAngle = state[3];
+    this.apply();
+  }
+
   /** Verschiebt das Ziel relativ zur Blickrichtung (Bildschirm-rechts / -oben, in Feldern). */
   panScreen(right: number, forward: number): void {
     const s = Math.sin(this.angle);

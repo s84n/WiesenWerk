@@ -505,6 +505,61 @@ export class BeltSystem {
     }
   }
 
+  /**
+   * Baut alle Segmente aus den vorhandenen Bandfeldern neu auf (beim Laden).
+   * Danach können Segment-IDs und Items mit `restoreSegments` übernommen werden.
+   */
+  rebuildAll(): void {
+    this.segments.length = 0;
+    this.freeIds.length = 0;
+    this.segmentCount = 0;
+    this.itemCount = 0;
+    this.tileSegment.fill(NONE);
+    this.topologyVersion++;
+    const loose: LooseItem[] = [];
+    const dirty: number[] = [];
+    for (let t = 0; t < this.tileSegment.length; t++) {
+      if (this.tileSegment[t] === NONE && this.beltAt(t) >= 0) this.buildChain(t, loose, dirty);
+    }
+  }
+
+  /**
+   * Ordnet die neu gebildeten Segmente ihren gespeicherten IDs zu (über das Anfangsfeld),
+   * damit die Reihenfolge der Bearbeitung exakt wie vor dem Speichern ist.
+   */
+  remapSegments(saved: readonly { id: number; start: number }[], freeIds: readonly number[]): void {
+    const next: (Segment | null)[] = [];
+    const used = new Set<Segment>();
+    for (const { id, start } of saved) {
+      const current = this.tileSegment[start];
+      const seg = current >= 0 ? this.segments[current] : null;
+      if (!seg) throw new Error(`Bandsegment ${id} passt nicht zu den Bändern.`);
+      next[id] = seg;
+      used.add(seg);
+    }
+    // Segmente ohne gespeicherten Eintrag (sollte nicht vorkommen) hinten anhängen
+    for (const seg of this.segments) if (seg && !used.has(seg)) next.push(seg);
+    this.segments.length = 0;
+    for (let i = 0; i < next.length; i++) this.segments.push(next[i] ?? null);
+    this.freeIds.length = 0;
+    this.freeIds.push(...freeIds.filter((id) => id < next.length && !next[id]));
+    for (let i = 0; i < next.length; i++)
+      if (!next[i] && !this.freeIds.includes(i)) this.freeIds.push(i);
+    for (let id = 0; id < this.segments.length; id++) {
+      const seg = this.segments[id];
+      if (!seg) continue;
+      for (let i = 0; i < seg.length; i++) {
+        this.tileSegment[seg.tiles[i]] = id;
+        this.tileIndex[seg.tiles[i]] = i;
+      }
+    }
+  }
+
+  /** Freie Segment-IDs (für den Spielstand). */
+  get freeSegmentIds(): readonly number[] {
+    return this.freeIds;
+  }
+
   /** Füllt ein Segment vollständig mit einem Item (Stresstest). */
   fill(id: number, item: number): void {
     const seg = this.segments[id];

@@ -22,6 +22,10 @@ export class World {
 
   startX = 0;
   startY = 0;
+  /** Felder, deren Art sich gegenüber der erzeugten Welt geändert hat (für den Spielstand). */
+  readonly changedTiles = new Set<number>();
+  /** Aus einem Seed erzeugt (sonst z. B. Stresstest-Welt, die nicht gespeichert werden kann). */
+  generated = false;
 
   constructor(
     readonly seed: number,
