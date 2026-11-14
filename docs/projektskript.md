@@ -460,9 +460,9 @@ Das Projekt ist ein einzelnes Vite-Projekt in einem GitHub-Repository. Jeder Pus
 ├─ public/                    Statische Dateien (Favicon, später Tondateien)
 ├─ src/
 │  ├─ main.ts                 Einstiegspunkt
-│  ├─ core/                   Spielschleife, Befehle, Ereignisse, Zufall, Speichern
+│  ├─ core/                   Spielschleife, Befehle, Ereignisse, Speichern
 │  ├─ data/                   Items, Rezepte, Gebäude, Forschung, Texte
-│  ├─ sim/                    Welt, Raster, Gebäude, Bänder, Strom, Forschung
+│  ├─ sim/                    Welt, Raster, Gebäude, Bänder, Strom, Forschung, Zufall, Noise
 │  ├─ render/                 Szene, Kamera, Gelände, Instanzen, Modelle, Effekte
 │  ├─ ui/                     Kopfzeile, Bauleiste, Fenster, Menü
 │  ├─ input/                  Maus, Tastatur, Bauwerkzeuge

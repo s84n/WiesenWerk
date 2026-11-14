@@ -11,10 +11,18 @@ export const TEXTS = {
     tick: 'Tick',
     drawCalls: 'Zeichenaufrufe',
     triangles: 'Dreiecke',
+    chunks: 'Sichtbare Chunks',
     buildings: 'Gebäude',
     segments: 'Bandsegmente',
     items: 'Items auf Bändern',
     paused: 'Pausiert',
+  },
+  seed: {
+    label: 'Seed',
+    roll: 'Würfeln',
+    rollTooltip: 'Zufälligen Seed würfeln und neue Welt erzeugen',
+    generate: 'Erzeugen',
+    generateTooltip: 'Welt aus diesem Seed erzeugen',
   },
   error: {
     title: 'Hoppla, da ist etwas schiefgelaufen',
@@ -22,5 +30,5 @@ export const TEXTS = {
     details: 'Technische Details',
     reload: 'Seite neu laden',
   },
-  hint: 'Phase 0 · F3 zeigt die Debug-Anzeige · Leertaste pausiert',
+  hint: 'WASD/Pfeile: bewegen · Mausrad: zoomen · Mittlere Maustaste: ziehen · Q/E: drehen · F3: Debug · Leertaste: Pause',
 } as const;

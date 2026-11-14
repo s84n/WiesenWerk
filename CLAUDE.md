@@ -47,7 +47,12 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 
 - **Spielschleife** (`src/core/loop.ts`): fester Zeitschritt, 20 Ticks/s × Spielgeschwindigkeit, höchstens 5 Ticks pro Bild, Rückstand darüber wird verworfen. `alpha` dient der Interpolation zwischen Ticks. Im Hintergrund-Tab pausiert das Spiel (`document.hidden`).
 - **Darstellung** (`src/render/scene.ts`): orthografische Kamera im Iso-Winkel, ein gemeinsames `MeshLambertMaterial` mit Vertex-Farben und Flat Shading. Formen werden mit `colored()` eingefärbt und mit `merge()` verschmolzen (`src/render/geometry.ts`).
-- **Sichtbare Texte** nur in `src/data/texts.ts`.
+- **Welt** (`src/sim/world.ts`, `src/sim/worldgen.ts`): flache typisierte Arrays (`tiles`, `resource`, `purity`, `relief`), Index `y * size + x`. Generator mit eigener Noise-Ebene je Schicht (`deriveSeed(seed, 'relief' | 'lakes' | 'forest' | 'deposit:<id>' ...)`). Neue Vorkommen in `DEPOSITS` (`src/data/world.ts`) immer hinten anhängen, sonst ändern sich alte Seeds. Startpunkt = Kartenmitte; Startgebiet wird garantiert (freie Wiese, Wald, Stein, Kupfer).
+- **Gelände** (`src/render/terrain.ts`): verschmolzene Geometrie je Block von 32 × 32 Feldern. Höhen sind rein optisch (`terrain-heights.ts`): baubare Felder bleiben fast flach, Felsen wölben sich, Ufer fallen unter die Wasserlinie ab.
+- **Instanzen pro Chunk** (`src/render/chunked-instances.ts`): Jede Objektart (Kiefer, Laubbaum, Felsbrocken, Blume, Gras) ist ein `InstancedMesh`. Instanzdaten liegen nach Chunks sortiert; `ChunkVisibility` (`visibility.ts`) prüft die Chunks gegen den Bildausschnitt und nur bei Änderung werden die sichtbaren Instanzen in den Puffer kopiert. Dieses Muster soll in Phase 2 auch für Gebäude genutzt werden (dann mit Einfügen/Entfernen).
+- **Detailstufen:** ab `detailMaxViewHeight` keine Blumen/Gras, ab `lodViewHeight` vereinfachte Bäume (teilen sich die Instanzdaten) und keine Schatten (`src/data/config.ts`).
+- **Kamera** (`src/render/camera-rig.ts`): Ziel- und Ist-Zustand, exponentiell geglättet. Zoom hält den Bodenpunkt unter der Maus fest, Ziehen mit der mittleren Maustaste hält den angefassten Punkt unter der Maus. Grenzen = Karte.
+- **Sichtbare Texte** nur in `src/data/texts.ts`, **Farben** nur in `src/data/palette.ts`.
 
 ## Getroffene technische Entscheidungen
 
@@ -55,23 +60,29 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 - **Version und Build-Datum** setzt Vite über `__APP_VERSION__` / `__BUILD_DATE__` ein (Quelle: `package.json`).
 - **Zusätzliche Entwicklungs-Abhängigkeiten** neben den im Skript genannten: `typescript-eslint` und `@eslint/js` (ESLint versteht sonst kein TypeScript), `eslint-config-prettier` (verhindert Konflikte zwischen ESLint und Prettier), `globals` (Liste der Browser-Globals für ESLint), `@types/three` (Typen für three.js). Keine davon landet im Spiel-Build.
 - **Architekturgrenze per ESLint:** In `src/sim` und `src/data` sind Importe von `three`, `render`, `ui`, `input`, `core`, `dev` sowie Browser-Globals wie `window`/`document`/`performance` verboten.
-- **Zufallsgenerator und Noise** kommen in Phase 1 nach `src/sim` (nicht `src/core`, wie im Skript skizziert), weil die Weltgenerierung zur Simulation gehört und `sim` nicht auf `core` zugreifen darf.
+- **Zufallsgenerator und Noise** liegen in `src/sim` (nicht `src/core`, wie ursprünglich skizziert), weil die Weltgenerierung zur Simulation gehört und `sim` nicht auf `core` zugreifen darf. Projektskript ist angepasst.
+- **Geländeblöcke 32 × 32 statt 16 × 16:** Logische Chunks bleiben 16 × 16 (Instanzen, Culling), gezeichnet wird das Gelände aber in größeren Blöcken, damit weit herausgezoomt die Zeichenaufrufe unter 150 bleiben.
+- **Seed** steht in der Adresse (`?seed=123`), damit Neuladen dieselbe Welt zeigt. Das Seed-Feld oben links ist vorläufig und wandert in Phase 4 ins Hauptmenü.
+- **Entwicklerhilfe:** `?zoom=110` startet mit anderer Zoomstufe (für Bildschirmfotos/Messungen).
+- **Bildschirmfotos zum Prüfen:** `npx vite preview --port 4789` und dann Headless-Chromium aus `~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome` mit `--headless=new --use-angle=swiftshader --enable-unsafe-swiftshader --screenshot=... --virtual-time-budget=8000`.
 - **Deploy-Workflow** baut mit Node 22, führt Typprüfung, Lint und Tests aus; schlägt etwas fehl, wird nicht veröffentlicht.
 
 ## Bekannte Schwächen
 
-- Die Phase-0-Szene ist ein Platzhalter (Häuschen, Bäume, Windrad) und wird in Phase 1 durch die echte Welt ersetzt.
-- Schatten laufen immer (Qualitätsstufen kommen in Phase 7).
+- Schatten-Qualität ist fest eingestellt (Qualitätsstufen kommen in Phase 7); der Schattenbereich ist auf 70 Felder begrenzt.
+- Das Gelände hat leichte Unebenheiten (±0,04) auch auf baubaren Feldern; Gebäude in Phase 2 sitzen auf Feldhöhe und können minimal einsinken/schweben.
+- Kleine Teiche (1–2 Felder) sehen eher wie Sandmulden aus.
+- Messwerte Phase 1 (Seed 4711, 1280 × 800): nah 22 Zeichenaufrufe / ca. 320 000 Dreiecke, ganz herausgezoomt 53 Zeichenaufrufe / ca. 430 000 Dreiecke. Welterzeugung ca. 30 ms.
 
 ## Stand der Phasen
 
-| Phase                         | Stand                                                                                     |
-| ----------------------------- | ----------------------------------------------------------------------------------------- |
-| 0. Fundament                  | Umgesetzt und lokal geprüft. Abnahme offen: Seite muss über GitHub Pages erreichbar sein. |
-| 1. Welt und Kamera            | offen                                                                                     |
-| 2. Bauen und Vorrat           | offen                                                                                     |
-| 3. Produktion und Bänder      | offen                                                                                     |
-| 4. Speichern                  | offen                                                                                     |
-| 5. Strom                      | offen                                                                                     |
-| 6. Forschung und Ausbau       | offen                                                                                     |
-| 7. Atmosphäre und Feinschliff | offen                                                                                     |
+| Phase                         | Stand                                                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 0. Fundament                  | Umgesetzt und lokal geprüft. GitHub Pages wird auf Wunsch des Auftraggebers erst später eingerichtet. |
+| 1. Welt und Kamera            | Umgesetzt und lokal geprüft. Wartet auf Abnahme durch den Auftraggeber (Erkunden im Browser).         |
+| 2. Bauen und Vorrat           | offen                                                                                                 |
+| 3. Produktion und Bänder      | offen                                                                                                 |
+| 4. Speichern                  | offen                                                                                                 |
+| 5. Strom                      | offen                                                                                                 |
+| 6. Forschung und Ausbau       | offen                                                                                                 |
+| 7. Atmosphäre und Feinschliff | offen                                                                                                 |

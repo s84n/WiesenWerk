@@ -73,9 +73,6 @@ body {
 }
 
 .title-badge {
-  position: absolute;
-  top: 16px;
-  left: 16px;
   padding: 10px 16px;
 }
 
@@ -97,6 +94,7 @@ body {
   transform: translateX(-50%);
   padding: 8px 16px;
   font-size: 0.85rem;
+  white-space: nowrap;
   color: var(--text-soft);
 }
 
@@ -164,4 +162,62 @@ body {
 
 .error-card details {
   margin: 12px 0 18px;
+}
+
+.top-left {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.top-left > * {
+  pointer-events: auto;
+}
+
+.top-left .title-badge {
+  position: static;
+}
+
+.seed-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+}
+
+.seed-panel label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.seed-panel input {
+  width: 110px;
+  font: inherit;
+  padding: 4px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: #fffdf6;
+  color: var(--text);
+}
+
+.button.small {
+  padding: 0.35em 0.9em;
+  font-size: 0.85rem;
+}
+
+.button.secondary {
+  background: #e9dcc0;
+  color: var(--text);
+}
+
+.button.secondary:hover {
+  background: #dccaa4;
 }

@@ -1,33 +1,28 @@
 import {
-  BoxGeometry,
   Color,
-  ConeGeometry,
-  CylinderGeometry,
   DirectionalLight,
   Fog,
-  Group,
   HemisphereLight,
   Mesh,
   MeshLambertMaterial,
-  OrthographicCamera,
   PCFSoftShadowMap,
+  PlaneGeometry,
   Scene,
   SRGBColorSpace,
   Vector3,
   WebGLRenderer,
 } from 'three';
+import { CAMERA_CONFIG, RENDER_CONFIG } from '../data/config';
 import { PALETTE } from '../data/palette';
-import { RENDER_CONFIG } from '../data/config';
-import { Simulation } from '../sim/simulation';
-import { colored, merge } from './geometry';
+import type { World } from '../sim/world';
+import { CameraRig } from './camera-rig';
+import { Nature } from './nature';
+import { Terrain } from './terrain';
+import { computeCornerHeights } from './terrain-heights';
+import { ChunkVisibility } from './visibility';
 
-/** Klassischer Iso-Blickwinkel: 45° seitlich, ca. 35° von oben. */
-const ISO_DIRECTION = new Vector3(
-  1,
-  Math.SQRT2 * Math.tan((35.264 * Math.PI) / 180),
-  1,
-).normalize();
-const CAMERA_DISTANCE = 60;
+const SUN_DIRECTION = new Vector3(-0.55, 1, 0.3).normalize();
+const SUN_DISTANCE = 120;
 
 /**
  * Die 3D-Darstellung. Liest den Simulationszustand, verändert ihn nie.
@@ -35,12 +30,19 @@ const CAMERA_DISTANCE = 60;
 export class GameRenderer {
   readonly renderer: WebGLRenderer;
   readonly scene = new Scene();
-  readonly camera: OrthographicCamera;
+  readonly rig = new CameraRig();
   /** Ein gemeinsames Material mit Vertex-Farben für fast alle Objekte. */
   readonly material = new MeshLambertMaterial({ vertexColors: true, flatShading: true });
 
-  private viewHeight = 18;
-  private rotor!: Mesh;
+  private readonly sun: DirectionalLight;
+  private readonly fog: Fog;
+  private readonly water: Mesh;
+  private readonly seabed: Mesh;
+
+  private terrain: Terrain | null = null;
+  private nature: Nature | null = null;
+  private visibility: ChunkVisibility | null = null;
+  private appliedVersion = -1;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({
@@ -52,112 +54,54 @@ export class GameRenderer {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = PCFSoftShadowMap;
 
-    this.scene.background = new Color(PALETTE.skyDay);
-    this.scene.fog = new Fog(PALETTE.fogDay, CAMERA_DISTANCE + 10, CAMERA_DISTANCE + 60);
+    this.scene.background = new Color(PALETTE.fog);
+    this.fog = new Fog(PALETTE.fog, 1, 1000);
+    this.scene.fog = this.fog;
 
-    this.camera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 500);
-    this.camera.position.copy(ISO_DIRECTION).multiplyScalar(CAMERA_DISTANCE);
-    this.camera.lookAt(0, 0, 0);
+    this.scene.add(new HemisphereLight(PALETTE.hemiSky, PALETTE.hemiGround, 1.5));
+    this.sun = new DirectionalLight(PALETTE.sun, 2.3);
+    this.sun.castShadow = true;
+    this.sun.shadow.mapSize.set(RENDER_CONFIG.shadowMapSize, RENDER_CONFIG.shadowMapSize);
+    this.sun.shadow.bias = -0.0004;
+    this.sun.shadow.normalBias = 0.02;
+    this.sun.shadow.camera.near = 1;
+    this.sun.shadow.camera.far = SUN_DISTANCE * 2;
+    this.scene.add(this.sun, this.sun.target);
 
-    this.setupLights();
-    this.buildDemoScene();
+    // Wasser: halbtransparente Oberfläche über einem dunkleren Meeresgrund
+    const big = new PlaneGeometry(4000, 4000).rotateX(-Math.PI / 2);
+    this.water = new Mesh(
+      big,
+      new MeshLambertMaterial({ color: PALETTE.water, transparent: true, opacity: 0.72 }),
+    );
+    this.water.position.y = RENDER_CONFIG.waterLevel;
+    this.water.renderOrder = 1;
+    this.seabed = new Mesh(big, new MeshLambertMaterial({ color: PALETTE.waterDeep }));
+    this.seabed.position.y = -1.6;
+    this.scene.add(this.water, this.seabed);
+
     this.resize();
   }
 
-  private setupLights(): void {
-    const hemi = new HemisphereLight(PALETTE.hemiSky, PALETTE.hemiGround, 1.4);
-    this.scene.add(hemi);
+  /** Baut die Darstellung für eine neue Welt auf (ersetzt die alte vollständig). */
+  setWorld(world: World): void {
+    this.disposeWorld();
+    const heights = computeCornerHeights(world);
+    this.terrain = new Terrain(world, heights, this.material);
+    this.nature = new Nature(world, heights, this.material);
+    this.visibility = new ChunkVisibility(world);
+    this.appliedVersion = -1;
+    this.scene.add(this.terrain.group, this.nature.group);
 
-    const sun = new DirectionalLight(PALETTE.sun, 2.4);
-    sun.position.set(-20, 30, 12);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    const s = 16;
-    sun.shadow.camera.left = -s;
-    sun.shadow.camera.right = s;
-    sun.shadow.camera.top = s;
-    sun.shadow.camera.bottom = -s;
-    sun.shadow.bias = -0.0005;
-    this.scene.add(sun);
+    const center = world.size / 2;
+    this.water.position.x = this.seabed.position.x = center;
+    this.water.position.z = this.seabed.position.z = center;
+    this.rig.setBounds(world.size);
+    this.rig.reset(world.startX + 0.5, world.startY + 0.5);
   }
 
-  /** Kleine Platzhalter-Szene für Phase 0: Wiesenstück, Häuschen, Bäume, Windrad. */
-  private buildDemoScene(): void {
-    // Wiesenstück mit Erdkante
-    const ground = merge([
-      colored(new BoxGeometry(16, 0.6, 16).translate(0, -0.3, 0), PALETTE.soil),
-      colored(new BoxGeometry(16, 0.12, 16).translate(0, 0.0, 0), PALETTE.meadow),
-    ]);
-    const groundMesh = new Mesh(ground, this.material);
-    groundMesh.receiveShadow = true;
-    this.scene.add(groundMesh);
-
-    // Häuschen als Platzhalter für die Zentrale
-    const house = merge([
-      colored(new BoxGeometry(3, 1.8, 3).translate(0, 0.96, 0), PALETTE.cream),
-      colored(
-        new ConeGeometry(2.4, 1.4, 4).rotateY(Math.PI / 4).translate(0, 2.56, 0),
-        PALETTE.roof,
-      ),
-      colored(new BoxGeometry(0.5, 1.2, 0.5).translate(0.8, 2.8, 0.4), PALETTE.brick),
-      colored(new BoxGeometry(0.7, 1.1, 0.08).translate(0, 0.6, 1.51), PALETTE.woodDark),
-    ]);
-    this.addStatic(house, -2, -1);
-
-    // Ein paar Bäume
-    const tree = (): ReturnType<typeof merge> =>
-      merge([
-        colored(new CylinderGeometry(0.15, 0.2, 0.8, 6).translate(0, 0.46, 0), PALETTE.woodDark),
-        colored(new ConeGeometry(0.8, 1.4, 7).translate(0, 1.4, 0), PALETTE.leaf),
-        colored(new ConeGeometry(0.6, 1.0, 7).translate(0, 2.1, 0), PALETTE.leafLight),
-      ]);
-    const treeGeo = tree();
-    for (const [x, z] of [
-      [4, -5],
-      [5.5, -3.5],
-      [-6, 4],
-      [-5, 6],
-      [6, 5],
-      [-6.5, -5.5],
-    ] as const) {
-      this.addStatic(treeGeo, x, z);
-    }
-
-    // Windrad: Mast statisch, Rotor dreht sich passend zum Simulationstick
-    const mast = merge([
-      colored(new CylinderGeometry(0.18, 0.3, 4, 6).translate(0, 2.06, 0), PALETTE.cream),
-      colored(new BoxGeometry(0.5, 0.4, 0.8).translate(0, 4.1, 0), PALETTE.brick),
-    ]);
-    this.addStatic(mast, 3, 2);
-
-    const blades: ReturnType<typeof colored>[] = [];
-    for (let i = 0; i < 4; i++) {
-      blades.push(
-        colored(
-          new BoxGeometry(0.28, 1.8, 0.06).translate(0, 0.95, 0).rotateZ((i * Math.PI) / 2),
-          PALETTE.wood,
-        ),
-      );
-    }
-    blades.push(
-      colored(new CylinderGeometry(0.15, 0.15, 0.2, 8).rotateX(Math.PI / 2), PALETTE.copper),
-    );
-    const rotorGroup = new Group();
-    rotorGroup.position.set(3, 4.1, 2.45);
-    this.rotor = new Mesh(merge(blades), this.material);
-    this.rotor.castShadow = true;
-    rotorGroup.add(this.rotor);
-    this.scene.add(rotorGroup);
-  }
-
-  private addStatic(geometry: ReturnType<typeof merge>, x: number, z: number): void {
-    const mesh = new Mesh(geometry, this.material);
-    mesh.position.set(x, 0, z);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.matrixAutoUpdate = false;
-    mesh.updateMatrix();
-    this.scene.add(mesh);
+  get visibleChunks(): number {
+    return this.visibility?.count ?? 0;
   }
 
   resize(): void {
@@ -167,18 +111,62 @@ export class GameRenderer {
     this.renderer.setSize(w, h, false);
     this.canvas.style.width = `${w}px`;
     this.canvas.style.height = `${h}px`;
-    const aspect = w / h;
-    this.camera.left = (-this.viewHeight * aspect) / 2;
-    this.camera.right = (this.viewHeight * aspect) / 2;
-    this.camera.top = this.viewHeight / 2;
-    this.camera.bottom = -this.viewHeight / 2;
-    this.camera.updateProjectionMatrix();
+    this.rig.setAspect(w / h);
   }
 
-  /** Zeichnet ein Bild. `alpha` (0 bis 1) interpoliert zwischen zwei Ticks. */
-  render(sim: Simulation, alpha: number): void {
-    const rotorTurns = (sim.demoRotor + alpha * Simulation.DEMO_ROTOR_STEP) / 1000;
-    this.rotor.rotation.z = -rotorTurns * Math.PI * 2;
-    this.renderer.render(this.scene, this.camera);
+  /** Zeichnet ein Bild. `dt` = vergangene Zeit in Sekunden. */
+  render(dt: number): void {
+    const rig = this.rig;
+    rig.update(dt);
+
+    // Sonne und Schattenbereich folgen dem Bildausschnitt
+    this.sun.target.position.set(rig.x, 0, rig.z);
+    this.sun.position
+      .copy(SUN_DIRECTION)
+      .multiplyScalar(SUN_DISTANCE)
+      .add(this.sun.target.position);
+    const aspect = window.innerWidth / Math.max(1, window.innerHeight);
+    const extent = Math.min(
+      RENDER_CONFIG.shadowMaxExtent,
+      rig.viewHeight * Math.max(aspect, 1.8) * 0.6,
+    );
+    const sc = this.sun.shadow.camera;
+    if (sc.right !== extent) {
+      sc.left = sc.bottom = -extent;
+      sc.right = sc.top = extent;
+      sc.updateProjectionMatrix();
+    }
+
+    // Leichter Dunst, der mit dem Zoom mitwächst
+    this.fog.near = CAMERA_CONFIG.distance + rig.viewHeight * 0.4;
+    this.fog.far = CAMERA_CONFIG.distance + rig.viewHeight * 2.6;
+
+    if (this.visibility && this.nature) {
+      this.visibility.update(rig.camera);
+      if (this.visibility.version !== this.appliedVersion) {
+        this.nature.applyVisible(this.visibility.visible, this.visibility.count);
+        this.appliedVersion = this.visibility.version;
+      }
+      this.nature.setDetailVisible(rig.viewHeight < RENDER_CONFIG.detailMaxViewHeight);
+      const far = rig.viewHeight > RENDER_CONFIG.lodViewHeight;
+      this.nature.setLowDetail(far);
+      this.sun.castShadow = !far;
+    }
+
+    this.renderer.render(this.scene, rig.camera);
+  }
+
+  private disposeWorld(): void {
+    if (this.terrain) {
+      this.scene.remove(this.terrain.group);
+      this.terrain.dispose();
+    }
+    if (this.nature) {
+      this.scene.remove(this.nature.group);
+      this.nature.dispose();
+    }
+    this.terrain = null;
+    this.nature = null;
+    this.visibility = null;
   }
 }
