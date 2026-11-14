@@ -1,0 +1,167 @@
+:root {
+  --panel-bg: rgba(255, 248, 232, 0.92);
+  --panel-border: rgba(140, 100, 60, 0.25);
+  --text: #4a3826;
+  --text-soft: #7a6450;
+  --accent: #d98b4e;
+  --accent-dark: #b86c34;
+  --radius: 12px;
+  --shadow: 0 6px 24px rgba(80, 50, 30, 0.18);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  color: var(--text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #bfe3f2;
+  user-select: none;
+}
+
+#spielfeld {
+  position: fixed;
+  inset: 0;
+  display: block;
+}
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+#ui > * {
+  pointer-events: auto;
+}
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(6px);
+}
+
+.button {
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  padding: 0.6em 1.4em;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+
+.button:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+}
+
+.title-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  padding: 10px 16px;
+}
+
+.title-badge h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.02em;
+}
+
+.title-badge .version {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+
+.hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+
+.debug-overlay {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  min-width: 200px;
+  padding: 8px 12px;
+  font:
+    12px/1.5 ui-monospace,
+    'SFMono-Regular',
+    Menlo,
+    Consolas,
+    monospace;
+  color: #f3e6c8;
+  background: rgba(40, 30, 22, 0.78);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.debug-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #ffd39a;
+}
+
+.debug-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.debug-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.error-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(60, 40, 30, 0.45);
+  z-index: 100;
+}
+
+.error-card {
+  max-width: 520px;
+  padding: 24px 28px;
+}
+
+.error-card h2 {
+  margin-top: 0;
+}
+
+.error-card pre {
+  max-height: 200px;
+  overflow: auto;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 8px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+}
+
+.error-card details {
+  margin: 12px 0 18px;
+}
