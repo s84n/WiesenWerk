@@ -45,6 +45,13 @@ body {
   pointer-events: auto;
 }
 
+/* Reine Anzeigen dürfen keine Klicks auf das Spielfeld abfangen */
+#ui > .toast-stack,
+#ui > .float-text,
+#ui .toast {
+  pointer-events: none;
+}
+
 .panel {
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
