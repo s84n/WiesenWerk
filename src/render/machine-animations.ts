@@ -172,6 +172,17 @@ const ROUTES: Record<string, readonly Route[]> = {
       cycle: 8,
     },
   ],
+  // trägt Kisten aus dem Schuppen zur Rutsche
+  dispenser: [
+    {
+      points: [
+        [0.55, 0.45],
+        [-0.15, 0.5],
+      ],
+      carryOut: 'crate',
+      cycle: 3,
+    },
+  ],
   // Träger bringen die Ware Richtung Zentrale weg und kommen leer zurück
   depot: [
     {

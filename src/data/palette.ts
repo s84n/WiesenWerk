@@ -93,6 +93,7 @@ export const PALETTE = {
   houseRoofA: 0xc96f4a,
   houseRoofB: 0x8e4b3a,
   houseRoofC: 0x6f8fa8,
+  dispenserRoof: 0x4f7fa8,
   garden: 0x7a5a3a,
   villagerA: 0xd86a6a,
   villagerB: 0x6aa86a,

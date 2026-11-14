@@ -1474,3 +1474,50 @@ body {
   width: 20px;
   height: 20px;
 }
+
+/* Ausgabestelle: Item-Auswahl */
+.dispenser-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.dispenser-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 2px 2px;
+  font: inherit;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dispenser-item:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dispenser-item.selected {
+  border-color: var(--accent);
+  background: #fff;
+}
+
+.dispenser-item.empty {
+  opacity: 0.45;
+}
+
+.dispenser-item .item-icon,
+.dispenser-item .item-icon.image {
+  width: 24px;
+  height: 24px;
+}
+
+.dispenser-count {
+  font-size: 0.66rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

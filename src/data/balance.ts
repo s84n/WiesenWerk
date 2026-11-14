@@ -32,6 +32,8 @@ export const MACHINES = {
   outputBufferCycles: 2,
   /** Lager von Bergwerk und Holzfäller (Items): arbeiten weiter, auch wenn das Band gerade stockt. */
   extractorBuffer: 50,
+  /** Ausgabestelle: so viele Items liegen fertig am Ausgang bereit. */
+  dispenserBuffer: 2,
   /** Glättung der angezeigten Auslastung (Anteil pro Tick). */
   utilizationSmoothing: 0.005,
   /** Ein Problem wird erst nach so vielen Ticks als Symbol angezeigt. */

@@ -1,4 +1,4 @@
-import { BUILDINGS, BUILDING_COSTS } from '../data/buildings';
+import { BUILDINGS, BUILDING_COSTS, hasSetting } from '../data/buildings';
 import type { ItemAmount } from '../data/items';
 import { footprintH, footprintW } from './buildings';
 import type { BlueprintPlacement } from './commands';
@@ -67,7 +67,7 @@ export function copyArea(
       dx: b.x[id] - bx0,
       dy: b.y[id] - by0,
       rot: b.rot[id],
-      recipe: BUILDINGS[b.type[id]].behavior.kind === 'crafter' ? sim.machines.recipe[id] : -1,
+      recipe: hasSetting(BUILDINGS[b.type[id]].behavior.kind) ? sim.machines.recipe[id] : -1,
     })),
   };
 }

@@ -1,5 +1,5 @@
 import { START_INVENTORY, HAND_MINING, TREES } from '../data/balance';
-import { BUILDINGS, BUILDING_COSTS } from '../data/buildings';
+import { BUILDINGS, BUILDING_COSTS, hasSetting } from '../data/buildings';
 import { ITEM_ID, toAmounts } from '../data/items';
 import { DEPOSITS, TileType } from '../data/world';
 import { BeltSystem } from './belts';
@@ -323,7 +323,7 @@ export class Simulation {
     const x = b.x[id];
     const y = b.y[id];
     const rot = b.rot[id];
-    const recipe = def.behavior.kind === 'crafter' ? this.machines.recipe[id] : -1;
+    const recipe = hasSetting(def.behavior.kind) ? this.machines.recipe[id] : -1;
     const w = footprintW(def, rot);
     const h = footprintH(def, rot);
     if (def.behavior.kind !== 'belt') {

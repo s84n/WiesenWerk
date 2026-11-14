@@ -49,6 +49,11 @@ export type Behavior =
   /** Depot: alles, was ankommt, landet sofort im Vorrat (wie bei der Zentrale). */
   | { kind: 'depot' }
   /**
+   * Ausgabestelle: legt das gewählte Item (in `machines.recipe`) aus dem Vorrat aufs Band,
+   * höchstens `itemsPerMinute`. Gegenstück zum Depot.
+   */
+  | { kind: 'dispenser'; itemsPerMinute: number }
+  /**
    * Tunnelband: Eingang (`in`) und Ausgang (`out`) in gleicher Richtung verbinden sich, wenn
    * höchstens `range` Felder dazwischen liegen. Die Ware läuft unterirdisch, darüber ist Platz.
    */
@@ -571,7 +576,25 @@ export const BUILDINGS: readonly BuildingDef[] = [
     model: 'battery',
     availableFromStart: false,
   },
+  // ---------------------------------------------------------------- Ausgabe aus dem Vorrat
+  {
+    key: 'dispenser',
+    power: 0,
+    size: [2, 2],
+    category: 'logistics',
+    cost: { wood: 15, stone: 10 },
+    placement: 'ground',
+    behavior: { kind: 'dispenser', itemsPerMinute: 60 },
+    ports: [{ x: 0, y: 1, dir: 2, kind: 'out' }],
+    model: 'dispenser',
+    availableFromStart: true,
+  },
 ];
+
+/** Gebäude, bei denen `machines.recipe` eine Auswahl des Spielers ist (Rezept bzw. Item). */
+export function hasSetting(kind: Behavior['kind']): boolean {
+  return kind === 'crafter' || kind === 'dispenser';
+}
 
 /** Erzeuger ohne Brennstoff (Wind, Wasser, Sonne). */
 export const FREE_GENERATOR_KINDS: readonly Behavior['kind'][] = ['wind', 'water', 'solar'];

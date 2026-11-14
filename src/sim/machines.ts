@@ -89,6 +89,11 @@ export class MachineSystem {
   readonly batteries: number[] = [];
   /** Depots (für die Träger-Animation; Reihenfolge egal, nicht gespeichert). */
   readonly depots: number[] = [];
+  /**
+   * Ausgabestellen, immer nach ID sortiert: Bei knappem Vorrat entscheidet die Reihenfolge, wer
+   * zuerst bekommt. So ist sie auch nach dem Laden gleich, ohne sie zu speichern.
+   */
+  readonly dispensers: number[] = [];
   /** Alle Listen zusammen (für Darstellung, ohne jedes Bild ein neues Array zu bauen). */
   readonly lists: readonly number[][] = [
     this.crafters,
@@ -96,6 +101,7 @@ export class MachineSystem {
     this.burners,
     this.winds,
     this.batteries,
+    this.dispensers,
   ];
   /** Gelieferte Items je Typ (für Statistik und Tests). */
   delivered = 0;
@@ -167,6 +173,12 @@ export class MachineSystem {
     } else if (b.kind === 'depot') {
       this.depots.push(id);
       this.lastDelivery[id] = -1000;
+    } else if (b.kind === 'dispenser') {
+      this.extractTicks[id] = Math.round((60 * SIM_CONFIG.ticksPerSecond) / b.itemsPerMinute);
+      let k = this.dispensers.length;
+      while (k > 0 && this.dispensers[k - 1] > id) k--;
+      this.dispensers.splice(k, 0, id);
+      this.setState(id, MachineState.NoRecipe);
     } else if (b.kind === 'lumberjack') {
       this.extractItem[id] = WOOD;
       this.extractTicks[id] = Math.round((60 * SIM_CONFIG.ticksPerSecond) / b.itemsPerMinute);
@@ -191,6 +203,10 @@ export class MachineSystem {
       remove(this.batteries, id);
     } else if (kind === 'depot') {
       remove(this.depots, id);
+    } else if (kind === 'dispenser') {
+      remove(this.dispensers, id);
+      const n = this.outBuf[id * MAX_RECIPE_OUTPUTS];
+      if (n > 0 && this.recipe[id] >= 0) result.push({ item: this.recipe[id], amount: n });
     } else if (kind === 'burner') {
       remove(this.burners, id);
       const n = this.inBuf[id * MAX_RECIPE_INPUTS];
@@ -240,6 +256,7 @@ export class MachineSystem {
   /** Wählt ein Rezept. Der bisherige Pufferinhalt geht in den Vorrat. */
   setRecipe(id: number, recipe: number): boolean {
     const def = BUILDINGS[this.store.type[id]];
+    if (def.behavior.kind === 'dispenser') return this.setDispenserItem(id, recipe);
     if (def.behavior.kind !== 'crafter') return false;
     if (recipe >= 0 && RECIPES[recipe]?.machine !== def.behavior.machine) return false;
     if (recipe >= 0 && !this.research.recipeUnlocked[recipe]) return false;
@@ -257,6 +274,20 @@ export class MachineSystem {
     this.inBuf.fill(0, id * MAX_RECIPE_INPUTS, (id + 1) * MAX_RECIPE_INPUTS);
     this.outBuf.fill(0, id * MAX_RECIPE_OUTPUTS, (id + 1) * MAX_RECIPE_OUTPUTS);
     this.setState(id, recipe < 0 ? MachineState.NoRecipe : MachineState.WaitingInput);
+    return true;
+  }
+
+  /** Ausgabestelle: Item wählen (−1 = keins). Was schon bereitlag, geht zurück in den Vorrat. */
+  private setDispenserItem(id: number, item: number): boolean {
+    if (item < -1 || item >= ITEMS.length) return false;
+    const old = this.recipe[id];
+    if (old === item) return true;
+    const slot = id * MAX_RECIPE_OUTPUTS;
+    if (old >= 0 && this.outBuf[slot] > 0) this.inventory.add(old, this.outBuf[slot]);
+    this.outBuf[slot] = 0;
+    this.recipe[id] = item;
+    this.progress[id] = 0;
+    this.setState(id, item < 0 ? MachineState.NoRecipe : MachineState.WaitingInput);
     return true;
   }
 
@@ -440,6 +471,41 @@ export class MachineSystem {
       this.drawFull[id] = working ? 1 : 0;
       this.utilization[id] += ((working ? power / SCALE : 0) - this.utilization[id]) * smooth;
       this.pushOutput(id);
+    }
+
+    // Ausgabe aus dem Vorrat: alle `extractTicks` ein Item, solange Platz und Vorrat da sind
+    for (let n = 0; n < this.dispensers.length; n++) {
+      const id = this.dispensers[n];
+      const item = this.recipe[id];
+      const slot = id * MAX_RECIPE_OUTPUTS;
+      let working = false;
+      if (item < 0) {
+        this.setState(id, MachineState.NoRecipe);
+      } else if (this.outBuf[slot] >= MACHINES.dispenserBuffer) {
+        this.setState(id, MachineState.OutputBlocked);
+      } else {
+        if (this.progress[id] < this.extractTicks[id]) this.progress[id]++;
+        if (this.progress[id] >= this.extractTicks[id]) {
+          if (this.inventory.get(item) > 0) {
+            this.inventory.add(item, -1);
+            this.outBuf[slot]++;
+            this.progress[id] = 0;
+            this.lastDelivery[id] = tick;
+            working = true;
+            this.setState(id, MachineState.Working);
+          } else {
+            this.setState(id, MachineState.WaitingInput);
+          }
+        } else if (this.state[id] !== MachineState.WaitingInput) {
+          working = true;
+          this.setState(id, MachineState.Working);
+        }
+      }
+      this.utilization[id] += ((working ? 1 : 0) - this.utilization[id]) * smooth;
+      if (this.outBuf[slot] > 0 && this.outTile[id] >= 0) {
+        if (this.belts.insertFromBuilding(this.outTile[id], this.outDir[id], item))
+          this.outBuf[slot]--;
+      }
     }
   }
 

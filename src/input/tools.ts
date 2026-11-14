@@ -1,6 +1,6 @@
 import { Vector3 } from 'three';
 import { HAND_MINING } from '../data/balance';
-import { BUILDINGS, FREE_GENERATOR_KINDS } from '../data/buildings';
+import { BUILDINGS, FREE_GENERATOR_KINDS, hasSetting } from '../data/buildings';
 import { PALETTE } from '../data/palette';
 import { TEXTS } from '../data/texts';
 import type { BuildPreview } from '../render/build-preview';
@@ -150,7 +150,7 @@ export class ToolController {
     this.mode = 'build';
     this.buildType = type;
     this.rot = sim.buildings.rot[id];
-    this.recipe = BUILDINGS[type].behavior.kind === 'crafter' ? sim.machines.recipe[id] : -1;
+    this.recipe = hasSetting(BUILDINGS[type].behavior.kind) ? sim.machines.recipe[id] : -1;
     this.leftDown = false;
     this.selected = -1;
     this.onChange();

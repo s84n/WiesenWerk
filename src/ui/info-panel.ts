@@ -177,7 +177,9 @@ export class InfoPanel {
             ? TEXTS.info.solarStates
             : b.kind === 'battery'
               ? TEXTS.info.batteryStates
-              : TEXTS.info.states;
+              : b.kind === 'dispenser'
+                ? TEXTS.info.dispenserStates
+                : TEXTS.info.states;
     // Bei blockiertem Ausgang: woran es liegt
     const blockedHint = el('p', 'info-text warn');
     blockedHint.style.display = 'none';
@@ -196,6 +198,10 @@ export class InfoPanel {
       this.buildFreeGenerator(id, b.kind, def.key);
     else if (b.kind === 'battery') {
       this.buildBattery(id);
+      for (const u of this.updaters) u(sim);
+      return;
+    } else if (b.kind === 'dispenser') {
+      this.buildDispenser(sim, id, b.itemsPerMinute);
       for (const u of this.updaters) u(sim);
       return;
     } else if (b.kind === 'crafter') this.buildCrafter(sim, id, b.machine);
@@ -217,6 +223,50 @@ export class InfoPanel {
       pct.textContent = `${v} %`;
     });
     for (const u of this.updaters) u(sim);
+  }
+
+  /** Ausgabestelle: Item-Auswahl als Raster (alle Items, Vorrat darunter), Tempo und Vorrat. */
+  private buildDispenser(sim: Simulation, id: number, perMinute: number): void {
+    const current = sim.machines.recipe[id];
+    const section = el('div', 'info-section');
+    section.append(el('div', 'info-label', TEXTS.info.dispenserChoose));
+    if (current >= 0) {
+      const row = el('div', 'buffer-row');
+      const stock = el('span', 'buffer-value');
+      row.append(
+        itemIcon(current),
+        el('span', 'buffer-name', TEXTS.info.dispenserRate(perMinute, itemName(current))),
+        stock,
+      );
+      section.append(row);
+      this.updaters.push((s) => {
+        stock.textContent = TEXTS.info.inStock(formatNumber(s.inventory.get(current)));
+      });
+    }
+    const grid = el('div', 'dispenser-grid');
+    const counts: { item: number; button: HTMLElement; count: HTMLElement }[] = [];
+    for (let item = 0; item < ITEM_COUNT; item++) {
+      const button = el('button', `dispenser-item${item === current ? ' selected' : ''}`);
+      const count = el('span', 'dispenser-count');
+      button.append(itemIcon(item), count);
+      button.title = itemName(item);
+      button.addEventListener('click', () => {
+        sim.enqueue({ type: 'setRecipe', building: id, recipe: item === current ? -1 : item });
+        button.blur();
+      });
+      grid.append(button);
+      counts.push({ item, button, count });
+    }
+    section.append(grid);
+    if (current < 0) section.append(el('p', 'info-text soft', TEXTS.info.dispenserHint));
+    this.body.append(section);
+    this.updaters.push((s) => {
+      for (const c of counts) {
+        const n = s.inventory.get(c.item);
+        c.count.textContent = formatNumber(n);
+        c.button.classList.toggle('empty', n === 0);
+      }
+    });
   }
 
   private buildCrafter(sim: Simulation, id: number, machine: string): void {

@@ -324,6 +324,39 @@ function depot(large: boolean): BufferGeometry {
   return merge(parts);
 }
 
+/**
+ * Ausgabestelle: Lagerschuppen mit blauem Dach, aus dem eine Rutsche vorn links (am Ausgang)
+ * Kisten aufs Band gibt. Orange Tafel = Ausgang, wie die Anschlusspfeile.
+ */
+function dispenser(): BufferGeometry {
+  const parts = [
+    box(1.85, 0.12, 1.85, 0, 0, 0, PALETTE.woodDark),
+    box(1.5, 0.9, 1.2, 0.1, 0.12, -0.25, PALETTE.cream),
+    gableRoof(1.35, 1.65, 0.5, 0.1, 1.02, -0.25, PALETTE.dispenserRoof),
+    // Tor zur Rutsche
+    box(0.5, 0.55, 0.04, -0.5, 0.12, 0.36, PALETTE.woodDark),
+    // Rutsche nach vorn (Süden) Richtung Ausgang
+    colored(
+      new BoxGeometry(0.46, 0.06, 0.75).rotateX(0.35).translate(-0.5, 0.32, 0.62),
+      PALETTE.wood,
+    ),
+    box(0.04, 0.16, 0.75, -0.74, 0.26, 0.62, PALETTE.woodDark),
+    box(0.04, 0.16, 0.75, -0.26, 0.26, 0.62, PALETTE.woodDark),
+    // Kiste auf der Rutsche
+    box(0.24, 0.2, 0.24, -0.5, 0.38, 0.55, PALETTE.wood),
+    // Fässer und Säcke rechts vorn
+    colored(new CylinderGeometry(0.16, 0.16, 0.38, 8).translate(0.55, 0.31, 0.6), PALETTE.woodDark),
+    colored(
+      new SphereGeometry(0.17, 6, 4).scale(1, 0.75, 1).translate(0.2, 0.26, 0.65),
+      PALETTE.cream,
+    ),
+    // Schild mit orangefarbener Tafel (Ausgang)
+    box(0.05, 0.7, 0.05, 0.85, 0.12, -0.85, PALETTE.woodDark),
+    box(0.04, 0.26, 0.42, 0.88, 0.58, -0.85, PALETTE.portMarkerOut),
+  ];
+  return merge(parts);
+}
+
 /** Ein Zahn des Sheddachs: senkrechte Seite im Norden, Dachfläche fällt nach Süden ab. */
 function sawTooth(width: number, depth: number, height: number, southZ: number, color: number) {
   const shape = new Shape([new Vector2(0, 0), new Vector2(depth, 0), new Vector2(depth, height)]);
@@ -784,6 +817,7 @@ const MODELS: Record<string, () => BufferGeometry> = {
   storageLarge,
   depot: () => depot(false),
   depotLarge: () => depot(true),
+  dispenser,
   assembler,
   storage,
   splitter,

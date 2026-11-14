@@ -169,6 +169,11 @@ export const TEXTS = {
       description:
         'Speichert bis zu 20 MJ überschüssigen Strom aus Wind, Wasser und Sonne und gibt ihn bei Bedarf wieder ab (bis 60 kW).',
     },
+    dispenser: {
+      name: 'Ausgabestelle',
+      description:
+        'Gegenstück zum Depot: Legt ein gewähltes Item aus dem Vorrat aufs Band (60 pro Minute). So kommt z. B. Holz aus dem Vorrat zur Werkstatt.',
+    },
   } as Record<string, { name: string; description: string }>,
 
   research: {
@@ -434,6 +439,18 @@ export const TEXTS = {
       `${n.toLocaleString('de-DE')} von ${cap.toLocaleString('de-DE')} Plätzen belegt`,
     decor: 'Rein zur Verschönerung.',
     depot: 'Träger bringen alles, was hier ankommt, gleich in den Vorrat.',
+    dispenserChoose: 'Was soll ausgegeben werden?',
+    dispenserHint: 'Klick auf ein Item. Ausgegeben wird nur, was im Vorrat liegt.',
+    dispenserStates: [
+      'Bereit',
+      'Gibt aus',
+      'Vorrat leer – nichts mehr da',
+      'Band voll – Ausgang blockiert',
+      'Kein Item gewählt',
+      '',
+    ],
+    dispenserRate: (perMin: number, name: string) => `${perMin} ${name} pro Minute`,
+    inStock: (n: string) => `Vorrat: ${n}`,
     tunnelLinked: (n: number) => `Verbunden: der Ausgang liegt ${n} Felder weiter.`,
     tunnelUnlinked:
       'Noch nicht verbunden: Bau einen Tunnel-Ausgang in gleicher Richtung, höchstens 6 Felder geradeaus.',
