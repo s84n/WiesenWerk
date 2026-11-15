@@ -11,6 +11,8 @@ import { Rng, deriveSeed } from './rng';
 import { World } from './world';
 
 const C = WORLD_CONFIG;
+/** Vorkommen-Reste mit weniger Feldern gelten als Krümel (garantierte Flecken sind viel größer). */
+const LOOSE_CRUMB_TILES = 4;
 
 /**
  * Erzeugt eine Welt aus einem Seed. Gleicher Seed → gleiche Welt.
@@ -49,10 +51,10 @@ export function generateWorld(
         }
       } else if (lakes.fbm(x * G.lakeScale, y * G.lakeScale, 3) < G.waterLevel) {
         tiles[i] = TileType.Water;
-      } else if (r > C.rockLevel) {
+      } else if (r > G.rockLevel) {
         tiles[i] = TileType.Rock;
-        height[i] = toByte(((r - C.rockLevel) / (1 - C.rockLevel)) * 1.4 + 0.1);
-      } else if (forest.fbm(x * C.forestScale, y * C.forestScale, 3) > C.forestLevel) {
+        height[i] = toByte(((r - G.rockLevel) / (1 - G.rockLevel)) * 1.4 + 0.1);
+      } else if (forest.fbm(x * G.forestScale, y * G.forestScale, 3) > G.forestLevel) {
         tiles[i] = TileType.Forest;
       } else {
         tiles[i] = TileType.Meadow;
@@ -60,26 +62,33 @@ export function generateWorld(
     }
   }
 
-  // 1b. Kleine Tümpel im Inland zu Wiese (Gewässer, die den Rand berühren, bleiben)
-  if (G.minLakeTiles > 0) removeSmallLakes(world, G.minLakeTiles);
+  // 1b. Kleine Tümpel im Inland zu Wiese (Gewässer, die den Rand berühren, bleiben),
+  // ab Fassung 3 auch einzelne Felsbrocken und Baumgruppen
+  if (G.minLakeTiles > 0) removeSmallPatches(world, TileType.Water, 0, G.minLakeTiles);
+  if (G.minRockTiles > 0) removeSmallPatches(world, TileType.Rock, 0, G.minRockTiles);
+  if (G.minForestTiles > 0) removeSmallPatches(world, TileType.Forest, 0, G.minForestTiles);
 
   // 2. Vorkommen, jedes mit eigener Noise-Ebene. Frühere Einträge haben Vorrang.
   for (let d = 0; d < deposits.length; d++) {
     const def = deposits[d];
     if (def.late) continue;
     const noise = new SimplexNoise(deriveSeed(seed, `deposit:${def.id}`));
+    const scale = def.noiseScale * G.depositScale;
+    const threshold = def.threshold + G.depositShift;
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
         const i = y * size + x;
         if (tiles[i] !== TileType.Meadow && tiles[i] !== TileType.Forest) continue;
-        const v = noise.fbm(x * def.noiseScale, y * def.noiseScale, 2) * 0.5 + 0.5;
-        if (v < def.threshold) continue;
-        const t = (v - def.threshold) / (1 - def.threshold);
+        const v = noise.fbm(x * scale, y * scale, 2) * 0.5 + 0.5;
+        if (v < threshold) continue;
+        const t = (v - threshold) / (1 - threshold);
         tiles[i] = TileType.Deposit;
         world.resource[i] = d + 1;
         world.purity[i] = t < C.purityPoorBelow ? 1 : t > C.purityRichAbove ? 3 : 2;
       }
     }
+    if (G.minDepositTiles > 0)
+      removeSmallPatches(world, TileType.Deposit, d + 1, G.minDepositTiles);
   }
 
   // 3. Startgebiet in der Kartenmitte
@@ -88,13 +97,26 @@ export function generateWorld(
   // 4. Späte Vorkommen (Eisen, Kohle, Sand): nur auf Wiese/Wald außerhalb des Startgebiets,
   // damit die Welt bestehender Spielstände sonst unverändert bleibt
   for (let d = 0; d < deposits.length; d++) {
-    if (deposits[d].late) placeLateDeposit(world, seed, d, deposits[d]);
+    if (deposits[d].late) placeLateDeposit(world, seed, d, deposits[d], G);
   }
+  // 5. Vorkommen und Startgebiet können Wald und Felsen zerschneiden: Reste noch einmal aufräumen
+  if (G.minRockTiles > 0) removeSmallPatches(world, TileType.Rock, 0, G.minRockTiles);
+  if (G.minForestTiles > 0) removeSmallPatches(world, TileType.Forest, 0, G.minForestTiles);
+  // Ausgefranste Ränder der garantierten Flecken: einzelne Krümel entfernen, der Fleck selbst bleibt
+  if (G.minDepositTiles > 0)
+    for (let d = 0; d < deposits.length; d++)
+      removeSmallPatches(world, TileType.Deposit, d + 1, LOOSE_CRUMB_TILES);
   world.generated = true;
   return world;
 }
 
-function placeLateDeposit(world: World, seed: number, d: number, def: DepositDef): void {
+function placeLateDeposit(
+  world: World,
+  seed: number,
+  d: number,
+  def: DepositDef,
+  G: (typeof WORLD_GEN)[number],
+): void {
   const { size, tiles } = world;
   const noise = new SimplexNoise(deriveSeed(seed, `deposit:${def.id}`));
   const sx = world.startX;
@@ -103,22 +125,26 @@ function placeLateDeposit(world: World, seed: number, d: number, def: DepositDef
   const free = (i: number, x: number, y: number): boolean =>
     (tiles[i] === TileType.Meadow || tiles[i] === TileType.Forest) &&
     (x - sx) * (x - sx) + (y - sy) * (y - sy) > clear2;
-  let near = 0;
-  const near2 = (def.nearStart ?? 0) * (def.nearStart ?? 0);
+  const scale = def.noiseScale * G.depositScale;
+  const threshold = def.threshold + G.depositShift;
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const i = y * size + x;
       if (!free(i, x, y)) continue;
-      const v = noise.fbm(x * def.noiseScale, y * def.noiseScale, 2) * 0.5 + 0.5;
-      if (v < def.threshold) continue;
-      const t = (v - def.threshold) / (1 - def.threshold);
+      const v = noise.fbm(x * scale, y * scale, 2) * 0.5 + 0.5;
+      if (v < threshold) continue;
+      const t = (v - threshold) / (1 - threshold);
       tiles[i] = TileType.Deposit;
       world.resource[i] = d + 1;
       world.purity[i] = t < C.purityPoorBelow ? 1 : t > C.purityRichAbove ? 3 : 2;
       world.relief[i] = 0;
-      if ((x - sx) * (x - sx) + (y - sy) * (y - sy) <= near2) near++;
     }
   }
+  if (G.minDepositTiles > 0) removeSmallPatches(world, TileType.Deposit, d + 1, G.minDepositTiles);
+  // Felder dieses Vorkommens in der Nähe des Startpunkts (nach dem Entfernen kleiner Flecken)
+  const near = def.nearStart
+    ? countInRadius(world, sx, sy, def.nearStart, (i) => world.resource[i] === d + 1)
+    : 0;
   if (!def.nearStart || near >= C.startDepositMinTiles) return;
   // Kein Vorkommen in erreichbarer Nähe: einen kleinen Fleck setzen (Richtung aus dem Seed)
   const rng = new Rng(deriveSeed(seed, `late:${def.id}`));
@@ -262,14 +288,20 @@ function countInRadius(
   return n;
 }
 
-/** Macht zusammenhängende Wasserflächen mit weniger als `min` Feldern zu Wiese. */
-function removeSmallLakes(world: World, min: number): void {
+/**
+ * Macht zusammenhängende Flächen einer Feldart mit weniger als `min` Feldern zu Wiese.
+ * Bei Vorkommen zählt nur der Rohstoff `resource` (Flecken verschiedener Rohstoffe getrennt).
+ * Flächen, die den Kartenrand berühren, bleiben (Randwasser, Randfelsen).
+ */
+function removeSmallPatches(world: World, type: number, resource: number, min: number): void {
   const { size, tiles } = world;
+  const same = (j: number): boolean =>
+    tiles[j] === type && (resource === 0 || world.resource[j] === resource);
   const seen = new Uint8Array(size * size);
   const stack: number[] = [];
   const body: number[] = [];
   for (let start = 0; start < tiles.length; start++) {
-    if (seen[start] || tiles[start] !== TileType.Water) continue;
+    if (seen[start] || !same(start)) continue;
     body.length = 0;
     let touchesEdge = false;
     stack.push(start);
@@ -285,10 +317,16 @@ function removeSmallLakes(world: World, min: number): void {
       if (y > 0) visit(i - size);
       if (y < size - 1) visit(i + size);
     }
-    if (!touchesEdge && body.length < min) for (const i of body) tiles[i] = TileType.Meadow;
+    if (touchesEdge || body.length >= min) continue;
+    for (const i of body) {
+      tiles[i] = TileType.Meadow;
+      world.resource[i] = 0;
+      world.purity[i] = 0;
+      world.relief[i] = 0;
+    }
   }
   function visit(j: number): void {
-    if (seen[j] || tiles[j] !== TileType.Water) return;
+    if (seen[j] || !same(j)) return;
     seen[j] = 1;
     stack.push(j);
   }

@@ -115,7 +115,7 @@ export const WORLD_SIZES = [
  * wenn sich die Erzeugung ändert (die Welt wird beim Laden aus dem Seed neu erzeugt).
  * Neue Fassung → Eintrag in `WORLD_GEN` anhängen und Nummer erhöhen.
  */
-export const WORLD_GEN_VERSION = 2;
+export const WORLD_GEN_VERSION = 3;
 
 /** Einstellungen, die sich zwischen den Fassungen unterscheiden (Index = Fassung − 1). */
 export const WORLD_GEN: readonly {
@@ -124,11 +124,62 @@ export const WORLD_GEN: readonly {
   waterLevel: number;
   /** Gewässer im Inland mit weniger Feldern werden zu Wiese (0 = alle behalten). */
   minLakeTiles: number;
+  /** Felsen im Inland ab diesem Relief-Wert (höher = weniger Felsen). */
+  rockLevel: number;
+  /** Wälder: Größe und Schwelle (kleinere Größe = größere Wälder, höher = weniger Wald). */
+  forestScale: number;
+  forestLevel: number;
+  /** Vorkommen: Faktor auf `noiseScale` (kleiner = weniger, größere Flecken) und Aufschlag auf `threshold`. */
+  depositScale: number;
+  depositShift: number;
+  /** Flecken mit weniger Feldern werden zu Wiese (0 = alle behalten). */
+  minDepositTiles: number;
+  minRockTiles: number;
+  minForestTiles: number;
 }[] = [
   // 1: bis Herbst 2026
-  { lakeScale: 1 / 38, waterLevel: -0.42, minLakeTiles: 0 },
+  {
+    lakeScale: 1 / 38,
+    waterLevel: -0.42,
+    minLakeTiles: 0,
+    rockLevel: 0.5,
+    forestScale: 1 / 24,
+    forestLevel: 0.18,
+    depositScale: 1,
+    depositShift: 0,
+    minDepositTiles: 0,
+    minRockTiles: 0,
+    minForestTiles: 0,
+  },
   // 2: etwa halb so viel Wasser, weniger und größere Seen, keine kleinen Tümpel (Auftraggeber)
-  { lakeScale: 1 / 46, waterLevel: -0.49, minLakeTiles: 24 },
+  {
+    lakeScale: 1 / 46,
+    waterLevel: -0.49,
+    minLakeTiles: 24,
+    rockLevel: 0.5,
+    forestScale: 1 / 24,
+    forestLevel: 0.18,
+    depositScale: 1,
+    depositShift: 0,
+    minDepositTiles: 0,
+    minRockTiles: 0,
+    minForestTiles: 0,
+  },
+  // 3: mehr zusammenhängender Bauplatz (Auftraggeber): weniger, dafür größere Vorkommen,
+  // größere Wälder und Wiesen, weniger Felsen, keine Sprenkel aus Erz, Fels oder Bäumen
+  {
+    lakeScale: 1 / 46,
+    waterLevel: -0.49,
+    minLakeTiles: 24,
+    rockLevel: 0.56,
+    forestScale: 1 / 34,
+    forestLevel: 0.24,
+    depositScale: 0.55,
+    depositShift: 0.03,
+    minDepositTiles: 10,
+    minRockTiles: 12,
+    minForestTiles: 12,
+  },
 ];
 
 export const WORLD_CONFIG = {
@@ -144,11 +195,7 @@ export const WORLD_CONFIG = {
 
   /** Gelände-Relief: Größe der Strukturen und Schwelle für Felsen im Inland. */
   reliefScale: 1 / 46,
-  rockLevel: 0.5,
-
-  /** Wälder: Größe und Schwelle (höher = weniger Wald). */
-  forestScale: 1 / 24,
-  forestLevel: 0.18,
+  /* Felsen- und Wald-Schwellen hängen von der Fassung ab, siehe WORLD_GEN. */
 
   /** Vorkommen: Grenzen der Reinheitsstufen innerhalb eines Flecks (0..1 über der Schwelle). */
   purityPoorBelow: 0.2,

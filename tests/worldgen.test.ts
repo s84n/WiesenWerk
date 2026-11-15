@@ -145,4 +145,72 @@ describe('Kartengrößen', () => {
       expect(w.tiles[w.index(w.startX, w.startY)]).toBe(0); // Wiese am Start
     }
   });
+
+  it('lässt alte Fassungen der Generierung Feld für Feld unverändert', () => {
+    // Prüfsummen vor Einführung von Fassung 3: alte Spielstände behalten ihre Landschaft
+    const expected: [number, number, number, number][] = [
+      [1, 1, 256, -1641897089],
+      [1, 4711, 512, 1069520116],
+      [2, 1, 256, -1541465924],
+      [2, 4711, 256, 1385421160],
+      [2, 99, 512, -2006270261],
+    ];
+    for (const [version, seed, size, sum] of expected)
+      expect(checksum(generateWorld(seed, size, DEPOSITS, version))).toBe(sum);
+  });
+
+  it('bietet ab Fassung 3 deutlich mehr zusammenhängenden Bauplatz', () => {
+    // Größtes freies Wiesenquadrat (Seitenlänge in Feldern)
+    const largestMeadowSquare = (w: World): number => {
+      const n = w.size;
+      const side = new Int32Array(n * n);
+      let best = 0;
+      for (let y = 0; y < n; y++)
+        for (let x = 0; x < n; x++) {
+          const i = y * n + x;
+          if (w.tiles[i] !== TileType.Meadow) continue;
+          side[i] = x > 0 && y > 0 ? 1 + Math.min(side[i - 1], side[i - n], side[i - n - 1]) : 1;
+          best = Math.max(best, side[i]);
+        }
+      return best;
+    };
+    for (const seed of [1, 4711, 99]) {
+      const old = largestMeadowSquare(generateWorld(seed, 256, DEPOSITS, 2));
+      const now = largestMeadowSquare(generateWorld(seed, 256, DEPOSITS, 3));
+      expect(now).toBeGreaterThanOrEqual(20);
+      expect(now).toBeGreaterThan(old);
+    }
+  });
+
+  it('hat ab Fassung 3 keine winzigen Erz-, Fels- oder Baumsprenkel', () => {
+    for (const seed of [4711, 1, 99, 2024]) {
+      const w = generateWorld(seed, 256, DEPOSITS, 3);
+      const n = w.size;
+      const seen = new Uint8Array(n * n);
+      for (let start = 0; start < n * n; start++) {
+        const t = w.tiles[start];
+        if (seen[start] || (t !== TileType.Deposit && t !== TileType.Rock && t !== TileType.Forest))
+          continue;
+        const res = w.resource[start];
+        const stack = [start];
+        seen[start] = 1;
+        let count = 0;
+        let edge = false;
+        while (stack.length) {
+          const i = stack.pop()!;
+          count++;
+          const x = i % n;
+          const y = (i - x) / n;
+          if (x === 0 || y === 0 || x === n - 1 || y === n - 1) edge = true;
+          for (const j of [x > 0 ? i - 1 : -1, x < n - 1 ? i + 1 : -1, i - n, i + n])
+            if (j >= 0 && j < n * n && !seen[j] && w.tiles[j] === t && w.resource[j] === res) {
+              seen[j] = 1;
+              stack.push(j);
+            }
+        }
+        // Wald und Felsen: mindestens 12 Felder, Vorkommen mindestens 4 (Rand garantierter Flecken)
+        if (!edge) expect(count).toBeGreaterThanOrEqual(t === TileType.Deposit ? 4 : 12);
+      }
+    }
+  });
 });
