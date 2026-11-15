@@ -454,6 +454,11 @@ export class GameRenderer {
   }
 
   /** Items auf Bändern im sichtbaren Ausschnitt (weit herausgezoomt ausgeblendet). */
+  /** Zeigt die Laufrichtung aller sichtbaren Bänder deutlich (während Bänder gebaut werden). */
+  setBeltDirections(on: boolean): void {
+    if (this.belts) this.belts.showDirections = on;
+  }
+
   private updateItems(sim: Simulation, alpha: number): void {
     const rig = this.rig;
     let minX = Infinity;

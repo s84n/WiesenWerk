@@ -361,6 +361,10 @@ function start(): void {
       goals.update(sim, inGame);
       minimap.update(now, view.rig.groundCorners(corners) ? corners : null, inGame && !menu.isOpen);
       view.showPower = powerView || tools.placingPower;
+      // Beim Bandbau die Laufrichtung aller Bänder im Bild deutlich zeigen
+      view.setBeltDirections(
+        tools.mode === 'build' && BUILDINGS[tools.buildType].behavior.kind === 'belt',
+      );
       view.render(loop.paused ? 0 : loop.alpha, now);
       debug.frame(now, tickMs, ticks, view, sim, loop.paused);
       if (inGame && !menu.isOpen) sound.update(now, view.animations.workingInView, loop.paused);

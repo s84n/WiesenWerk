@@ -18,7 +18,7 @@ import { BUILDINGS } from '../data/buildings';
 import { PALETTE } from '../data/palette';
 import { DIR_X, DIR_Y, footprintH, footprintW, rotateDir, rotateOffset } from '../sim/buildings';
 import type { BeltStep } from '../sim/commands';
-import { beltStraight } from './belt-models';
+import { beltDirectionMark, beltStraight } from './belt-models';
 import { buildingGeometries, buildingMatrix } from './buildings-view';
 
 const MAX_BELT_PREVIEW = 600;
@@ -80,6 +80,8 @@ export class BuildPreview {
     new LineBasicMaterial({ color: PALETTE.poleReach, depthTest: false, transparent: true }),
   );
   private readonly beltGhosts: InstancedMesh;
+  /** Kräftige Laufrichtung auf der Bandvorschau (über allem, damit sie nie verdeckt ist). */
+  private readonly beltMarks: InstancedMesh;
   private readonly inMaterial = new MeshBasicMaterial({ color: PALETTE.portIn, depthTest: false });
   private readonly outMaterial = new MeshBasicMaterial({
     color: PALETTE.portOut,
@@ -106,11 +108,27 @@ export class BuildPreview {
     this.beltGhosts.frustumCulled = false;
     this.beltGhosts.renderOrder = 2;
     this.beltGhosts.setColorAt(0, tint.setHex(0xffffff));
+    this.beltMarks = new InstancedMesh(
+      beltDirectionMark(),
+      new MeshBasicMaterial({ vertexColors: true, depthTest: false, transparent: true }),
+      MAX_BELT_PREVIEW,
+    );
+    this.beltMarks.count = 0;
+    this.beltMarks.frustumCulled = false;
+    this.beltMarks.renderOrder = 5;
     this.range.renderOrder = 3;
     this.reach.renderOrder = 4;
     this.links.renderOrder = 4;
     this.links.frustumCulled = false;
-    this.group.add(this.ghost, this.area, this.beltGhosts, this.range, this.reach, this.links);
+    this.group.add(
+      this.ghost,
+      this.area,
+      this.beltGhosts,
+      this.beltMarks,
+      this.range,
+      this.reach,
+      this.links,
+    );
     this.hide();
   }
 
@@ -127,6 +145,17 @@ export class BuildPreview {
     }
     this.beltGhosts.count = n;
     this.beltGhosts.instanceMatrix.needsUpdate = true;
+    // Nur echte Bänder bekommen Richtungspfeile (Wege und Zäune haben keine Laufrichtung)
+    if (BUILDINGS[type].behavior.kind === 'belt') {
+      for (let i = 0; i < n; i++) {
+        const p = path[i];
+        m.makeRotationY((-p.dir * Math.PI) / 2);
+        m.setPosition(p.x + 0.5, 0, p.y + 0.5);
+        this.beltMarks.setMatrixAt(i, m);
+      }
+      this.beltMarks.count = n;
+      this.beltMarks.instanceMatrix.needsUpdate = true;
+    }
     if (this.beltGhosts.instanceColor) this.beltGhosts.instanceColor.needsUpdate = true;
     this.ghostMaterial.color.setHex(0xffffff);
   }
@@ -185,6 +214,7 @@ export class BuildPreview {
     if (this.reach) this.reach.visible = false;
     if (this.links) this.links.visible = false;
     if (this.beltGhosts) this.beltGhosts.count = 0;
+    if (this.beltMarks) this.beltMarks.count = 0;
     this.area.visible = false;
     for (const a of this.arrows) a.visible = false;
   }

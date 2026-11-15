@@ -1,11 +1,12 @@
-import { Group, InstancedMesh, Matrix4, type Material } from 'three';
+import { Group, InstancedMesh, Matrix4, MeshBasicMaterial, type Material } from 'three';
 import { BELTS } from '../data/balance';
 import { BUILDINGS } from '../data/buildings';
 import { ITEM_COUNT } from '../data/items';
 import { DIR_X, DIR_Y, footprintH, footprintW } from '../sim/buildings';
 import type { Simulation } from '../sim/simulation';
 import type { World } from '../sim/world';
-import { BELT_SURFACE, beltCurve, beltStraight } from './belt-models';
+import { BELT_SURFACE, beltCurve, beltDirectionMark, beltStraight } from './belt-models';
+import { FrameInstances } from './frame-instances';
 import { buildingMatrix } from './buildings-view';
 import { DynamicChunkedInstances } from './dynamic-instances';
 import { itemGeometries } from './item-models';
@@ -30,6 +31,9 @@ export class BeltView {
   private readonly tileShape: Int8Array;
   private readonly itemMeshes: InstancedMesh[] = [];
   private readonly itemCounts = new Int32Array(ITEM_COUNT);
+  /** Deutliche Laufrichtung auf allen sichtbaren Bändern, solange Bänder gebaut werden. */
+  showDirections = false;
+  private readonly directionMarks: FrameInstances;
 
   constructor(
     private readonly world: World,
@@ -45,6 +49,12 @@ export class BeltView {
     for (const s of this.shapes) this.group.add(s.group);
     this.tileId = new Int32Array(world.size * world.size).fill(-1);
     this.tileShape = new Int8Array(world.size * world.size);
+    this.directionMarks = new FrameInstances(
+      beltDirectionMark(),
+      new MeshBasicMaterial({ vertexColors: true }),
+      this.group,
+      256,
+    );
     const geos = itemGeometries();
     for (let i = 0; i < ITEM_COUNT; i++) {
       const mesh = new InstancedMesh(geos[i], material, 256);
@@ -118,6 +128,7 @@ export class BeltView {
   ): void {
     const counts = this.itemCounts;
     counts.fill(0);
+    this.directionMarks.begin();
     if (show) {
       const size = this.world.size;
       const segs = sim.belts.segments;
@@ -125,6 +136,14 @@ export class BeltView {
         const seg = segs[s];
         if (seg === null) continue;
         if (seg.maxX < minX || seg.minX > maxX || seg.maxY < minY || seg.minY > maxY) continue;
+        if (this.showDirections) {
+          for (let t = 0; t < seg.length; t++) {
+            const tile = seg.tiles[t];
+            m.makeRotationY((-seg.dirs[t] * Math.PI) / 2);
+            m.setPosition((tile % size) + 0.5, 0, Math.floor(tile / size) + 0.5);
+            this.directionMarks.push(m);
+          }
+        }
         if (seg.count === 0) continue;
 
         let move = 0;
@@ -182,6 +201,7 @@ export class BeltView {
         }
       }
     }
+    this.directionMarks.end();
     for (let i = 0; i < ITEM_COUNT; i++) {
       const mesh = this.itemMeshes[i];
       if (mesh.count === 0 && counts[i] === 0) continue;
@@ -205,6 +225,7 @@ export class BeltView {
   }
 
   dispose(): void {
+    this.directionMarks.dispose();
     for (const s of this.shapes) s.dispose();
     for (const mesh of this.itemMeshes) mesh.dispose();
     this.group.clear();

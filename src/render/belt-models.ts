@@ -38,6 +38,25 @@ function arrow(z: number, color: number): BufferGeometry {
   return chevron(0.26, 0.11, 0.035, 0.004, BELT_SURFACE, color).translate(0, 0, z);
 }
 
+/**
+ * Deutliche Richtungsmarke für den Bandbau (Vorschau und vorhandene Bänder, solange das
+ * Band-Werkzeug aktiv ist): zwei kräftige helle Winkel hintereinander, Spitze nach Norden.
+ */
+export function beltDirectionMark(): BufferGeometry {
+  return merge([
+    chevron(0.46, 0.2, 0.09, 0.02, BELT_SURFACE + 0.005, PALETTE.beltBuildArrow).translate(
+      0,
+      0,
+      0.16,
+    ),
+    chevron(0.46, 0.2, 0.09, 0.02, BELT_SURFACE + 0.005, PALETTE.beltBuildArrow).translate(
+      0,
+      0,
+      -0.12,
+    ),
+  ]);
+}
+
 export function beltStraight(tier = 1): BufferGeometry {
   const c = TIER_COLORS[tier - 1];
   return merge([
