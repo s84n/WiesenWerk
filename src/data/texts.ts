@@ -415,6 +415,11 @@ export const TEXTS = {
     input: 'Eingang',
     output: 'Ausgang',
     utilization: 'Auslastung',
+    cycle: 'Nächstes Teil',
+    cycleTooltip:
+      'Zeit bis das aktuelle Teil fertig ist und ausgegeben wird (bei 1-facher Geschwindigkeit)',
+    cycleRemaining: (left: string, per: string) => `noch ${left} s · ${per} s je Teil`,
+    cycleStopped: 'angehalten',
     extracts: 'Abbau',
     perMinute: (n: number) => `${n.toLocaleString('de-DE')}/min`,
     seconds: (n: number) => `${n.toLocaleString('de-DE')} s`,

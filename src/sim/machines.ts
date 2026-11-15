@@ -48,6 +48,13 @@ const UPGRADE_COST = toAmounts(EXTRACTOR_UPGRADE.cost);
  * Alle produzierenden Gebäude: Abbau (Bergwerk, Holzfäller), Verarbeitung (Rezepte) und Zentrale.
  * Daten als typisierte Arrays, Index = Gebäude-ID. Pro Art eine Liste, die in einer Schleife läuft.
  */
+/** Ergebnis von `cycleOf` (wird vom Aufrufer wiederverwendet, keine Speicherzuweisung). */
+export interface CycleInfo {
+  fraction: number;
+  remainingTicks: number;
+  ticksPerItem: number;
+}
+
 export class MachineSystem {
   private cap = 0;
   recipe = new Int16Array(0);
@@ -245,6 +252,43 @@ export class MachineSystem {
     if (this.extractItem[id] < 0) return 0;
     const boost = this.extractBoost(id);
     return (60 * SIM_CONFIG.ticksPerSecond * boost) / SCALE / this.extractTicks[id];
+  }
+
+  /**
+   * Stand des aktuellen Durchlaufs für die Anzeige (reine Abfrage): Anteil 0..1, verbleibende
+   * Ticks und Ticks je Teil beim aktuellen Tempo (Strom, Forschung, Stufe). Ohne Fortschritt
+   * (kein Strom, kein Rezept) sind die Tick-Werte 0. Nur für Abbau und Verarbeitung.
+   */
+  cycleOf(id: number, out: CycleInfo): CycleInfo {
+    out.fraction = 0;
+    out.remainingTicks = 0;
+    out.ticksPerItem = 0;
+    const kind = BUILDINGS[this.store.type[id]].behavior.kind;
+    let full: number;
+    let speed: number;
+    let done: number;
+    if (kind === 'crafter') {
+      const r = this.recipe[id];
+      if (r < 0) return out;
+      // Verarbeitung: Fortschritt 1 beim Start, fertig sobald er die Dauer × 1000 übersteigt,
+      // also nach genau Dauer × 1000 / Tempo weiteren Ticks
+      full = RECIPE_TICKS[r] * SCALE;
+      speed = Math.floor((this.speedOf(id) * this.research.crafterSpeed) / SCALE);
+      done = Math.max(0, this.progress[id] - 1);
+    } else if (kind === 'miner' || kind === 'lumberjack') {
+      if (this.extractItem[id] < 0) return out;
+      full = this.extractTicks[id] * SCALE;
+      speed = Math.floor((this.speedOf(id) * this.extractBoost(id)) / SCALE);
+      done = this.progress[id];
+    } else {
+      return out;
+    }
+    out.fraction = Math.min(1, done / full);
+    if (speed > 0) {
+      out.ticksPerItem = Math.ceil(full / speed);
+      out.remainingTicks = Math.max(0, Math.ceil((full - done) / speed));
+    }
+    return out;
   }
 
   /** Tempo-Faktor (Tausendstel) für Abbau aus Stufe und Verbesserung. */

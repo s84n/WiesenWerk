@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ITEM_ID } from '../src/data/items';
 import { TileType } from '../src/data/world';
-import { MachineState } from '../src/sim/machines';
+import { MachineState, type CycleInfo } from '../src/sim/machines';
+import { RECIPE_TICKS } from '../src/data/recipes';
 import { B, build, makePoweredSim as makeSim, run, setDeposit } from './helpers';
 
 describe('Maschinen', () => {
@@ -127,5 +128,29 @@ describe('Maschinen', () => {
     sim.enqueue({ type: 'demolish', x: 8, y: 4 });
     sim.flushCommands();
     expect(sim.inventory.get(ITEM_ID.wood)).toBe(wood + 50 + 10);
+  });
+
+  it('meldet Fortschritt und Restzeit des aktuellen Teils passend zum echten Takt', () => {
+    const sim = makeSim();
+    build(sim, B.furnace, 4, 4);
+    const id = sim.buildingAt(4, 4);
+    const info: CycleInfo = { fraction: 0, remainingTicks: 0, ticksPerItem: 0 };
+    sim.machines.cycleOf(id, info);
+    expect(info.ticksPerItem).toBe(0); // noch kein Rezept
+    sim.machines.accept(id, ITEM_ID.copperOre); // wählt das Rezept automatisch
+    const ticks = RECIPE_TICKS[sim.machines.recipe[id]];
+    run(sim, 1); // Durchlauf beginnt
+    sim.machines.cycleOf(id, info);
+    expect(info.ticksPerItem).toBe(ticks);
+    expect(info.remainingTicks).toBe(ticks);
+    expect(info.fraction).toBe(0);
+    // Bis kurz vor Schluss zählt die Restzeit herunter, dann kommt das Teil genau pünktlich heraus
+    run(sim, ticks - 1);
+    sim.machines.cycleOf(id, info);
+    expect(info.remainingTicks).toBe(1);
+    expect(info.fraction).toBeGreaterThan(0.9);
+    expect(sim.machines.outBuf[id * 2]).toBe(0);
+    run(sim, 1);
+    expect(sim.machines.outBuf[id * 2]).toBe(1);
   });
 });

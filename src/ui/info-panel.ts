@@ -1,6 +1,6 @@
 import { BELTS, EXTRACTOR_UPGRADE, MACHINES, POWER } from '../data/balance';
 import { BUILDINGS } from '../data/buildings';
-import { RENDER_CONFIG } from '../data/config';
+import { RENDER_CONFIG, SIM_CONFIG } from '../data/config';
 import { ITEMS, ITEM_COUNT, toAmounts } from '../data/items';
 import { PALETTE } from '../data/palette';
 import {
@@ -14,7 +14,7 @@ import { TEXTS } from '../data/texts';
 import type { ToolController } from '../input/tools';
 import { footprintH, footprintW } from '../sim/buildings';
 import { MAX_PORTS } from '../sim/logistics';
-import { MachineState } from '../sim/machines';
+import { MachineState, type CycleInfo } from '../sim/machines';
 
 import type { Simulation } from '../sim/simulation';
 import { el, formatNumber, hex, itemIcon, itemName } from './dom';
@@ -222,7 +222,31 @@ export class InfoPanel {
       fill.style.width = `${v}%`;
       pct.textContent = `${v} %`;
     });
+    if (b.kind === 'crafter' || b.kind === 'miner' || b.kind === 'lumberjack') this.buildCycle(id);
     for (const u of this.updaters) u(sim);
+  }
+
+  /** Fortschritt des aktuellen Teils: Balken plus Restzeit und Zeit je Teil (Spielsekunden). */
+  private buildCycle(id: number): void {
+    const section = el('div', 'info-section');
+    section.title = TEXTS.info.cycleTooltip;
+    section.append(el('div', 'info-label', TEXTS.info.cycle));
+    const bar = el('div', 'util-bar');
+    const fill = el('div', 'util-fill cycle');
+    const text = el('span', 'util-text');
+    bar.append(fill, text);
+    section.append(bar);
+    this.body.append(section);
+    const info: CycleInfo = { fraction: 0, remainingTicks: 0, ticksPerItem: 0 };
+    this.updaters.push((s) => {
+      s.machines.cycleOf(id, info);
+      fill.style.width = `${Math.round(info.fraction * 100)}%`;
+      // Steht die Maschine (kein Strom, Ausgang voll, keine Zutaten), zählt nichts herunter
+      const running = info.ticksPerItem > 0 && s.machines.state[id] === MachineState.Working;
+      text.textContent = running
+        ? TEXTS.info.cycleRemaining(seconds(info.remainingTicks), seconds(info.ticksPerItem))
+        : TEXTS.info.cycleStopped;
+    });
   }
 
   /** Ausgabestelle: Item-Auswahl als Raster (alle Items, Vorrat darunter), Tempo und Vorrat. */
@@ -704,4 +728,13 @@ function drawChart(
   // Erzeugung breit darunter, Verbrauch schmal darüber: bei Gleichstand bleiben beide sichtbar
   line(0, PALETTE.powerOk, 4);
   line(1, PALETTE.portOut, 1.5);
+}
+
+const secondsFormat = new Intl.NumberFormat('de-DE', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+/** Ticks als Spielsekunden mit einer Nachkommastelle („2,4“). */
+function seconds(ticks: number): string {
+  return secondsFormat.format(ticks / SIM_CONFIG.ticksPerSecond);
 }

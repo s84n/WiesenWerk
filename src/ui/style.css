@@ -1070,6 +1070,12 @@ body {
   transition: width 0.25s;
 }
 
+/* Fortschritt des aktuellen Teils: himmelblau, springt am Ende ohne Gleiten zurück */
+.util-fill.cycle {
+  background: repeating-linear-gradient(-45deg, var(--sky) 0 8px, #a3d9ef 8px 16px);
+  transition: none;
+}
+
 .util-fill.fuel {
   background: repeating-linear-gradient(-45deg, var(--clay) 0 8px, var(--sun) 8px 16px);
 }
