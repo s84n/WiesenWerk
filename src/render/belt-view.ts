@@ -1,12 +1,8 @@
-import { BoxGeometry, Group, InstancedMesh, Matrix4, type Material } from 'three';
-import { PALETTE } from '../data/palette';
-import { FrameInstances } from './frame-instances';
-import { colored } from './geometry';
+import { Group, InstancedMesh, Matrix4, type Material } from 'three';
 import { BELTS } from '../data/balance';
 import { BUILDINGS } from '../data/buildings';
 import { ITEM_COUNT } from '../data/items';
 import { DIR_X, DIR_Y, footprintH, footprintW } from '../sim/buildings';
-import type { Segment } from '../sim/belts';
 import type { Simulation } from '../sim/simulation';
 import type { World } from '../sim/world';
 import { BELT_SURFACE, beltCurve, beltStraight } from './belt-models';
@@ -21,11 +17,6 @@ const SHAPE_STRAIGHT = 0;
 const SHAPE_LEFT = 1;
 const SHAPE_RIGHT = 2;
 const TIERS = 3;
-/** Abstand der mitlaufenden Querleisten (halbes Feld). */
-const SLAT_GAP = UNIT / 2;
-/** Drehung je Laufrichtung (Leiste liegt quer zur Richtung). */
-const YAW_COS = [-1, 0, 1, 0];
-const YAW_SIN = [0, 1, 0, -1];
 
 /**
  * Bänder (gerade Stücke und Kurven als Instanzen) und die Items darauf.
@@ -39,11 +30,6 @@ export class BeltView {
   private readonly tileShape: Int8Array;
   private readonly itemMeshes: InstancedMesh[] = [];
   private readonly itemCounts = new Int32Array(ITEM_COUNT);
-  /** Querleisten, die mitlaufen, solange Ware auf dem Abschnitt fährt. */
-  private readonly slats: FrameInstances;
-  /** Verschiebung der Leisten je Segment (Einheiten) und letzte Simulationszeit. */
-  private slatOffset = new Float32Array(64);
-  private lastSimTime = -1;
 
   constructor(
     private readonly world: World,
@@ -59,15 +45,6 @@ export class BeltView {
     for (const s of this.shapes) this.group.add(s.group);
     this.tileId = new Int32Array(world.size * world.size).fill(-1);
     this.tileShape = new Int8Array(world.size * world.size);
-    this.slats = new FrameInstances(
-      colored(
-        new BoxGeometry(0.62, 0.012, 0.06).translate(0, BELT_SURFACE + 0.001, 0),
-        PALETTE.beltSlat,
-      ),
-      material,
-      this.group,
-      512,
-    );
     const geos = itemGeometries();
     for (let i = 0; i < ITEM_COUNT; i++) {
       const mesh = new InstancedMesh(geos[i], material, 256);
@@ -141,30 +118,13 @@ export class BeltView {
   ): void {
     const counts = this.itemCounts;
     counts.fill(0);
-    this.slats.begin();
-    // Fortschritt der Simulation seit dem letzten Bild (in Ticks, steht in der Pause)
-    const simTime = sim.tick + alpha;
-    const simDt =
-      this.lastSimTime < 0 || simTime < this.lastSimTime
-        ? 0
-        : Math.min(10, simTime - this.lastSimTime);
-    this.lastSimTime = simTime;
     if (show) {
       const size = this.world.size;
       const segs = sim.belts.segments;
-      if (this.slatOffset.length < segs.length) {
-        const next = new Float32Array(segs.length * 2);
-        next.set(this.slatOffset);
-        this.slatOffset = next;
-      }
       for (let s = 0; s < segs.length; s++) {
         const seg = segs[s];
         if (seg === null) continue;
         if (seg.maxX < minX || seg.minX > maxX || seg.maxY < minY || seg.minY > maxY) continue;
-        // Leisten laufen nur, wenn Ware fährt (nicht leer, nicht ganz gestaut)
-        if (seg.count > 0 && seg.active < seg.count)
-          this.slatOffset[s] = (this.slatOffset[s] + simDt * seg.speed) % SLAT_GAP;
-        this.addSlats(seg, this.slatOffset[s], size);
         if (seg.count === 0) continue;
 
         let move = 0;
@@ -222,55 +182,11 @@ export class BeltView {
         }
       }
     }
-    this.slats.end();
     for (let i = 0; i < ITEM_COUNT; i++) {
       const mesh = this.itemMeshes[i];
       if (mesh.count === 0 && counts[i] === 0) continue;
       mesh.count = counts[i];
       mesh.instanceMatrix.needsUpdate = true;
-    }
-  }
-
-  /** Querleisten eines Segments im Abstand eines halben Feldes, um `offset` verschoben. */
-  private addSlats(seg: Segment, offset: number, size: number): void {
-    const e = m.elements;
-    for (let pos = offset + SLAT_GAP / 2; pos < seg.lengthUnits; pos += SLAT_GAP) {
-      const ti = Math.floor(pos / UNIT);
-      const f = pos / UNIT - ti;
-      const tile = seg.tiles[ti];
-      const cx = (tile % size) + 0.5;
-      const cz = Math.floor(tile / size) + 0.5;
-      let d: number;
-      let wx: number;
-      let wz: number;
-      if (f < 0.5) {
-        d = seg.entryDirs[ti];
-        wx = cx - DIR_X[d] * (0.5 - f);
-        wz = cz - DIR_Y[d] * (0.5 - f);
-      } else {
-        d = seg.dirs[ti];
-        wx = cx + DIR_X[d] * (f - 0.5);
-        wz = cz + DIR_Y[d] * (f - 0.5);
-      }
-      const c = YAW_COS[d];
-      const sn = YAW_SIN[d];
-      e[0] = c;
-      e[1] = 0;
-      e[2] = -sn;
-      e[3] = 0;
-      e[4] = 0;
-      e[5] = 1;
-      e[6] = 0;
-      e[7] = 0;
-      e[8] = sn;
-      e[9] = 0;
-      e[10] = c;
-      e[11] = 0;
-      e[12] = wx;
-      e[13] = 0;
-      e[14] = wz;
-      e[15] = 1;
-      this.slats.push(m);
     }
   }
 
@@ -291,7 +207,6 @@ export class BeltView {
   dispose(): void {
     for (const s of this.shapes) s.dispose();
     for (const mesh of this.itemMeshes) mesh.dispose();
-    this.slats.dispose();
     this.group.clear();
   }
 }

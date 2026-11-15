@@ -42,6 +42,8 @@ export class Nature {
   private readonly details: ChunkedInstances[] = [];
   private readonly treeLayers: ChunkedInstances[];
   private readonly stumps: ChunkedInstances;
+  /** Bodendeko (Erzbrocken, Blumen, Gras), die unter Gebäuden und Bändern verschwindet. */
+  private readonly ground: ChunkedInstances[] = [];
 
   constructor(world: World, heights: Float32Array, material: Material) {
     const { size, tiles, seed } = world;
@@ -104,6 +106,7 @@ export class Nature {
               scale,
               r(60 + k) * 6.28,
               col,
+              i,
             );
           }
         } else if (t === TileType.Rock) {
@@ -123,6 +126,7 @@ export class Nature {
               0.9 + r(13) * 0.5,
               r(14) * 6.28,
               col,
+              i,
             );
           }
           if (r(15) < RENDER_CONFIG.tuftDensity) {
@@ -134,6 +138,8 @@ export class Nature {
               h,
               0.8 + r(18) * 0.6,
               r(19) * 6.28,
+              undefined,
+              i,
             );
           }
         }
@@ -151,11 +157,8 @@ export class Nature {
       }),
     ];
     this.stumps = new ChunkedInstances(treeStump(), material, stumps, { castShadow: false });
-    this.layers.push(
-      ...this.treeLayers,
-      this.stumps,
-      new ChunkedInstances(boulder(), material, rocks, { castShadow: true }),
-    );
+    const boulders = new ChunkedInstances(boulder(), material, rocks, { castShadow: true });
+    this.layers.push(...this.treeLayers, this.stumps, boulders);
     // Stümpfe sind anfangs alle ausgeblendet
     for (let i = 0; i < tiles.length; i++) {
       if (tiles[i] === TileType.Forest) this.stumps.setHidden(i, true);
@@ -164,6 +167,7 @@ export class Nature {
       new ChunkedInstances(flower(), material, flowers, { castShadow: false }),
       new ChunkedInstances(grassTuft(), material, tufts, { castShadow: false }),
     );
+    this.ground.push(boulders, ...this.details);
     for (const l of [...this.layers, ...this.details]) {
       this.group.add(l.mesh);
       if (l.lodMesh) this.group.add(l.lodMesh);
@@ -176,12 +180,15 @@ export class Nature {
     for (const d of this.details) if (force || d.dirty) d.applyVisible(visible, count);
   }
 
-  /** Aktualisiert Baum und Stumpf auf einem Feld nach dem Spielzustand. */
+  /** Aktualisiert Baum, Stumpf und Bodendeko auf einem Feld nach dem Spielzustand. */
   refreshTile(sim: Simulation, tile: number): void {
     const forest = sim.world.tiles[tile] === TileType.Forest;
     const tree = forest && sim.trees.hasTree(tile);
+    const built = sim.world.building[tile] !== 0;
     for (const l of this.treeLayers) l.setHidden(tile, !tree);
-    this.stumps.setHidden(tile, tree || !forest || sim.world.building[tile] !== 0);
+    this.stumps.setHidden(tile, tree || !forest || built);
+    // Gras, Blumen und Erzbrocken würden durch Bänder und Gebäude hindurchragen
+    for (const l of this.ground) l.setHidden(tile, built);
   }
 
   /** Vereinfachte Bäume für große Entfernung. */

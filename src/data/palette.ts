@@ -114,7 +114,6 @@ export const PALETTE = {
   beltFrame: 0x9a6a3c,
   beltSurface: 0x5f5048,
   beltArrow: 0xe6c27a,
-  beltSlat: 0x8a7868,
   beltFrameMk2: 0x4f7fb0,
   beltArrowMk2: 0xa8d0f0,
   beltFrameMk3: 0x3f9a7a,

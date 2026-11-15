@@ -7,8 +7,12 @@ import { colored, merge } from './geometry';
  * Die Lauffläche liegt auf Höhe `BELT_SURFACE`.
  */
 export const BELT_SURFACE = 0.12;
-const W = 0.74; // Breite der Lauffläche
+const W = 0.84; // Breite der Lauffläche
 const H = W / 2;
+/** Holzrahmen: schmale Leisten am Rand (außen bündig mit ±0,47 wie früher, nur halb so breit). */
+const RAIL = 0.05;
+const RAIL_H = 0.15;
+const RAIL_X = 0.47 - RAIL / 2;
 
 function box(
   w: number,
@@ -42,8 +46,8 @@ export function beltStraight(tier = 1): BufferGeometry {
   const c = TIER_COLORS[tier - 1];
   return merge([
     box(W, 0.1, 1, 0, 0.02, 0, PALETTE.beltSurface),
-    box(0.1, 0.16, 1, -0.42, 0, 0, c.frame),
-    box(0.1, 0.16, 1, 0.42, 0, 0, c.frame),
+    box(RAIL, RAIL_H, 1, -RAIL_X, 0, 0, c.frame),
+    box(RAIL, RAIL_H, 1, RAIL_X, 0, 0, c.frame),
     arrow(0, c.arrow),
   ]);
 }
@@ -58,10 +62,10 @@ export function beltCurve(left: boolean, tier = 1): BufferGeometry {
     // kurzes Stück zum Nordrand
     box(W, 0.1, 0.5 - H, 0, 0.02, -0.5 + (0.5 - H) / 2, PALETTE.beltSurface),
     // Außenränder (Süden und gegenüber dem Eingang)
-    box(1, 0.16, 0.1, 0, 0, 0.42, c.frame),
-    box(0.1, 0.16, 1, s * 0.42, 0, 0, c.frame),
+    box(1, RAIL_H, RAIL, 0, 0, RAIL_X, c.frame),
+    box(RAIL, RAIL_H, 1, s * RAIL_X, 0, 0, c.frame),
     // Eckpfosten innen
-    box(0.1, 0.16, 0.1, s * -0.42, 0, -0.42, c.frame),
+    box(RAIL, RAIL_H, RAIL, s * -RAIL_X, 0, -RAIL_X, c.frame),
     arrow(-0.18, c.arrow),
   ]);
 }

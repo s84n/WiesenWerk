@@ -22,8 +22,12 @@ export class ChunkedInstances {
   private readonly chunkStart: Uint32Array;
   /** Ausgeblendete Instanzen (z. B. gefällte Bäume). */
   private readonly hidden: Uint8Array;
-  /** Zuordnung Schlüssel (z. B. Feldindex) → Instanz. */
+  /**
+   * Zuordnung Schlüssel (z. B. Feldindex) → erste Instanz. Instanzen mit gleichem Schlüssel liegen
+   * hintereinander (sie werden nacheinander hinzugefügt und stabil nach Chunk sortiert).
+   */
   private readonly byKey = new Map<number, number>();
+  private readonly keys: Int32Array;
   /** Wird bei Änderungen gesetzt, damit der Puffer neu befüllt wird. */
   dirty = true;
 
@@ -35,7 +39,9 @@ export class ChunkedInstances {
   ) {
     const { matrices, colors, chunkStart, keys } = builder.finish();
     this.hidden = new Uint8Array(keys.length);
-    for (let i = 0; i < keys.length; i++) if (keys[i] >= 0) this.byKey.set(keys[i], i);
+    this.keys = keys;
+    for (let i = 0; i < keys.length; i++)
+      if (keys[i] >= 0 && !this.byKey.has(keys[i])) this.byKey.set(keys[i], i);
     this.matrices = matrices;
     this.colors = colors;
     this.chunkStart = chunkStart;
@@ -68,12 +74,16 @@ export class ChunkedInstances {
     this.mesh.visible = !low;
   }
 
-  /** Blendet die Instanz mit diesem Schlüssel aus oder ein. */
+  /** Blendet alle Instanzen mit diesem Schlüssel aus oder ein. */
   setHidden(key: number, hidden: boolean): void {
-    const i = this.byKey.get(key);
-    if (i === undefined || (this.hidden[i] === 1) === hidden) return;
-    this.hidden[i] = hidden ? 1 : 0;
-    this.dirty = true;
+    const first = this.byKey.get(key);
+    if (first === undefined) return;
+    const flag = hidden ? 1 : 0;
+    for (let i = first; i < this.keys.length && this.keys[i] === key; i++) {
+      if (this.hidden[i] === flag) continue;
+      this.hidden[i] = flag;
+      this.dirty = true;
+    }
   }
 
   /** Kopiert die Instanzen der sichtbaren Chunks in den Grafikpuffer. */
