@@ -1,11 +1,11 @@
-import { ConeGeometry, Group, Matrix4, Quaternion, Vector3, type Material } from 'three';
+import { Group, Matrix4, Quaternion, Vector3, type Material } from 'three';
 import { BUILDINGS } from '../data/buildings';
 import { PALETTE } from '../data/palette';
 import { DIR_X, DIR_Y, rotateDir, rotateOffset } from '../sim/buildings';
 import type { Simulation } from '../sim/simulation';
 import type { World } from '../sim/world';
 import { DynamicChunkedInstances } from './dynamic-instances';
-import { colored, merge } from './geometry';
+import { chevron } from './geometry';
 
 const m = new Matrix4();
 const pos = new Vector3();
@@ -18,17 +18,9 @@ const OFFSET = 0.78;
 /** Höchstzahl an Anschlüssen je Gebäude (für eindeutige Schlüssel). */
 const MAX_PORTS = 12;
 
-/** Flacher Pfeil am Boden, zeigt nach +z. */
+/** Dezenter flacher Winkel knapp über dem Boden, zeigt nach +z. */
 function arrow(color: number) {
-  return merge([
-    colored(
-      new ConeGeometry(0.26, 0.44, 3)
-        .rotateX(Math.PI / 2)
-        .scale(1, 0.18, 1)
-        .translate(0, 0.035, 0),
-      color,
-    ),
-  ]);
+  return chevron(0.38, 0.16, 0.06, 0.012, 0.035, color).rotateY(Math.PI);
 }
 
 /**

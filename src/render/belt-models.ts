@@ -1,6 +1,6 @@
-import { BoxGeometry, ConeGeometry, type BufferGeometry } from 'three';
+import { BoxGeometry, type BufferGeometry } from 'three';
 import { PALETTE } from '../data/palette';
-import { colored, merge } from './geometry';
+import { chevron, colored, merge } from './geometry';
 
 /**
  * Bandmodelle für ein Feld. Ursprung = Feldmitte, Ausgang immer nach Norden (−z).
@@ -33,13 +33,9 @@ const TIER_COLORS: readonly { frame: number; arrow: number }[] = [
   { frame: PALETTE.beltFrameMk3, arrow: PALETTE.beltArrowMk3 },
 ];
 
-function arrow(z: number, color: number, rotY = 0): BufferGeometry {
-  // flacher Pfeil auf der Lauffläche, zeigt nach −z
-  const g = new ConeGeometry(0.14, 0.22, 3)
-    .rotateX(-Math.PI / 2)
-    .scale(1, 0.15, 1)
-    .rotateY(rotY);
-  return colored(g.translate(0, BELT_SURFACE + 0.01, z), color);
+function arrow(z: number, color: number): BufferGeometry {
+  // dezenter, flacher Winkel auf der Lauffläche (kaum heller als das Band), zeigt nach −z
+  return chevron(0.26, 0.11, 0.035, 0.004, BELT_SURFACE, color).translate(0, 0, z);
 }
 
 export function beltStraight(tier = 1): BufferGeometry {

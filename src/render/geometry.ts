@@ -1,4 +1,4 @@
-import { BufferGeometry, Color, Float32BufferAttribute } from 'three';
+import { BoxGeometry, BufferGeometry, Color, Float32BufferAttribute } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const tmpColor = new Color();
@@ -29,4 +29,26 @@ export function merge(parts: BufferGeometry[]): BufferGeometry {
   if (!merged) throw new Error('Geometrien konnten nicht verschmolzen werden.');
   merged.computeVertexNormals();
   return merged;
+}
+
+/**
+ * Flacher Winkel „›“ als dezente Richtungsmarke, Spitze zeigt nach −z (Norden).
+ * `width` = Spannweite, `depth` = Länge in Laufrichtung, `stroke` = Strichstärke, `height` = Dicke.
+ */
+export function chevron(
+  width: number,
+  depth: number,
+  stroke: number,
+  height: number,
+  y: number,
+  color: number,
+): BufferGeometry {
+  const half = width / 2;
+  const length = Math.hypot(half, depth);
+  const angle = Math.atan2(half, depth);
+  const arm = (side: number): BufferGeometry =>
+    new BoxGeometry(stroke, height, length + stroke * 0.5)
+      .rotateY(side * angle)
+      .translate((side * half) / 2, y + height / 2, 0);
+  return colored(merge([arm(1), arm(-1)]), color);
 }

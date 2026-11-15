@@ -424,7 +424,7 @@ function splitter(): BufferGeometry {
           .scale(1, 0.4, 1)
           .translate(0, 0.43, 0.24)
           .rotateY(r),
-        PALETTE.beltArrow,
+        PALETTE.deviceArrow,
       ),
     ),
   ]);
@@ -440,7 +440,7 @@ function merger(): BufferGeometry {
         .rotateX(Math.PI / 2)
         .scale(1, 0.4, 1)
         .translate(0, 0.2, 0.36),
-      PALETTE.beltArrow,
+      PALETTE.deviceArrow,
     ),
   ]);
 }

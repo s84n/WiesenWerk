@@ -113,11 +113,13 @@ export const PALETTE = {
   // Bänder
   beltFrame: 0x9a6a3c,
   beltSurface: 0x5f5048,
-  beltArrow: 0xe6c27a,
+  beltArrow: 0x87766a,
+  /** Richtungsmarken auf Verteiler und Zusammenführer (auf Metall, gedeckt). */
+  deviceArrow: 0xb3a084,
   beltFrameMk2: 0x4f7fb0,
-  beltArrowMk2: 0xa8d0f0,
+  beltArrowMk2: 0x6f8296,
   beltFrameMk3: 0x3f9a7a,
-  beltArrowMk3: 0xb8f0c0,
+  beltArrowMk3: 0x6e8a7a,
 
   // Hinweise
   hintWait: 0xf6d04d,
@@ -135,8 +137,8 @@ export const PALETTE = {
   highlight: 0xfff6d8,
   portIn: 0x6fb7e8,
   portOut: 0xf2a33a,
-  portMarkerIn: 0x3f9ae0,
-  portMarkerOut: 0xff8a1e,
+  portMarkerIn: 0x6a9cc4,
+  portMarkerOut: 0xd08a52,
 
   // Licht und Himmel
   sky: 0xbfe3f2,
