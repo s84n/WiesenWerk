@@ -82,18 +82,6 @@ function pyramidRoof(size: number, height: number, y: number, color: number): Bu
 }
 
 /**
- * Kleines Schild auf einem Pfosten in der Farbe der Baukategorie (wie in der Bauleiste).
- * Steht bei (x, z), die Tafel zeigt nach Süden.
- */
-function sign(x: number, y: number, z: number, color: number): BufferGeometry[] {
-  return [
-    box(0.05, 0.55, 0.05, x, y, z, PALETTE.woodDark),
-    box(0.3, 0.2, 0.04, x, y + 0.38, z + 0.04, color),
-    box(0.34, 0.03, 0.05, x, y + 0.58, z + 0.04, PALETTE.woodDark),
-  ];
-}
-
-/**
  * Bruchsteinwand: Steinplatten in drei Grautönen knapp vor einer Wandfläche.
  * `axis` = Richtung der Fläche ('z': Fläche zeigt nach +z bzw. −z bei negativem `face`).
  * Die Muster sind fest (gleiches Aussehen bei jedem Laden).
@@ -214,7 +202,6 @@ function lumberjack(): BufferGeometry {
       new BoxGeometry(0.1, 0.07, 0.03).rotateZ(0.5).translate(-0.1, 0.55, 0.62),
       PALETTE.metal,
     ),
-    ...sign(-0.75, 0.1, 0.72, PALETTE.signExtraction),
   );
   // Holzstapel
   for (let k = 0; k < 3; k++) {
@@ -242,7 +229,6 @@ function miner(): BufferGeometry {
     box(0.04, 0.03, 1.05, 0.23, 0.25, 0.3, PALETTE.metalDark),
     box(0.04, 0.03, 1.05, 0.47, 0.25, 0.3, PALETTE.metalDark),
     ...wallLamp(0.45, 1.25, -0.29),
-    ...sign(-0.7, 0.25, 0.65, PALETTE.signExtraction),
   ];
   return merge(parts);
 }
@@ -262,7 +248,6 @@ function furnace(): BufferGeometry {
     // glühende Öffnung vorne
     box(0.5, 0.35, 0.05, -0.1, 0.3, 0.71, PALETTE.glow),
     box(0.7, 0.08, 0.12, -0.1, 0.65, 0.72, PALETTE.stone),
-    ...sign(0.72, 0.12, 0.72, PALETTE.signProduction),
   ]);
 }
 
@@ -306,7 +291,6 @@ function workshop(): BufferGeometry {
     box(0.04, 0.26, 0.04, -0.83, 0.1, 0.8, PALETTE.woodDark),
     box(0.04, 0.26, 0.04, -0.53, 0.1, 0.8, PALETTE.woodDark),
     box(0.1, 0.06, 0.08, -0.62, 0.41, 0.8, PALETTE.copper),
-    ...sign(0.82, 0.1, 0.8, PALETTE.signProduction),
   ];
   return merge(parts);
 }
@@ -329,7 +313,6 @@ function burner(): BufferGeometry {
       new CylinderGeometry(0.18, 0.18, 0.4, 8).rotateZ(Math.PI / 2).translate(0.72, 0.42, 0.2),
       PALETTE.copper,
     ),
-    ...sign(0.75, 0.14, 0.72, PALETTE.signEnergy),
   ];
   // Holzscheite
   for (let k = 0; k < 3; k++) {
@@ -398,7 +381,6 @@ function assembler(): BufferGeometry {
     parts.push(box(0.4, 0.3, 0.05, x, 0.6, front + 0.02, PALETTE.windowLight));
     parts.push(box(0.03, 0.3, 0.06, x, 0.6, front + 0.03, PALETTE.windowFrame));
   }
-  parts.push(...sign(1.25, 0.14, 1.32, PALETTE.signProduction));
   return merge(parts);
 }
 
@@ -482,7 +464,6 @@ function storageLarge(): BufferGeometry {
     box(2.82, 0.06, 0.1, 0, 2.22, -0.05, PALETTE.tinDark),
     box(0.5, 0.3, 0.04, 0, 1.0, 1.12, PALETTE.windowLight),
     ...wallLamp(0, 1.32, 1.12),
-    ...sign(1.3, 0.14, 1.32, PALETTE.signLogistics),
   ];
   // Kistenstapel an der Seite
   for (let k = 0; k < 3; k++)
@@ -551,14 +532,12 @@ function depot(large: boolean): BufferGeometry {
   );
   // Laterne unter dem Vordach
   parts.push(...hangingLamp(0.15 * s, 1.16, 0.1 * s));
-  // Schild in der Farbe der Logistik
-  parts.push(...sign(0.85 * s, 0.16, 0.92 * s, PALETTE.signLogistics));
   return merge(parts);
 }
 
 /**
  * Ausgabestelle: Lagerschuppen mit blauem Dach, aus dem eine Rutsche vorn links (am Ausgang)
- * Kisten aufs Band gibt. Schild in der Farbe der Logistik.
+ * Kisten aufs Band gibt.
  */
 function dispenser(): BufferGeometry {
   const parts = [
@@ -583,7 +562,6 @@ function dispenser(): BufferGeometry {
       new SphereGeometry(0.17, 6, 4).scale(1, 0.75, 1).translate(0.2, 0.26, 0.65),
       PALETTE.cream,
     ),
-    ...sign(0.82, 0.12, 0.78, PALETTE.signLogistics),
   ];
   return merge(parts);
 }
@@ -603,7 +581,6 @@ function storage(): BufferGeometry {
     box(1.85, 0.1, 1.85, 0, 0, 0, PALETTE.soil),
     ...barn(1.5, 0.85, 1.3, -0.15, PALETTE.barnRedDark, 1),
     ...wallLamp(0.5, 0.78, 0.51),
-    ...sign(0.82, 0.1, 0.78, PALETTE.signLogistics),
   ];
   // Kisten vor der Scheune
   parts.push(box(0.32, 0.3, 0.32, -0.6, 0.1, 0.65, PALETTE.woodDark));
@@ -669,7 +646,6 @@ function windTurbine(): BufferGeometry {
     colored(new CylinderGeometry(0.22, 0.22, 0.12, 8).translate(0, 0.22, 0), PALETTE.patina),
     box(0.3, 0.26, 0.55, 0, 3.5, 0, PALETTE.cream),
     box(0.32, 0.06, 0.57, 0, 3.76, 0, PALETTE.copper),
-    ...sign(0.42, 0.16, 0.42, PALETTE.signEnergy),
   ];
   return merge(parts);
 }
@@ -704,7 +680,6 @@ function foundry(): BufferGeometry {
     box(0.3, 0.06, 0.5, 0, 0.14, 1.4, PALETTE.glow),
     box(1.0, 0.1, 0.12, 0, 0.7, 1.22, PALETTE.stone),
     box(0.35, 0.3, 0.04, -0.85, 0.55, 1.21, PALETTE.windowLight),
-    ...sign(1.25, 0.14, 1.3, PALETTE.signProduction),
   ]);
 }
 
@@ -739,7 +714,6 @@ function waterWheelHouse(): BufferGeometry {
       new CylinderGeometry(0.19, 0.19, 0.06, 8).rotateZ(Math.PI / 2).translate(1.0, 0.42, -0.1),
       PALETTE.patina,
     ),
-    ...sign(0.75, 0.12, -0.75, PALETTE.signEnergy),
   ]);
 }
 
@@ -759,7 +733,6 @@ function solarPanel(): BufferGeometry {
   }
   parts.push(box(0.22, 0.2, 0.16, 0.82, 0.06, 0.86, PALETTE.copper));
   parts.push(box(0.25, 0.04, 0.19, 0.82, 0.26, 0.86, PALETTE.patina));
-  parts.push(...sign(-0.82, 0.06, 0.82, PALETTE.signEnergy));
   return merge(parts);
 }
 
@@ -784,7 +757,6 @@ function battery(): BufferGeometry {
       colored(new CylinderGeometry(0.07, 0.07, 0.1, 6).translate(x, 1.72, -0.1), PALETTE.copper),
     );
   }
-  parts.push(...sign(0.75, 0.12, 0.75, PALETTE.signEnergy));
   return merge(parts);
 }
 
@@ -1015,8 +987,8 @@ export const SPINNERS: Record<string, SpinnerDef> = {
   lumberjack: { make: sawBlade, offset: [0.55, 0.55, -0.55], axis: 'z', speed: 1.6 },
   miner: { make: wheel, offset: [0, 1.6, -0.25], axis: 'z', speed: 0.5 },
   workshop: {
-    make: () => gear(0.3, 8, PALETTE.copper),
-    offset: [0.84, 0.6, -0.1],
+    make: () => gear(0.2, 8, PALETTE.copper),
+    offset: [0.84, 0.5, -0.1],
     axis: 'x',
     speed: 0.4,
   },

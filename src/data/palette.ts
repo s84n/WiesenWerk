@@ -137,11 +137,6 @@ export const PALETTE = {
   thatchDark: 0xbf9f50,
   patina: 0x6fb5a0,
   anvil: 0x4a4f55,
-  // Schilder in den Farben der Baukategorien (wie in der Bauleiste)
-  signExtraction: 0xe9805a,
-  signProduction: 0x7cc8e8,
-  signLogistics: 0xf6c945,
-  signEnergy: 0x95c94a,
   beltFrame: 0x9a6a3c,
   beltSurface: 0x5f5048,
   beltArrow: 0x87766a,
