@@ -1,4 +1,4 @@
-import { Group, Matrix4, Quaternion, Vector3, type Material } from 'three';
+import { Group, Matrix4, MeshBasicMaterial, Quaternion, Vector3, type Material } from 'three';
 import { BUILDINGS } from '../data/buildings';
 import { PALETTE } from '../data/palette';
 import { DIR_X, DIR_Y, rotateDir, rotateOffset } from '../sim/buildings';
@@ -32,12 +32,18 @@ export class PortMarkers {
   readonly group = new Group();
   private readonly inputs: DynamicChunkedInstances;
   private readonly outputs: DynamicChunkedInstances;
+  private readonly material: Material;
+  /** Kräftige Farben, solange gebaut wird (Bauhilfe): Anschlüsse leuchten auf. */
+  private readonly brightIn = new MeshBasicMaterial({ color: PALETTE.portIn });
+  private readonly brightOut = new MeshBasicMaterial({ color: PALETTE.portOut });
+  private highlighted = false;
 
   constructor(
     private readonly world: World,
     material: Material,
   ) {
     const chunks = world.chunksPerSide * world.chunksPerSide;
+    this.material = material;
     this.inputs = new DynamicChunkedInstances(arrow(PALETTE.portMarkerIn), material, chunks, false);
     this.outputs = new DynamicChunkedInstances(
       arrow(PALETTE.portMarkerOut),
@@ -46,6 +52,14 @@ export class PortMarkers {
       false,
     );
     this.group.add(this.inputs.group, this.outputs.group);
+  }
+
+  /** Bauhilfe: freie Anschlüsse aller Gebäude kräftig statt dezent zeigen. */
+  setHighlight(on: boolean): void {
+    if (on === this.highlighted) return;
+    this.highlighted = on;
+    this.inputs.setMaterial(on ? this.brightIn : this.material);
+    this.outputs.setMaterial(on ? this.brightOut : this.material);
   }
 
   added(sim: Simulation, id: number): void {

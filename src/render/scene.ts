@@ -454,6 +454,11 @@ export class GameRenderer {
   }
 
   /** Items auf Bändern im sichtbaren Ausschnitt (weit herausgezoomt ausgeblendet). */
+  /** Bauhilfe: Anschlüsse aller Gebäude kräftig zeigen, solange gebaut wird. */
+  setPortHighlight(on: boolean): void {
+    this.ports?.setHighlight(on);
+  }
+
   /** Zeigt die Laufrichtung aller sichtbaren Bänder deutlich (während Bänder gebaut werden). */
   setBeltDirections(on: boolean): void {
     if (this.belts) this.belts.showDirections = on;

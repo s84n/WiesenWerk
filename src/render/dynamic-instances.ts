@@ -19,7 +19,7 @@ export class DynamicChunkedInstances {
 
   constructor(
     private readonly geometry: BufferGeometry,
-    private readonly material: Material,
+    private material: Material,
     chunkCount: number,
     private readonly castShadow = true,
   ) {
@@ -86,6 +86,13 @@ export class DynamicChunkedInstances {
   dispose(): void {
     this.mesh.dispose();
     this.group.clear();
+  }
+
+  /** Wechselt das Material (z. B. zum Hervorheben), bleibt auch nach dem Vergrößern erhalten. */
+  setMaterial(material: Material): void {
+    if (material === this.material) return;
+    this.material = material;
+    this.mesh.material = material;
   }
 
   private createMesh(capacity: number): InstancedMesh {

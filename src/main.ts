@@ -362,6 +362,7 @@ function start(): void {
       minimap.update(now, view.rig.groundCorners(corners) ? corners : null, inGame && !menu.isOpen);
       view.showPower = powerView || tools.placingPower;
       // Beim Bandbau die Laufrichtung aller Bänder im Bild deutlich zeigen
+      view.setPortHighlight(tools.mode === 'build' || tools.mode === 'paste');
       view.setBeltDirections(
         tools.mode === 'build' && BUILDINGS[tools.buildType].behavior.kind === 'belt',
       );

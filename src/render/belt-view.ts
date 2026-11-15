@@ -18,6 +18,8 @@ const SHAPE_STRAIGHT = 0;
 const SHAPE_LEFT = 1;
 const SHAPE_RIGHT = 2;
 const TIERS = 3;
+/** Ware auf Bändern etwas größer zeichnen, damit der Warenfluss gut zu sehen ist. */
+const ITEM_SCALE = 1.2;
 
 /**
  * Bänder (gerade Stücke und Kurven als Instanzen) und die Items darauf.
@@ -181,17 +183,17 @@ export class BeltView {
           const mesh = this.ensureCapacity(item, counts[item] + 1);
           const a = mesh.instanceMatrix.array as Float32Array;
           const o = counts[item] * 16;
-          a[o] = 1;
+          a[o] = ITEM_SCALE;
           a[o + 1] = 0;
           a[o + 2] = 0;
           a[o + 3] = 0;
           a[o + 4] = 0;
-          a[o + 5] = 1;
+          a[o + 5] = ITEM_SCALE;
           a[o + 6] = 0;
           a[o + 7] = 0;
           a[o + 8] = 0;
           a[o + 9] = 0;
-          a[o + 10] = 1;
+          a[o + 10] = ITEM_SCALE;
           a[o + 11] = 0;
           a[o + 12] = wx;
           a[o + 13] = BELT_SURFACE;

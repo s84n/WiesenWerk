@@ -127,7 +127,7 @@ function rubbleFace(
 
 function hq(): BufferGeometry {
   const parts = [
-    box(2.9, 0.18, 2.9, 0, 0, 0, PALETTE.stone),
+    box(2.74, 0.18, 2.74, 0, 0, 0, PALETTE.stone),
     box(2.3, 1.2, 2.3, 0, 0.18, 0, PALETTE.cream),
     pyramidRoof(2.7, 1.0, 1.38, PALETTE.roof),
     box(0.55, 0.9, 0.55, 0, 2.0, 0, PALETTE.wood),
@@ -156,7 +156,7 @@ function lumberjack(): BufferGeometry {
   const w = 1.1;
   const d = 0.95;
   const parts = [
-    box(1.85, 0.1, 1.85, 0, 0, 0, PALETTE.soil),
+    box(1.72, 0.1, 1.72, 0, 0, 0, PALETTE.soil),
     // Kern der Hütte (hinter den Stämmen)
     box(w - 0.1, 0.8, d - 0.1, cx, 0.1, cz, PALETTE.logDark),
     gableRoof(1.3, 1.35, 0.55, cx, 0.9, cz, PALETTE.mossRoof),
@@ -216,26 +216,47 @@ function lumberjack(): BufferGeometry {
   return merge(parts);
 }
 
+/**
+ * Bergwerk: Förderturm und Hütte auf einem kleinen Holzfundament. Ringsum bleibt der Boden des
+ * Vorkommens sichtbar, so erkennt man jedes Bergwerk einzeln.
+ */
 function miner(): BufferGeometry {
+  const y0 = 0.08;
   const parts = [
-    box(1.85, 0.25, 1.85, 0, 0, 0, PALETTE.rockDark),
+    // Holzfundament unter Turm und Hütte
+    box(1.12, y0, 0.95, 0, 0, -0.38, PALETTE.woodDark),
+    box(1.04, 0.02, 0.87, 0, y0, -0.38, PALETTE.wood),
     // Förderturm
-    box(0.12, 1.7, 0.12, -0.45, 0.25, -0.35, PALETTE.woodDark),
-    box(0.12, 1.7, 0.12, 0.45, 0.25, -0.35, PALETTE.woodDark),
-    box(1.05, 0.12, 0.16, 0, 1.9, -0.35, PALETTE.wood),
-    box(0.7, 0.55, 0.7, 0, 0.25, -0.35, PALETTE.logDark),
-    gableRoof(0.85, 0.85, 0.35, 0, 0.8, -0.35, PALETTE.mossRoof),
-    // Schienen aus dem Stollen (die Lore fährt darauf, siehe SLIDERS)
-    box(0.04, 0.03, 1.05, 0.23, 0.25, 0.3, PALETTE.metalDark),
-    box(0.04, 0.03, 1.05, 0.47, 0.25, 0.3, PALETTE.metalDark),
-    ...wallLamp(0.45, 1.25, -0.29),
+    box(0.12, 1.7, 0.12, -0.45, y0, -0.35, PALETTE.woodDark),
+    box(0.12, 1.7, 0.12, 0.45, y0, -0.35, PALETTE.woodDark),
+    box(1.05, 0.12, 0.16, 0, y0 + 1.65, -0.35, PALETTE.wood),
+    box(0.7, 0.55, 0.7, 0, y0, -0.35, PALETTE.logDark),
+    gableRoof(0.85, 0.85, 0.35, 0, y0 + 0.55, -0.35, PALETTE.mossRoof),
+    ...wallLamp(0.45, y0 + 1.0, -0.29),
+    // Schienen auf Schwellen aus dem Stollen (die Lore fährt darauf, siehe SLIDERS)
+    box(0.04, 0.03, 1.05, 0.23, 0.02, 0.3, PALETTE.metalDark),
+    box(0.04, 0.03, 1.05, 0.47, 0.02, 0.3, PALETTE.metalDark),
   ];
+  for (let k = 0; k < 5; k++)
+    parts.push(box(0.36, 0.02, 0.07, 0.35, 0, 0.0 + k * 0.2, PALETTE.woodDark));
+  // kleine Abraumhalde vorne links
+  for (const [x, z, r] of [
+    [-0.45, 0.45, 0.16],
+    [-0.25, 0.6, 0.12],
+    [-0.55, 0.65, 0.1],
+  ])
+    parts.push(
+      colored(
+        new SphereGeometry(r, 5, 3).scale(1, 0.7, 1).translate(x, r * 0.5, z),
+        PALETTE.stoneWallDark,
+      ),
+    );
   return merge(parts);
 }
 
 function furnace(): BufferGeometry {
   return merge([
-    box(1.8, 0.12, 1.8, 0, 0, 0, PALETTE.stone),
+    box(1.72, 0.12, 1.72, 0, 0, 0, PALETTE.stone),
     box(1.45, 0.9, 1.4, -0.1, 0.12, 0, PALETTE.brick),
     // flaches Metalldach mit Rand
     box(1.55, 0.06, 1.5, -0.1, 1.02, 0, PALETTE.metalDark),
@@ -256,7 +277,7 @@ function workshop(): BufferGeometry {
   const wz = -0.1; // Mitte des Hauses (z)
   const front = wz + 0.625;
   const parts = [
-    box(1.85, 0.1, 1.85, 0, 0, 0, PALETTE.soil),
+    box(1.72, 0.1, 1.72, 0, 0, 0, PALETTE.soil),
     // Sockel und Wandkern
     box(1.66, 0.14, 1.31, 0, 0.1, wz, PALETTE.stoneWallDark),
     box(1.6, 0.85, 1.25, 0, 0.1, wz, PALETTE.stoneWall),
@@ -297,7 +318,7 @@ function workshop(): BufferGeometry {
 
 function burner(): BufferGeometry {
   const parts = [
-    box(1.85, 0.14, 1.85, 0, 0, 0, PALETTE.stone),
+    box(1.72, 0.14, 1.72, 0, 0, 0, PALETTE.stone),
     box(1.3, 0.75, 1.15, -0.15, 0.14, 0.05, PALETTE.stone),
     box(1.1, 0.25, 0.95, -0.15, 0.89, 0.05, PALETTE.brick),
     box(1.16, 0.05, 1.01, -0.15, 1.14, 0.05, PALETTE.patina),
@@ -350,7 +371,7 @@ function pole(): BufferGeometry {
 function assembler(): BufferGeometry {
   const front = 0.1 + 1.1;
   const parts = [
-    box(2.9, 0.14, 2.9, 0, 0, 0, PALETTE.stone),
+    box(2.74, 0.14, 2.74, 0, 0, 0, PALETTE.stone),
     box(2.5, 1.05, 2.2, 0, 0.14, 0.1, PALETTE.ochre),
     // Klinkerbänder und Sockel
     box(2.54, 0.12, 2.24, 0, 0.14, 0.1, PALETTE.ochreDark),
@@ -408,7 +429,7 @@ function storageVariant(accent: number, doors: number): BufferGeometry {
   const parts = barn(1.6, 0.85, 1.3, -0.1, PALETTE.barnRedDark, doors);
   parts.push(box(1.62, 0.1, 0.04, 0, 0.78, 0.56, accent));
   parts.push(box(0.26, 0.24, 0.26, 0.7, 0.1, -0.85, PALETTE.woodDark));
-  return merge([box(1.85, 0.1, 1.85, 0, 0, 0, PALETTE.soil), ...parts]);
+  return merge([box(1.72, 0.1, 1.72, 0, 0, 0, PALETTE.soil), ...parts]);
 }
 
 /**
@@ -458,7 +479,7 @@ function barn(
 /** Großlager: große rote Scheune mit Wellblechdach und zwei Toren. */
 function storageLarge(): BufferGeometry {
   const parts = [
-    box(2.9, 0.14, 2.9, 0, 0, 0, PALETTE.stone),
+    box(2.74, 0.14, 2.74, 0, 0, 0, PALETTE.stone),
     ...barn(2.6, 1.3, 2.3, -0.05, PALETTE.tin, 2).map((g) => g.translate(0, 0.04, 0)),
     // Wellblech: Firstkappe und Rippen an der Giebelseite
     box(2.82, 0.06, 0.1, 0, 2.22, -0.05, PALETTE.tinDark),
@@ -475,8 +496,8 @@ function storageLarge(): BufferGeometry {
 function depot(large: boolean): BufferGeometry {
   const s = large ? 1.5 : 1;
   const parts = [
-    box(1.85 * s, 0.12, 1.85 * s, 0, 0, 0, PALETTE.woodDark),
-    box(1.75 * s, 0.04, 1.75 * s, 0, 0.12, 0, PALETTE.wood),
+    box(1.72 * s, 0.12, 1.72 * s, 0, 0, 0, PALETTE.woodDark),
+    box(1.64 * s, 0.04, 1.64 * s, 0, 0.12, 0, PALETTE.wood),
   ];
   for (const [x, z] of [
     [-0.75, -0.75],
@@ -541,7 +562,7 @@ function depot(large: boolean): BufferGeometry {
  */
 function dispenser(): BufferGeometry {
   const parts = [
-    box(1.85, 0.12, 1.85, 0, 0, 0, PALETTE.woodDark),
+    box(1.72, 0.12, 1.72, 0, 0, 0, PALETTE.woodDark),
     box(1.5, 0.9, 1.2, 0.1, 0.12, -0.25, PALETTE.cream),
     gableRoof(1.35, 1.65, 0.5, 0.1, 1.02, -0.25, PALETTE.dispenserRoof),
     // Tor zur Rutsche, darüber eine Lampe
@@ -578,7 +599,7 @@ function sawTooth(width: number, depth: number, height: number, southZ: number, 
 /** Lager: rote Scheune mit weißen Kanten, dunkelrotem Ziegeldach und Kisten davor. */
 function storage(): BufferGeometry {
   const parts = [
-    box(1.85, 0.1, 1.85, 0, 0, 0, PALETTE.soil),
+    box(1.72, 0.1, 1.72, 0, 0, 0, PALETTE.soil),
     ...barn(1.5, 0.85, 1.3, -0.15, PALETTE.barnRedDark, 1),
     ...wallLamp(0.5, 0.78, 0.51),
   ];
@@ -655,7 +676,7 @@ function windTurbine(): BufferGeometry {
 /** Gießerei: dunkler Hochofen mit zwei Trichtern, glühendem Abstich vorne und hohem Schlot. */
 function foundry(): BufferGeometry {
   return merge([
-    box(2.9, 0.14, 2.9, 0, 0, 0, PALETTE.stone),
+    box(2.74, 0.14, 2.74, 0, 0, 0, PALETTE.stone),
     box(2.3, 1.0, 2.0, -0.15, 0.14, 0.2, PALETTE.rockDark),
     box(2.1, 0.2, 1.8, -0.15, 1.14, 0.2, PALETTE.metalDark),
     // Hochofen-Turm
@@ -719,7 +740,7 @@ function waterWheelHouse(): BufferGeometry {
 
 /** Solarfeld: zwei schräg gestellte Paneele auf einem Gestell. */
 function solarPanel(): BufferGeometry {
-  const parts = [box(1.85, 0.06, 1.85, 0, 0, 0, PALETTE.soil)];
+  const parts = [box(1.72, 0.06, 1.72, 0, 0, 0, PALETTE.soil)];
   for (const z of [-0.45, 0.45]) {
     parts.push(box(0.08, 0.35, 0.08, -0.75, 0.06, z + 0.2, PALETTE.metal));
     parts.push(box(0.08, 0.35, 0.08, 0.75, 0.06, z + 0.2, PALETTE.metal));
@@ -739,7 +760,7 @@ function solarPanel(): BufferGeometry {
 /** Akku-Haus: Betonblock mit grünen Speicherzellen und Leuchtanzeige. */
 function battery(): BufferGeometry {
   const parts = [
-    box(1.85, 0.12, 1.85, 0, 0, 0, PALETTE.stone),
+    box(1.72, 0.12, 1.72, 0, 0, 0, PALETTE.stone),
     box(1.5, 0.9, 1.3, 0, 0.12, -0.1, PALETTE.cream),
     box(1.6, 0.1, 1.4, 0, 1.02, -0.1, PALETTE.patina),
     // Anzeige vorne (leuchtet nachts)
@@ -985,7 +1006,7 @@ export interface SpinnerDef {
 
 export const SPINNERS: Record<string, SpinnerDef> = {
   lumberjack: { make: sawBlade, offset: [0.55, 0.55, -0.55], axis: 'z', speed: 1.6 },
-  miner: { make: wheel, offset: [0, 1.6, -0.25], axis: 'z', speed: 0.5 },
+  miner: { make: wheel, offset: [0, 1.43, -0.25], axis: 'z', speed: 0.5 },
   workshop: {
     make: () => gear(0.2, 8, PALETTE.copper),
     offset: [0.84, 0.5, -0.1],
@@ -1026,7 +1047,7 @@ export interface SliderDef {
 }
 
 export const SLIDERS: Record<string, SliderDef> = {
-  miner: { make: cart, from: [0.35, 0.25, -0.15], to: [0.35, 0.25, 0.65], period: 4 },
+  miner: { make: cart, from: [0.35, 0.05, -0.15], to: [0.35, 0.05, 0.65], period: 4 },
 };
 
 /** Rauch steigt aus diesen Punkten (Schornsteine), solange das Gebäude arbeitet. */

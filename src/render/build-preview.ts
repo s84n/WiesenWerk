@@ -29,6 +29,8 @@ const off = { x: 0, y: 0 };
 const MAX_ARROWS = 12;
 /** Höchstzahl gezeigter Verbindungslinien beim Bauen eines Mastes. */
 const MAX_LINKS = 48;
+/** Bauhilfe: halbe Kantenlänge des Feldrasters um den Mauszeiger (in Feldern). */
+const GRID_RADIUS = 10;
 
 /**
  * Bauvorschau (halbtransparentes Gebäude, grün/rot), Anschlusspfeile und Markierungen
@@ -88,6 +90,16 @@ export class BuildPreview {
     depthTest: false,
   });
 
+  /** Feines Feldraster um den Mauszeiger, nach außen ausblendend (Bauhilfe). */
+  private readonly grid = new LineSegments(
+    buildGridGeometry(),
+    new LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      depthWrite: false,
+    }),
+  );
+
   /** Blaupause: je Gebäudetyp eine Instanz-Gruppe (wenige Zeichenaufrufe, auch bei vielen Gebäuden). */
   private readonly blueprintGhosts = new Map<number, InstancedMesh>();
 
@@ -120,11 +132,14 @@ export class BuildPreview {
     this.reach.renderOrder = 4;
     this.links.renderOrder = 4;
     this.links.frustumCulled = false;
+    this.grid.renderOrder = 1;
+    this.grid.frustumCulled = false;
     this.group.add(
       this.ghost,
       this.area,
       this.beltGhosts,
       this.beltMarks,
+      this.grid,
       this.range,
       this.reach,
       this.links,
@@ -135,6 +150,7 @@ export class BuildPreview {
   /** Vorschau eines Bandweges; `valid[i]` färbt jedes Feld grün oder rot. */
   showBeltPath(type: number, path: readonly BeltStep[], valid: readonly boolean[]): void {
     this.hide();
+    if (path.length > 0) this.showGrid(path[path.length - 1].x, path[path.length - 1].y);
     // gleiche Vorschau für Wege und Zäune: Geometrie des gewählten Gebäudes
     this.beltGhosts.geometry = buildingGeometries()[type];
     const n = Math.min(path.length, MAX_BELT_PREVIEW);
@@ -207,6 +223,12 @@ export class BuildPreview {
     this.showArea(x0, y0, x1, y1, allValid ? PALETTE.hintGood : PALETTE.hintWait);
   }
 
+  /** Feldraster um das Feld (x, y) zeigen; Linien liegen auf den Feldkanten. */
+  private showGrid(x: number, y: number): void {
+    this.grid.position.set(x, 0.06, y);
+    this.grid.visible = true;
+  }
+
   hide(): void {
     for (const mesh of this.blueprintGhosts.values()) mesh.count = 0;
     this.ghost.visible = false;
@@ -215,6 +237,7 @@ export class BuildPreview {
     if (this.links) this.links.visible = false;
     if (this.beltGhosts) this.beltGhosts.count = 0;
     if (this.beltMarks) this.beltMarks.count = 0;
+    if (this.grid) this.grid.visible = false;
     this.area.visible = false;
     for (const a of this.arrows) a.visible = false;
   }
@@ -223,6 +246,7 @@ export class BuildPreview {
   showBuilding(type: number, x: number, y: number, rot: number, valid: boolean): void {
     const def = BUILDINGS[type];
     this.range.visible = false;
+    this.showGrid(x, y);
     this.showGhost(type, x, y, rot, valid ? 0xc8ffc0 : 0xff9a8a, 1);
     this.showArea(
       x,
@@ -336,4 +360,29 @@ export class BuildPreview {
     this.hide();
     this.showArea(x0, y0, x1, y1, color);
   }
+}
+
+/**
+ * Linien des Feldrasters (Kantenlänge 2 × GRID_RADIUS), je Feld ein Stück, damit die Deckkraft
+ * nach außen abnehmen kann (Farbe mit Alphawert je Ecke).
+ */
+function buildGridGeometry(): BufferGeometry {
+  const r = GRID_RADIUS;
+  const pos: number[] = [];
+  const col: number[] = [];
+  const c = new Color(PALETTE.highlight);
+  const alpha = (x: number, z: number): number =>
+    Math.max(0, 0.42 * (1 - Math.hypot(x, z) / (r + 0.5)));
+  const seg = (x0: number, z0: number, x1: number, z1: number): void => {
+    pos.push(x0, 0, z0, x1, 0, z1);
+    col.push(c.r, c.g, c.b, alpha(x0, z0), c.r, c.g, c.b, alpha(x1, z1));
+  };
+  for (let k = -r; k <= r; k++)
+    for (let t = -r; t < r; t++) {
+      seg(k, t, k, t + 1);
+      seg(t, k, t + 1, k);
+    }
+  return new BufferGeometry()
+    .setAttribute('position', new BufferAttribute(new Float32Array(pos), 3))
+    .setAttribute('color', new BufferAttribute(new Float32Array(col), 4));
 }

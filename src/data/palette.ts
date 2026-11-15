@@ -59,7 +59,7 @@ export const PALETTE = {
   // Items
   itemWood: 0xc98b4a,
   itemStone: 0xbdb5a5,
-  itemCopperOre: 0xb0643a,
+  itemCopperOre: 0xc8774a,
   itemCopperIngot: 0xeb9a5e,
   itemBrick: 0xc96f4a,
   itemCharcoal: 0x5a4c44,
@@ -71,7 +71,7 @@ export const PALETTE = {
   itemCircuit: 0x5aa66a,
   itemMotor: 0x7f93ad,
   itemControl: 0x4fb3b0,
-  itemIronOre: 0x8a6a5a,
+  itemIronOre: 0xa07e6c,
   itemCoal: 0x3a3438,
   itemSand: 0xe8d29a,
   itemIronIngot: 0xa9b2ba,
@@ -137,17 +137,17 @@ export const PALETTE = {
   thatchDark: 0xbf9f50,
   patina: 0x6fb5a0,
   anvil: 0x4a4f55,
-  beltFrame: 0x9a6a3c,
-  beltSurface: 0x5f5048,
-  beltArrow: 0x87766a,
+  beltFrame: 0xa8743f,
+  beltSurface: 0x8c7f72,
+  beltArrow: 0x9f9285,
   /** Kräftige Laufrichtung beim Bandbau (Vorschau und vorhandene Bänder). */
   beltBuildArrow: 0xffd65a,
   /** Richtungsmarken auf Verteiler und Zusammenführer (auf Metall, gedeckt). */
   deviceArrow: 0xb3a084,
   beltFrameMk2: 0x4f7fb0,
-  beltArrowMk2: 0x6f8296,
+  beltArrowMk2: 0x93a3b5,
   beltFrameMk3: 0x3f9a7a,
-  beltArrowMk3: 0x6e8a7a,
+  beltArrowMk3: 0x93ad9f,
 
   // Hinweise
   hintWait: 0xf6d04d,
