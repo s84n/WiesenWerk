@@ -18,6 +18,7 @@ import { MachineState } from '../sim/machines';
 
 import type { Simulation } from '../sim/simulation';
 import { el, formatNumber, hex, itemIcon, itemName } from './dom';
+import { closeButton } from './icons';
 
 const kw = (w: number): string => (w / 1000).toLocaleString('de-DE', { maximumFractionDigits: 1 });
 
@@ -47,9 +48,7 @@ export class InfoPanel {
     const head = el('div', 'info-head');
     this.icon = el('img', 'info-icon');
     this.title = el('h3', 'info-title');
-    const close = el('button', 'info-close', '×');
-    close.title = TEXTS.info.close;
-    close.addEventListener('click', () => tools.select(-1));
+    const close = closeButton(TEXTS.info.close, () => tools.select(-1));
     head.append(this.icon, this.title, close);
     this.body = el('div', 'info-body');
     this.el.append(head, this.body);
@@ -85,6 +84,7 @@ export class InfoPanel {
     const text = TEXTS.buildings[def.key];
     this.title.textContent = text.name;
     this.icon.src = this.buildingIcons[type] ?? '';
+    this.el.dataset.cat = def.category; // Farbe des Kopfes nach Baukategorie
     this.body.replaceChildren();
     this.updaters = [];
     this.el.style.display = '';

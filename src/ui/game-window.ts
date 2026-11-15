@@ -1,5 +1,6 @@
 import { TEXTS } from '../data/texts';
 import { el } from './dom';
+import { closeButton } from './icons';
 
 /**
  * Ein Fenster in der Bildmitte mit Titel und Schließen-Knopf (Forschung, Statistik).
@@ -14,9 +15,7 @@ export class GameWindow {
   constructor(parent: HTMLElement, title: string, className: string) {
     this.root = el('div', `panel game-window ${className}`);
     const head = el('div', 'window-head');
-    const close = el('button', 'info-close', '×');
-    close.title = TEXTS.info.close;
-    close.addEventListener('click', () => this.close());
+    const close = closeButton(TEXTS.info.close, () => this.close());
     head.append(el('h2', 'window-title', title), close);
     this.body = el('div', 'window-body');
     this.root.append(head, this.body);

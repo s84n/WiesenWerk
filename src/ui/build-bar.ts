@@ -9,18 +9,21 @@ import { amountsText, el, formatNumber, itemIcon } from './dom';
 /** So viele Kostenarten zeigt der Hinweis beim Einfügen einer Blaupause. */
 const PASTE_COST_ITEMS = 4;
 
+/** Reiter der Bauleiste: die Schnellwahl (Zahlentasten) oder eine Baukategorie. */
+type BuildTab = BuildCategory | 'quick';
+
 /**
  * Bauleiste unten: Kategorien, Gebäude mit Bild, Name und Kosten, Abrissknopf.
  * Nicht bezahlbare Gebäude sind ausgegraut.
  */
 export class BuildBar {
   private readonly entries: { type: number; button: HTMLButtonElement }[] = [];
-  private readonly tabs = new Map<BuildCategory, HTMLButtonElement>();
+  private readonly tabs = new Map<BuildTab, HTMLButtonElement>();
   private readonly list: HTMLElement;
   private readonly demolishButton: HTMLButtonElement;
   private readonly copyButton: HTMLButtonElement;
   private readonly modeHint: HTMLElement;
-  private category: BuildCategory;
+  private category: BuildTab;
   private shownVersion = -1;
   private shownResearch = -1;
   private lastUpdate = 0;
@@ -38,9 +41,15 @@ export class BuildBar {
     const tabRow = el('div', 'build-tabs');
     // Alle Gebäude bekommen einen Eintrag; gesperrte bleiben bis zur Forschung unsichtbar.
     const available = BUILDINGS.map((_, i) => i);
-    this.category = CATEGORIES[0];
-    for (const c of CATEGORIES) {
-      const tab = el('button', 'build-tab', TEXTS.categories[c]);
+    this.category = 'quick';
+    for (const c of ['quick', ...CATEGORIES] as BuildTab[]) {
+      const tab = el(
+        'button',
+        'build-tab',
+        c === 'quick' ? TEXTS.build.quickTab : TEXTS.categories[c],
+      );
+      tab.dataset.cat = c;
+      if (c === 'quick') tab.title = TEXTS.build.quickTabTooltip;
       tab.addEventListener('click', () => {
         this.category = c;
         this.refreshCategory();
@@ -66,6 +75,7 @@ export class BuildBar {
       const def = BUILDINGS[type];
       const text = TEXTS.buildings[def.key];
       const button = el('button', 'build-entry');
+      button.dataset.cat = def.category; // Farbstreifen nach Kategorie
       const hotkey = tools.hotbar.indexOf(type);
       button.title = `${text.name} – ${text.description}\n${TEXTS.build.size(def.size[0], def.size[1])}${
         hotkey >= 0 ? `\n${TEXTS.build.hotkey(hotkey + 1)}` : ''
@@ -108,7 +118,9 @@ export class BuildBar {
     this.copyButton.classList.toggle('selected', t.mode === 'copy' || t.mode === 'paste');
     if (t.mode === 'build') {
       const cat = BUILDINGS[t.buildType].category;
-      if (cat !== this.category) {
+      // In der Schnellwahl bleiben, solange das Gebäude dort liegt
+      const stay = this.category === 'quick' && t.hotbar.includes(t.buildType);
+      if (cat !== this.category && !stay) {
         this.category = cat;
         this.refreshCategory();
       }
@@ -171,15 +183,21 @@ export class BuildBar {
   private refreshCategory(): void {
     // Kategorien ohne freigeschaltete Gebäude ausblenden
     for (const [c, tab] of this.tabs) {
+      if (c === 'quick') continue;
       const any = this.entries.some(
         (e) => this.unlocked[e.type] && BUILDINGS[e.type].category === c,
       );
       tab.style.display = any ? '' : 'none';
-      if (!any && c === this.category) this.category = CATEGORIES[0];
+      if (!any && c === this.category) this.category = 'quick';
     }
     for (const [c, tab] of this.tabs) tab.classList.toggle('selected', c === this.category);
-    for (const e of this.entries)
-      e.button.style.display =
-        this.unlocked[e.type] && BUILDINGS[e.type].category === this.category ? '' : 'none';
+    const hotbar = this.tools.hotbar;
+    for (const e of this.entries) {
+      const shown =
+        this.category === 'quick'
+          ? hotbar.includes(e.type)
+          : BUILDINGS[e.type].category === this.category;
+      e.button.style.display = this.unlocked[e.type] && shown ? '' : 'none';
+    }
   }
 }

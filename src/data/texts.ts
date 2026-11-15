@@ -327,6 +327,7 @@ export const TEXTS = {
     show: 'Erste Schritte',
     allDone: 'Geschafft! Jetzt gehört die Wiese dir.',
     completed: (name: string) => `Erledigt: ${name}`,
+    count: (done: number, total: number) => `${done} / ${total}`,
     items: {
       harvestWood: 'Sammle 10 Holz: klicke auf Bäume',
       buildHq: 'Baue die Zentrale',
@@ -348,6 +349,8 @@ export const TEXTS = {
   } satisfies Record<BuildCategory, string>,
 
   build: {
+    quickTab: 'Schnellwahl 1–9',
+    quickTabTooltip: 'Die Gebäude auf den Zahlentasten 1 bis 9',
     size: (w: number, h: number) => `${w} × ${h} Felder`,
     free: 'kostenlos',
     hotkey: (n: number) => `Taste ${n}`,

@@ -1,8 +1,10 @@
-import { ITEM_COUNT, ITEM_ID } from '../data/items';
+import { ITEMS, ITEM_COUNT, ITEM_ID } from '../data/items';
+import { PALETTE } from '../data/palette';
 import { RENDER_CONFIG, SIM_CONFIG } from '../data/config';
 import { TEXTS } from '../data/texts';
 import type { Simulation } from '../sim/simulation';
-import { el, formatNumber, itemIcon } from './dom';
+import { el, formatNumber, hex, itemIcon } from './dom';
+import { icon, type IconName } from './icons';
 
 export interface SpeedControl {
   isPaused(): boolean;
@@ -52,7 +54,11 @@ export class Hud {
       const chip = el('span', 'hud-chip');
       chip.dataset.item = String(i); // Rezeptvorschau beim Darüberfahren
       const value = el('span', 'hud-value', '0');
-      chip.append(itemIcon(i), value);
+      // Farbiger Kreis hinter dem Item-Bild (Item-Farbe, aufgehellt)
+      const disc = el('span', 'hud-disc');
+      disc.style.background = `${hex(PALETTE[ITEMS[i].color])}66`;
+      disc.append(itemIcon(i));
+      chip.append(disc, value);
       chip.style.display = ALWAYS_SHOWN.includes(i) ? '' : 'none';
       items.appendChild(chip);
       this.chips.push(chip);
@@ -62,11 +68,13 @@ export class Hud {
     this.powerChip = el('span', 'hud-power none');
     this.powerChip.title = TEXTS.hud.powerTooltip;
     this.powerText = el('span', 'hud-value', TEXTS.hud.noPower);
-    this.powerChip.append(el('span', 'hud-bolt', '⚡'), this.powerText);
+    this.powerChip.append(icon('bolt', 20), this.powerText);
 
     const speeds = el('div', 'hud-speed');
-    this.pauseButton = el('button', 'hud-button', '❚❚');
+    this.pauseButton = el('button', 'hud-button');
+    this.pauseButton.append(icon('pause', 14));
     this.pauseButton.title = TEXTS.hud.pauseTooltip;
+    this.pauseButton.setAttribute('aria-label', TEXTS.hud.pauseTooltip);
     this.pauseButton.addEventListener('click', () => {
       this.speed.togglePause();
       this.pauseButton.blur();
@@ -85,14 +93,16 @@ export class Hud {
     }
 
     const extra = el('div', 'hud-extra');
-    for (const [label, tip, fn] of [
-      ['📦', TEXTS.inventory.tooltip, windows.inventory],
-      ['🔬', TEXTS.research.tooltip, windows.research],
-      ['📊', TEXTS.stats.tooltip, windows.stats],
-      ['🗺', TEXTS.minimap.tooltip, windows.minimap],
-    ] as const) {
-      const b = el('button', 'hud-button hud-menu', label);
+    for (const [symbol, tip, fn] of [
+      ['box', TEXTS.inventory.tooltip, windows.inventory],
+      ['flask', TEXTS.research.tooltip, windows.research],
+      ['chart', TEXTS.stats.tooltip, windows.stats],
+      ['map', TEXTS.minimap.tooltip, windows.minimap],
+    ] as [IconName, string, () => void][]) {
+      const b = el('button', 'hud-button hud-menu');
+      b.append(icon(symbol));
       b.title = tip;
+      b.setAttribute('aria-label', tip);
       b.addEventListener('click', () => {
         b.blur();
         fn();
@@ -103,8 +113,9 @@ export class Hud {
     const sound = el('button', 'hud-button hud-menu');
     const showSound = (): void => {
       const muted = windows.sound.muted();
-      sound.textContent = muted ? '🔇' : '🔊';
+      sound.replaceChildren(icon(muted ? 'soundOff' : 'soundOn'));
       sound.title = muted ? TEXTS.sound.off : TEXTS.sound.on;
+      sound.setAttribute('aria-label', sound.title);
     };
     showSound();
     sound.addEventListener('click', () => {
@@ -114,8 +125,10 @@ export class Hud {
     });
     extra.appendChild(sound);
 
-    const menu = el('button', 'hud-button hud-menu', '☰');
+    const menu = el('button', 'hud-button hud-menu plain');
+    menu.append(icon('menu'));
     menu.title = TEXTS.menu.menuTooltip;
+    menu.setAttribute('aria-label', TEXTS.menu.menuTooltip);
     menu.addEventListener('click', () => {
       menu.blur();
       onMenu();
