@@ -15,6 +15,7 @@ import { TEXTS } from '../data/texts';
 import type { ToolController } from '../input/tools';
 import { footprintH, footprintW } from '../sim/buildings';
 import { MAX_PORTS } from '../sim/logistics';
+import { Bottleneck, outputBlockCause } from '../sim/bottlenecks';
 import { MachineState, type CycleInfo } from '../sim/machines';
 
 import type { Simulation } from '../sim/simulation';
@@ -788,13 +789,13 @@ function bonusText(sim: Simulation): string {
 }
 
 function blockedReason(sim: Simulation, id: number): string {
-  const tile = sim.machines.outTile[id];
-  if (tile < 0) return '';
-  const seg = sim.belts.tileSegment[tile];
-  if (seg < 0) return TEXTS.info.blockedNoBelt;
-  const dir = sim.belts.segments[seg]!.dirs[sim.belts.tileIndex[tile]];
-  if (dir === ((sim.machines.outDir[id] + 2) & 3)) return TEXTS.info.blockedWrongWay;
-  return TEXTS.info.blockedFull;
+  if (sim.machines.outTile[id] < 0) return '';
+  const cause = outputBlockCause(sim, id);
+  return cause === Bottleneck.NoBelt
+    ? TEXTS.info.blockedNoBelt
+    : cause === Bottleneck.WrongWay
+      ? TEXTS.info.blockedWrongWay
+      : TEXTS.info.blockedFull;
 }
 
 function amountChip(item: number, amount: number): HTMLElement {

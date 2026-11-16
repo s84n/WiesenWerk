@@ -5,6 +5,7 @@ export interface HotkeyHandlers {
   toggleDebug(): void;
   togglePause(): void;
   togglePowerView(): void;
+  toggleBottlenecks(): void;
 }
 
 const PAN_KEYS: Readonly<Record<string, readonly [number, number]>> = {
@@ -75,6 +76,9 @@ export class InputController {
       case 'KeyV':
         // Strg + V fügt eine Blaupause ein (siehe Werkzeuge)
         if (!e.ctrlKey && !e.metaKey) this.hotkeys.togglePowerView();
+        break;
+      case 'KeyB':
+        this.hotkeys.toggleBottlenecks();
         break;
       case 'KeyQ':
         this.rig.rotate(-1);

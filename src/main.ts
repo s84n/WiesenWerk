@@ -14,9 +14,11 @@ import { createStressSimulation } from './dev/stress';
 import { InputController } from './input/controls';
 import { ToolController } from './input/tools';
 import { GameRenderer } from './render/scene';
+import { footprintH, footprintW } from './sim/buildings';
 import { randomSeed } from './sim/rng';
 import { Simulation } from './sim/simulation';
 import { generateWorld } from './sim/worldgen';
+import { BottleneckPanel } from './ui/bottleneck-panel';
 import { BuildBar } from './ui/build-bar';
 import { setItemIcons } from './ui/dom';
 import { setErrorExport, showErrorScreen } from './ui/error-screen';
@@ -115,6 +117,7 @@ function start(): void {
       stats: () => toggleWindow(stats),
       inventory: () => toggleWindow(inventory),
       minimap: () => minimap.toggle(),
+      bottlenecks: () => toggleBottlenecks(),
       sound: {
         toggle: () => settings.set('muted', !settings.value.muted),
         muted: () => settings.value.muted,
@@ -130,6 +133,26 @@ function start(): void {
   tools.onMessage = (text) => toasts.message(text);
   const undo = new UndoManager();
   const goals = new GoalsPanel(topLeft, () => sim);
+  // Engpass-Ansicht (Taste B): farbige Karte plus Liste; schließt die Strom-Ansicht
+  let bottleneckView = false;
+  const toggleBottlenecks = (): void => {
+    bottleneckView = !bottleneckView;
+    if (bottleneckView) powerView = false;
+  };
+  const bottlenecks = new BottleneckPanel(
+    topLeft,
+    view.buildingIcons(),
+    (id) => {
+      const def = BUILDINGS[sim.buildings.type[id]];
+      const rot = sim.buildings.rot[id];
+      view.rig.moveTo(
+        sim.buildings.x[id] + footprintW(def, rot) / 2,
+        sim.buildings.y[id] + footprintH(def, rot) / 2,
+      );
+      tools.select(id);
+    },
+    () => (bottleneckView = false),
+  );
 
   const useSimulation = (next: Simulation): void => {
     sim = next;
@@ -236,7 +259,11 @@ function start(): void {
     togglePause: () => {
       if (!menu.isOpen) loop.paused = !loop.paused;
     },
-    togglePowerView: () => (powerView = !powerView),
+    togglePowerView: () => {
+      powerView = !powerView;
+      if (powerView) bottleneckView = false;
+    },
+    toggleBottlenecks: () => toggleBottlenecks(),
   });
   let powerView = false;
 
@@ -358,9 +385,12 @@ function start(): void {
       stats.update(sim, now);
       inventory.update(sim, now);
       itemTip.update(now);
-      goals.update(sim, inGame);
+      // Während der Engpass-Ansicht steht das Engpass-Fenster an der Stelle der Aufgaben
+      goals.update(sim, inGame && !bottleneckView);
       minimap.update(now, view.rig.groundCorners(corners) ? corners : null, inGame && !menu.isOpen);
       view.showPower = powerView || tools.placingPower;
+      view.showBottlenecks = bottleneckView && inGame && !view.showPower;
+      bottlenecks.update(sim, now, bottleneckView && inGame);
       // Beim Bandbau die Laufrichtung aller Bänder im Bild deutlich zeigen
       view.setPortHighlight(tools.mode === 'build' || tools.mode === 'paste');
       view.setBeltDirections(

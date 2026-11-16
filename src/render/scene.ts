@@ -38,6 +38,7 @@ import { renderIcons } from './icons';
 import { itemGeometries } from './item-models';
 import { MachineAnimations, type ViewRect } from './machine-animations';
 import { PortMarkers } from './port-markers';
+import { BottleneckView } from './bottleneck-view';
 import { PowerView } from './power-view';
 import { StatusIcons } from './status-icons';
 import { LandmarkView } from './landmark-view';
@@ -87,8 +88,11 @@ export class GameRenderer {
   private readonly viewRect: ViewRect = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
   private readonly status = new StatusIcons();
   private readonly powerView = new PowerView();
+  private readonly bottleneckView = new BottleneckView();
   /** Strom-Ansicht (Taste V) bzw. beim Bauen von Strom-Gebäuden. */
   showPower = false;
+  /** Engpass-Ansicht (Taste B). */
+  showBottlenecks = false;
   private itemIconUrls: string[] | null = null;
   private visibility: ChunkVisibility | null = null;
   private appliedVersion = -1;
@@ -145,6 +149,7 @@ export class GameRenderer {
       this.preview.group,
       this.status.mesh,
       this.powerView.group,
+      this.bottleneckView.mesh,
     );
 
     this.animations = new MachineAnimations(this.material);
@@ -447,6 +452,7 @@ export class GameRenderer {
         );
         this.status.update(this.sim, now);
         this.powerView.update(this.sim, now, this.showPower);
+        this.bottleneckView.update(this.sim, now, this.showBottlenecks);
       }
       this.nature.setDetailVisible(
         this.preset.details && rig.viewHeight < RENDER_CONFIG.detailMaxViewHeight,

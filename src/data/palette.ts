@@ -166,6 +166,8 @@ export const PALETTE = {
   hintWait: 0xf6d04d,
   hintIdle: 0x9fb4d8,
   hintPower: 0xb59be0,
+  /** Engpass-Ansicht: Maschine ohne Aufgabe (z. B. Brenner ohne Bedarf). */
+  hintNeutral: 0xc8c2b4,
   powerOk: 0x8fe08a,
   powerLow: 0xf6d04d,
   powerNone: 0xf0806a,
