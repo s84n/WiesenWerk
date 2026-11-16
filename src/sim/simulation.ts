@@ -105,7 +105,7 @@ export class Simulation {
     this.belts.tick();
     this.trees.update(this.tick, this.onRegrow);
     this.stats.tick(this.tick, this.inventory);
-    this.goals.update(this, this.tick, this.onGoal);
+    this.goals.update(this, this.tick, this.onGoal, this.onChapter);
   }
 
   /** Übergabe vom Band an ein Gebäude (je nach Art an Maschinen oder Logistik). */
@@ -117,6 +117,10 @@ export class Simulation {
 
   private readonly onGoal = (goal: number): void => {
     this.events.push({ type: 'goalCompleted', goal });
+  };
+
+  private readonly onChapter = (chapter: number): void => {
+    this.events.push({ type: 'chapterCompleted', chapter });
   };
 
   clearEvents(): void {

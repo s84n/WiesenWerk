@@ -273,6 +273,7 @@ export class GameRenderer {
           break;
         case 'researched':
         case 'upgraded':
+        case 'chapterCompleted':
           this.effects.sparkle(this.rig.x, this.rig.z);
           break;
         case 'buildingUpgraded':

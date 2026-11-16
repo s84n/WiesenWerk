@@ -1963,9 +1963,8 @@ body {
 .goal {
   position: relative;
   min-height: 32px;
-  display: flex;
-  align-items: center;
-  padding: 6px 0 6px 30px;
+  display: block;
+  padding: 7px 0 7px 30px;
   font-weight: 600;
   line-height: 1.25;
 }
@@ -2012,6 +2011,33 @@ body {
   border: solid var(--ink);
   border-width: 0 3px 3px 0;
   transform: rotate(45deg);
+}
+
+.goal-progress {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.goals-chapter {
+  padding: 4px 12px 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+
+.goals-reward {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 10px;
+  border-top: var(--line-thin) dashed var(--ink-faint);
+  font-weight: 800;
+  font-size: 0.78rem;
 }
 
 .goals-done {

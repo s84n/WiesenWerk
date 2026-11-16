@@ -1,5 +1,5 @@
 import { BUILDING_COSTS } from '../data/buildings';
-import { GOALS } from '../data/goals';
+import { CHAPTERS, CHAPTER_REWARDS, GOALS } from '../data/goals';
 import { ITEMS } from '../data/items';
 import { LANDMARK_STAGES } from '../data/landmark';
 import { RESEARCH, UPGRADES } from '../data/research';
@@ -56,6 +56,14 @@ export class Toasts {
           e.stage >= LANDMARK_STAGES.length
             ? TEXTS.landmark.allDone
             : TEXTS.landmark.stageDone(TEXTS.landmark.stages[done.key]),
+          true,
+        );
+      } else if (e.type === 'chapterCompleted') {
+        this.message(
+          TEXTS.goals.chapterDone(
+            TEXTS.goals.chapters[CHAPTERS[e.chapter].key],
+            amountsText(CHAPTER_REWARDS[e.chapter]),
+          ),
           true,
         );
       } else if (e.type === 'goalCompleted') {

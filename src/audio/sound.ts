@@ -87,6 +87,9 @@ export class SoundSystem {
             this.chime([392, 523.25, 659.25, 783.99, 1046.5]);
           });
           break;
+        case 'chapterCompleted':
+          this.once('chapter', 400, () => this.chime([523.25, 659.25, 783.99, 1046.5, 1318.5]));
+          break;
         case 'goalCompleted':
           this.once('goal', 300, () => this.chime([783.99, 1174.66]));
           break;

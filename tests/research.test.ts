@@ -11,7 +11,7 @@ import {
   UPGRADE_ID,
   upgradeCost,
 } from '../src/data/research';
-import { GOALS } from '../src/data/goals';
+import { CHAPTERS } from '../src/data/goals';
 import { MachineState } from '../src/sim/machines';
 import { deserialize, migrate, serialize } from '../src/sim/serialize';
 import { Simulation } from '../src/sim/simulation';
@@ -281,9 +281,12 @@ describe('Statistik und Erste Schritte', () => {
     ]);
     research(sim, 'charcoal');
     run(sim, 20);
-    expect(done()).toHaveLength(GOALS.length);
-    expect(sim.goals.allDone).toBe(true);
+    // Kapitel 1 komplett: Geschenk im Vorrat, Kapitel 2 beginnt
+    expect(done()).toEqual([...CHAPTERS[0].goals, 'chapter:start']);
+    expect(sim.goals.chapter).toBe(1);
+    expect(sim.goals.allDone).toBe(false);
     expect(sim.events.filter((e) => e.type === 'goalCompleted').length).toBeGreaterThan(0);
+    expect(sim.events.some((e) => e.type === 'chapterCompleted' && e.chapter === 0)).toBe(true);
   });
 });
 
