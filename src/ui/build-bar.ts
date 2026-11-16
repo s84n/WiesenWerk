@@ -58,17 +58,19 @@ export class BuildBar {
       tabRow.appendChild(tab);
       this.tabs.set(c, tab);
     }
-    this.demolishButton = el('button', 'build-tab demolish', TEXTS.build.demolishButton);
+    // Blaupause und Abriss: am rechten Rand der Karte, unten übereinander
+    this.demolishButton = el('button', 'build-action demolish', TEXTS.build.demolishButton);
     this.demolishButton.addEventListener('click', () => {
       tools.toggleDemolish();
       this.demolishButton.blur();
     });
-    this.copyButton = el('button', 'build-tab blueprint', TEXTS.build.blueprintButton);
+    this.copyButton = el('button', 'build-action blueprint', TEXTS.build.blueprintButton);
     this.copyButton.addEventListener('click', () => {
       tools.toggleCopy();
       this.copyButton.blur();
     });
-    tabRow.append(this.copyButton, this.demolishButton);
+    const actions = el('div', 'build-actions');
+    actions.append(this.copyButton, this.demolishButton);
 
     this.list = el('div', 'build-list');
     for (const type of available) {
@@ -102,7 +104,9 @@ export class BuildBar {
       this.entries.push({ type, button });
     }
 
-    bar.append(tabRow, this.list);
+    const card = el('div', 'build-card');
+    card.append(this.list, actions);
+    bar.append(tabRow, card);
     wrap.append(this.modeHint, bar);
     parent.appendChild(wrap);
     this.refreshCategory();
