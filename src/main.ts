@@ -369,6 +369,9 @@ function start(): void {
       view.render(loop.paused ? 0 : loop.alpha, now);
       debug.frame(now, tickMs, ticks, view, sim, loop.paused);
       if (inGame && !menu.isOpen) sound.update(now, view.animations.workingInView, loop.paused);
+      // Uhrturm: Glockenschläge zur vollen Stunde (echte Uhrzeit)
+      const strokes = view.takeChime();
+      if (inGame && strokes > 0) sound.towerBell(strokes);
       sound.setRain(view.atmosphere.rain);
       music.update(now);
       if (probing && settings.value.qualityChosen) probing = false;

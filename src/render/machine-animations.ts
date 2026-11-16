@@ -183,6 +183,25 @@ const ROUTES: Record<string, readonly Route[]> = {
       cycle: 3,
     },
   ],
+  // Bauleute schleppen Material am Uhrturm entlang, solange etwas angeliefert wird
+  clockTower: [
+    {
+      points: [
+        [1.35, 1.35],
+        [-0.4, 1.38],
+      ],
+      carryOut: 'crate',
+      cycle: 6,
+    },
+    {
+      points: [
+        [-1.38, -1.3],
+        [-1.38, 0.5],
+      ],
+      carryOut: 'crate',
+      cycle: 7,
+    },
+  ],
   // Träger bringen die Ware Richtung Zentrale weg und kommen leer zurück
   depot: [
     {

@@ -63,6 +63,8 @@ export const SOUND_CONFIG = {
   ambience: 0.05,
   /** Lautstärke der Arbeitsgeräusche, wenn viele Maschinen im Bild arbeiten. */
   machines: 0.07,
+  /** Lautstärke der Turmglocke des Uhrturms. */
+  bell: 0.35,
 } as const;
 
 /** Grafikstufen. „Ultra“ wählt das Spiel nie selbst, nur der Spieler. */

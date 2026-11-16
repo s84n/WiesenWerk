@@ -40,6 +40,7 @@ import { MachineAnimations, type ViewRect } from './machine-animations';
 import { PortMarkers } from './port-markers';
 import { PowerView } from './power-view';
 import { StatusIcons } from './status-icons';
+import { LandmarkView } from './landmark-view';
 import { Nature } from './nature';
 import { Terrain } from './terrain';
 import { computeCornerHeights } from './terrain-heights';
@@ -67,6 +68,7 @@ export class GameRenderer {
   readonly effects: Effects;
   private readonly life: AmbientLife;
   private readonly village: Village;
+  private readonly landmark: LandmarkView;
   private preset: QualityPreset;
   /** Tag-Nacht-Wechsel an (sonst fester goldener Nachmittag). */
   dayNight = true;
@@ -151,6 +153,8 @@ export class GameRenderer {
     this.scene.add(this.life.group);
     this.village = new Village(this.material);
     this.scene.add(this.village.group);
+    this.landmark = new LandmarkView(this.material);
+    this.scene.add(this.landmark.group);
     this.effects.amount = preset.particles;
     this.animations.particles = preset.particles;
     this.scene.add(this.animations.group, this.atmosphere.group, this.effects.group);
@@ -217,6 +221,7 @@ export class GameRenderer {
     this.buildings.setBlobShadows(!this.preset.shadows);
     this.life.setWorld(world);
     this.village.reset();
+    this.landmark.dispose();
     this.belts = new BeltView(world, this.material);
     this.ports = new PortMarkers(world, this.material);
     this.visibility = new ChunkVisibility(world);
@@ -260,6 +265,11 @@ export class GameRenderer {
           break;
         case 'buildingAdded':
           this.onAdded(sim, e.id, true);
+          if (BUILDINGS[sim.buildings.type[e.id]].behavior.kind === 'landmark')
+            this.landmark.markDirty();
+          break;
+        case 'landmarkStage':
+          this.landmark.markDirty(true);
           break;
         case 'researched':
         case 'upgraded':
@@ -276,6 +286,7 @@ export class GameRenderer {
           );
           break;
         case 'buildingRemoved':
+          if (BUILDINGS[e.buildingType].behavior.kind === 'landmark') this.landmark.markDirty();
           if (BUILDINGS[e.buildingType].behavior.kind === 'belt') {
             this.belts?.refreshAround(sim, sim.world.index(e.x, e.y));
           } else {
@@ -410,6 +421,7 @@ export class GameRenderer {
         this.updateItems(this.sim, alpha);
         this.buildings.updatePop(this.sim, now);
         this.buildings.setNightGlow(this.atmosphere.glow);
+        this.landmark.update(this.sim, this.effects);
         this.effects.update(now);
         this.life.update(
           now,
@@ -454,6 +466,11 @@ export class GameRenderer {
   }
 
   /** Items auf Bändern im sichtbaren Ausschnitt (weit herausgezoomt ausgeblendet). */
+  /** Glockenschläge des Uhrturms seit dem letzten Abholen (für den Ton). */
+  takeChime(): number {
+    return this.landmark.takeChime();
+  }
+
   /** Bauhilfe: Anschlüsse aller Gebäude kräftig zeigen, solange gebaut wird. */
   setPortHighlight(on: boolean): void {
     this.ports?.setHighlight(on);

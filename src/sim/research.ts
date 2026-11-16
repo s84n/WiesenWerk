@@ -1,5 +1,6 @@
 import { POWER } from '../data/balance';
 import { BUILDINGS, BUILDING_ID } from '../data/buildings';
+import { LANDMARK_STAGES } from '../data/landmark';
 import { RECIPES } from '../data/recipes';
 import {
   RESEARCH,
@@ -31,6 +32,8 @@ export class ResearchSystem {
   /** Erhöht sich bei jeder Änderung (für die Oberfläche). */
   version = 0;
   doneCount = 0;
+  /** Fertige Abschnitte des Uhrturms (ihre Belohnungen fließen in Freischaltungen und Tempo ein). */
+  private landmarkStage = 0;
 
   constructor(private readonly inventory: Inventory) {
     this.recompute();
@@ -84,6 +87,12 @@ export class ResearchSystem {
     this.recompute();
   }
 
+  /** Belohnungen der fertigen Uhrturm-Abschnitte übernehmen. */
+  setLandmarkStage(stage: number): void {
+    this.landmarkStage = stage;
+    this.recompute();
+  }
+
   doneKeys(): string[] {
     return RESEARCH.filter((_, i) => this.done[i]).map((r) => r.key);
   }
@@ -111,11 +120,21 @@ export class ResearchSystem {
       }
       if (r.extractorUpgrade) this.extractorUpgrade = true;
     });
+    let crafterBonus = 0;
+    let extractorBonus = 0;
+    for (let k = 0; k < Math.min(this.landmarkStage, LANDMARK_STAGES.length); k++) {
+      const r = LANDMARK_STAGES[k].reward;
+      for (const key of r.buildings ?? []) this.buildingUnlocked[BUILDING_ID[key]] = 1;
+      crafterBonus += r.crafterSpeed ?? 0;
+      extractorBonus += r.extractorSpeed ?? 0;
+    }
     const level = (key: keyof typeof UPGRADE_ID): number => this.levels[UPGRADE_ID[key]];
     const per = (key: keyof typeof UPGRADE_ID): number => UPGRADES[UPGRADE_ID[key]].perLevel;
-    this.crafterSpeed = Math.round(SCALE * (1 + per('machineSpeed') * level('machineSpeed')));
+    this.crafterSpeed = Math.round(
+      SCALE * (1 + per('machineSpeed') * level('machineSpeed') + crafterBonus),
+    );
     this.extractorSpeed = Math.round(
-      SCALE * (1 + per('extractionSpeed') * level('extractionSpeed')),
+      SCALE * (1 + per('extractionSpeed') * level('extractionSpeed') + extractorBonus),
     );
     this.powerUse = Math.round(SCALE * (1 - per('efficiency') * level('efficiency')));
     this.version++;

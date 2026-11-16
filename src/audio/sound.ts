@@ -81,6 +81,12 @@ export class SoundSystem {
         case 'upgraded':
           this.once('chime', 300, () => this.chime([523.25, 659.25, 783.99, 1046.5]));
           break;
+        case 'landmarkStage':
+          this.once('landmark', 500, () => {
+            this.bellStroke(this.ctx!.currentTime, 0.9);
+            this.chime([392, 523.25, 659.25, 783.99, 1046.5]);
+          });
+          break;
         case 'goalCompleted':
           this.once('goal', 300, () => this.chime([783.99, 1174.66]));
           break;
@@ -276,6 +282,28 @@ export class SoundSystem {
       this.tone(t + i * 0.09, 'sine', f, f, 0.22, 0.01, 1.3);
       this.tone(t + i * 0.09, 'sine', f * 2, f * 2, 0.05, 0.01, 0.7);
     });
+  }
+
+  /** Turmglocke: `strokes` Schläge im Abstand von gut 2 Sekunden (zur vollen Stunde). */
+  towerBell(strokes: number): void {
+    if (!this.ready()) return;
+    const t = this.ctx!.currentTime;
+    for (let k = 0; k < strokes; k++) this.bellStroke(t + k * 2.2, 0.7);
+  }
+
+  /**
+   * Ein Glockenschlag: tiefer Grundton mit unharmonischen Obertönen (wie eine echte Glocke),
+   * langes Ausklingen.
+   */
+  private bellStroke(t: number, peak: number): void {
+    const f = 196;
+    const v = SOUND_CONFIG.bell;
+    this.tone(t, 'sine', f, f, peak * v, 0.004, 3.6);
+    this.tone(t, 'sine', f * 2, f * 2, peak * v * 0.5, 0.004, 2.6);
+    this.tone(t, 'sine', f * 2.4, f * 2.4, peak * v * 0.35, 0.004, 2.0);
+    this.tone(t, 'sine', f * 3.01, f * 3.01, peak * v * 0.2, 0.003, 1.4);
+    this.tone(t, 'triangle', f * 4.2, f * 4.2, peak * v * 0.1, 0.002, 0.6);
+    this.noiseBurst(t, 'bandpass', 1800, peak * v * 0.15, 0.04, 2);
   }
 
   /** Sanftes „Nö“ (etwas geht nicht). */

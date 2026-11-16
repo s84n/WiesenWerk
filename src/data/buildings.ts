@@ -65,7 +65,12 @@ export type Behavior =
   /** Akku-Haus: speichert bis `capacityKJ` überschüssigen Strom aus Wind, Wasser und Sonne, gibt bis `rateKW` ab. */
   | { kind: 'battery'; capacityKJ: number; rateKW: number }
   /** Dekoration: rein optisch. */
-  | { kind: 'decor' };
+  | { kind: 'decor' }
+  /**
+   * Wahrzeichen (Uhrturm): nimmt die Waren für den aktuellen Bauabschnitt an (`src/data/landmark.ts`),
+   * alles andere geht wie bei einem Depot in den Vorrat.
+   */
+  | { kind: 'landmark' };
 
 export type BuildCategory = 'extraction' | 'production' | 'logistics' | 'energy' | 'decoration';
 
@@ -597,6 +602,45 @@ export const BUILDINGS: readonly BuildingDef[] = [
     ports: [{ x: 0, y: 1, dir: 2, kind: 'out' }],
     model: 'dispenser',
     availableFromStart: true,
+  },
+  // ---------------------------------------------------------------- Wahrzeichen
+  {
+    key: 'clockTower',
+    power: 0,
+    size: [3, 3],
+    category: 'decoration',
+    cost: { wood: 20, stone: 20 },
+    placement: 'ground',
+    unique: true,
+    behavior: { kind: 'landmark' },
+    ports: inputsOnAllSides(3, 3),
+    model: 'clockTower',
+    availableFromStart: true,
+  },
+  /** Belohnungen des Uhrturms (keine Forschung, siehe `LANDMARK_STAGES`). */
+  {
+    key: 'fountain',
+    power: 0,
+    size: [2, 2],
+    category: 'decoration',
+    cost: { stoneBrick: 20, copperSheet: 2 },
+    placement: 'ground',
+    behavior: { kind: 'decor' },
+    ports: [],
+    model: 'fountain',
+    availableFromStart: false,
+  },
+  {
+    key: 'bandstand',
+    power: 0,
+    size: [3, 3],
+    category: 'decoration',
+    cost: { plank: 40, copperSheet: 20, stoneBrick: 20 },
+    placement: 'ground',
+    behavior: { kind: 'decor' },
+    ports: [],
+    model: 'bandstand',
+    availableFromStart: false,
   },
 ];
 

@@ -827,6 +827,21 @@ body {
   opacity: 0;
 }
 
+/* Hervorgehobene Meldung (Uhrturm-Abschnitt fertig) */
+.toast.big {
+  padding: 12px 22px;
+  font-size: 1.15rem;
+  background: var(--sun);
+}
+
+.toast.big::after {
+  background: var(--sun);
+}
+
+.landmark-needs {
+  margin: 8px 0;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;

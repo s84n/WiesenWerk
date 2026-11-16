@@ -13,6 +13,7 @@ import {
 import { PALETTE } from '../data/palette';
 import { beltStraight } from './belt-models';
 import { colored, merge } from './geometry';
+import { bandstand, clockTowerFull, clockTowerSite, fountain } from './landmark-models';
 
 /**
  * Gebäudemodelle aus Grundkörpern. Ursprung = Mitte der Grundfläche, ungedreht.
@@ -1058,6 +1059,10 @@ export const SMOKE: Record<string, readonly [number, number, number]> = {
 };
 
 const MODELS: Record<string, () => BufferGeometry> = {
+  // Uhrturm: als Gebäude-Instanz nur der Bauplatz, den Turm selbst zeichnet `LandmarkView`
+  clockTower: clockTowerSite,
+  fountain,
+  bandstand,
   foundry,
   waterWheel: waterWheelHouse,
   solarPanel,
@@ -1096,6 +1101,9 @@ const MODELS: Record<string, () => BufferGeometry> = {
   belt: () => beltStraight(1),
 };
 
+/** Bilder und Vorschau zeigen bei diesen Modellen das fertige Bauwerk. */
+const PREVIEW_MODELS: Record<string, () => BufferGeometry> = { clockTower: clockTowerFull };
+
 /**
  * Erzeugt das Modell zu einem Namen; unbekannte Namen ergeben einen einfachen Block.
  * `withMoving` setzt die beweglichen Teile in Ruhestellung dazu (für Bilder und Vorschau).
@@ -1106,6 +1114,7 @@ export function buildingModel(
   h: number,
   withMoving = false,
 ): BufferGeometry {
+  if (withMoving && PREVIEW_MODELS[name]) return PREVIEW_MODELS[name]();
   const make = MODELS[name];
   const base = make ? make() : merge([box(w - 0.15, 0.8, h - 0.15, 0, 0, 0, PALETTE.cream)]);
   if (!withMoving) return base;

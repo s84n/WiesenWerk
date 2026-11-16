@@ -8,6 +8,7 @@ import type { BeltStep, BlueprintPlacement, Command } from './commands';
 import type { SimEvent } from './events';
 import { GoalSystem } from './goals';
 import { Inventory } from './inventory';
+import { LandmarkSystem } from './landmark';
 import { LogisticsSystem } from './logistics';
 import { MachineSystem } from './machines';
 import { PowerSystem } from './power';
@@ -32,6 +33,7 @@ export class Simulation {
   readonly power: PowerSystem;
   readonly logistics: LogisticsSystem;
   readonly research: ResearchSystem;
+  readonly landmark: LandmarkSystem;
   readonly stats = new StatsSystem();
   readonly goals = new GoalSystem();
   /** Anzahl lebender Gebäude je Typ. */
@@ -58,6 +60,10 @@ export class Simulation {
     this.research = new ResearchSystem(this.inventory);
     this.machines.setResearch(this.research, this.stats);
     this.power.setResearch(this.research, this.stats);
+    this.landmark = new LandmarkSystem(this.inventory, this.research, this.stats, (stage) =>
+      this.events.push({ type: 'landmarkStage', stage }),
+    );
+    this.machines.setLandmark(this.landmark);
     this.inventory.refund(toAmounts(START_INVENTORY));
     this.inventory.flowIn.fill(0); // Startvorrat ist kein Zufluss
   }
@@ -191,6 +197,9 @@ export class Simulation {
         break;
       case 'buildMany':
         this.buildMany(cmd.list);
+        break;
+      case 'contributeLandmark':
+        this.landmark.contribute();
         break;
     }
   }

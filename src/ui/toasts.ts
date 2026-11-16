@@ -1,6 +1,7 @@
 import { BUILDING_COSTS } from '../data/buildings';
 import { GOALS } from '../data/goals';
 import { ITEMS } from '../data/items';
+import { LANDMARK_STAGES } from '../data/landmark';
 import { RESEARCH, UPGRADES } from '../data/research';
 import { PALETTE } from '../data/palette';
 import { TEXTS } from '../data/texts';
@@ -49,25 +50,37 @@ export class Toasts {
         );
       } else if (e.type === 'blueprintPlaced') {
         this.message(TEXTS.build.pasted(e.built, e.total));
+      } else if (e.type === 'landmarkStage') {
+        const done = LANDMARK_STAGES[e.stage - 1];
+        this.message(
+          e.stage >= LANDMARK_STAGES.length
+            ? TEXTS.landmark.allDone
+            : TEXTS.landmark.stageDone(TEXTS.landmark.stages[done.key]),
+          true,
+        );
       } else if (e.type === 'goalCompleted') {
         this.message(TEXTS.goals.completed(TEXTS.goals.items[GOALS[e.goal].key]));
       }
     }
   }
 
-  message(text: string): void {
+  /** `big`: hervorgehobene, länger stehende Meldung (z. B. Uhrturm-Abschnitt fertig). */
+  message(text: string, big = false): void {
     // Gleiche Meldung nicht im Sekundentakt wiederholen
     const now = performance.now();
     if (text === this.lastMessage && now - this.lastMessageAt < 1000) return;
     this.lastMessage = text;
     this.lastMessageAt = now;
-    const t = el('div', 'panel toast', text);
+    const t = el('div', big ? 'panel toast big' : 'panel toast', text);
     this.stack.appendChild(t);
     while (this.stack.children.length > MAX_MESSAGES) this.stack.firstElementChild?.remove();
-    setTimeout(() => {
-      t.classList.add('leaving');
-      setTimeout(() => t.remove(), 400);
-    }, MESSAGE_MS);
+    setTimeout(
+      () => {
+        t.classList.add('leaving');
+        setTimeout(() => t.remove(), 400);
+      },
+      big ? MESSAGE_MS * 2.5 : MESSAGE_MS,
+    );
   }
 
   private float(text: string, color: number): void {

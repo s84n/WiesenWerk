@@ -18,7 +18,7 @@ import { generateWorld } from './worldgen';
 
 export const SAVE_FORMAT = 'wiesenwerk';
 /** Bei jeder Änderung am Format erhöhen und eine Migration in `MIGRATIONS` ergänzen. */
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 /**
  * Werte pro Maschine in `machines.data`:
@@ -77,6 +77,8 @@ export interface SaveData {
   };
   stats: { built: number; produced: number[]; harvested: number[] };
   goals: { done: string[]; hidden: boolean };
+  /** Ab Version 7: Uhrturm (fertige Abschnitte, Geliefertes für den aktuellen nach Item-Schlüssel). */
+  landmark: { stage: number; delivered: Record<string, number> };
 }
 
 /** Verständlicher Fehler beim Laden. `code` wählt den Text in `TEXTS.save.errors`. */
@@ -193,6 +195,7 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
       harvested: Array.from(sim.stats.harvested),
     },
     goals: { done: sim.goals.doneKeys(), hidden: sim.goals.hidden },
+    landmark: { stage: sim.landmark.stage, delivered: sim.landmark.deliveredMap() },
   };
 }
 
@@ -205,7 +208,13 @@ const MIGRATIONS: Record<number, (data: Record<string, unknown>) => Record<strin
   3: migrate3to4,
   4: migrate4to5,
   5: migrate5to6,
+  6: migrate6to7,
 };
+
+/** Version 6 → 7: neu ist der Uhrturm; ältere Spielstände fangen bei ihm von vorn an. */
+function migrate6to7(d: Record<string, unknown>): Record<string, unknown> {
+  return { ...d, landmark: { stage: 0, delivered: {} } };
+}
 
 /**
  * Version 5 → 6: Die Weltgenerierung hat Fassungen (weniger Wasser ab Fassung 2). Ältere
@@ -370,7 +379,11 @@ function validate(d: Record<string, unknown>): void {
     nums(d.stats.harvested) &&
     obj(d.goals) &&
     Array.isArray(d.goals.done) &&
-    typeof d.goals.hidden === 'boolean';
+    typeof d.goals.hidden === 'boolean' &&
+    obj(d.landmark) &&
+    num(d.landmark.stage) &&
+    obj(d.landmark.delivered) &&
+    Object.values(d.landmark.delivered).every(num);
   if (!ok) throw new SaveError('damaged', 'Aufbau');
 }
 
@@ -507,6 +520,7 @@ function restore(d: SaveData): Simulation {
   for (let i = 0; i < Math.min(ITEM_COUNT, d.stats.harvested.length); i++)
     sim.stats.harvested[i] = d.stats.harvested[i];
   sim.goals.restore(d.goals.done, d.goals.hidden);
+  sim.landmark.restore(d.landmark.stage, d.landmark.delivered);
 
   // Bänder: Segmente neu bilden, IDs zuordnen, Items einsetzen
   const belts = sim.belts;

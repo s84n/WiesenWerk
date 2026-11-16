@@ -27,4 +27,6 @@ export type SimEvent =
   | { type: 'upgraded'; upgrade: number }
   | { type: 'goalCompleted'; goal: number }
   /** Blaupause eingefügt: so viele von allen Gebäuden wurden gebaut. */
-  | { type: 'blueprintPlaced'; built: number; total: number };
+  | { type: 'blueprintPlaced'; built: number; total: number }
+  /** Ein Bauabschnitt des Uhrturms ist fertig; `stage` = Zahl der fertigen Abschnitte. */
+  | { type: 'landmarkStage'; stage: number };

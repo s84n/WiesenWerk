@@ -174,7 +174,50 @@ export const TEXTS = {
       description:
         'Gegenstück zum Depot: Legt ein gewähltes Item aus dem Vorrat aufs Band (60 pro Minute). So kommt z. B. Holz aus dem Vorrat zur Werkstatt.',
     },
+    clockTower: {
+      name: 'Uhrturm',
+      description:
+        'Das Wahrzeichen deines Dorfes. Er wächst in sechs Abschnitten – jeder wünscht sich Waren und bringt eine Belohnung. Ganz ohne Eile.',
+    },
+    fountain: {
+      name: 'Brunnen',
+      description: 'Ein plätschernder Dorfbrunnen. Belohnung für die Mauern des Uhrturms.',
+    },
+    bandstand: {
+      name: 'Musikpavillon',
+      description: 'Ein Pavillon mit Kupferdach. Belohnung für die Turmspitze des Uhrturms.',
+    },
   } as Record<string, { name: string; description: string }>,
+
+  landmark: {
+    intro:
+      'Bring die gewünschten Waren per Band (von jeder Seite) oder aus dem Vorrat. Was der Turm nicht braucht, landet im Vorrat.',
+    stages: {
+      foundation: 'Fundament',
+      walls: 'Mauern',
+      chamber: 'Turmstube',
+      clockwork: 'Uhrwerk',
+      belfry: 'Glockenstube',
+      spire: 'Turmspitze',
+    } as Record<string, string>,
+    stageOf: (n: number, total: number, name: string) => `Abschnitt ${n} von ${total}: ${name}`,
+    needs: 'Gewünscht',
+    stock: (n: string) => `Vorrat ${n}`,
+    contribute: 'Aus dem Vorrat beisteuern',
+    contributeHint: 'Gibt alles, was dieser Abschnitt noch braucht und im Vorrat liegt.',
+    reward: 'Belohnung',
+    rewardCrafter: (pct: number) => `Alle Maschinen arbeiten ${pct} % schneller`,
+    rewardExtractor: (pct: number) => `Bergwerke und Holzfäller arbeiten ${pct} % schneller`,
+    rewardBuilding: (name: string) => `Neu zum Bauen: ${name}`,
+    rewardClock: 'Die Uhr geht – nach deiner echten Uhrzeit',
+    rewardBell: 'Die Glocke schlägt zu jeder vollen Stunde',
+    bonusSoFar: (crafter: number, extractor: number) =>
+      `Bisher: Maschinen +${crafter} %, Abbau +${extractor} %`,
+    finished:
+      'Der Uhrturm ist fertig! Danke für all die Mühe – das ganze Dorf ist stolz. Die Glocke schlägt zu jeder vollen Stunde.',
+    stageDone: (name: string) => `Uhrturm: „${name}“ ist fertig!`,
+    allDone: 'Der Uhrturm ist vollendet!',
+  },
 
   research: {
     title: 'Forschung',

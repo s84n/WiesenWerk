@@ -102,7 +102,7 @@ describe('Speichern und Laden', () => {
     expect(state(loaded)).toBe(state(original));
   });
 
-  it('wandelt Spielstände der Versionen 1 bis 5 korrekt um', () => {
+  it('wandelt Spielstände der Versionen 1 bis 6 korrekt um', () => {
     // Eine Fabrik ohne Brenner mit vollem Tempo ergibt Werte, die sich verlustfrei zurückrechnen lassen.
     // Alte Spielstände stammen aus der Weltgenerierung Fassung 1.
     const sim = new Simulation(generateWorld(4711, undefined, DEPOSITS, 1));
@@ -126,9 +126,16 @@ describe('Speichern und Laden', () => {
     sim.machines.accept(furnace, ITEM_ID.copperOre);
     sim.machines.accept(furnace, ITEM_ID.copperOre);
     for (let t = 0; t < 57; t++) sim.step(); // mitten in Durchläufen anhalten
-    const v6 = serialize(sim, META, CAM);
+    const v7 = serialize(sim, META, CAM);
     expect(sim.machines.progress[furnace]).toBeGreaterThan(0);
-    expect(v6.worldGen).toBe(1);
+    expect(v7.worldGen).toBe(1);
+
+    // Version 6 von Hand herstellen: ohne Uhrturm
+    const v6 = JSON.parse(JSON.stringify(v7));
+    v6.version = 6;
+    delete v6.landmark;
+    expect(migrate(v6)).toEqual(migrate(v7));
+    expect(migrate(v6).landmark).toEqual({ stage: 0, delivered: {} });
 
     // Version 5 von Hand herstellen: ohne Fassung der Weltgenerierung
     const v5 = JSON.parse(JSON.stringify(v6));

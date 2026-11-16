@@ -1,3 +1,4 @@
+import { LANDMARK_STAGES } from '../src/data/landmark';
 import { describe, expect, it } from 'vitest';
 import { BUILDINGS, BUILDING_COSTS } from '../src/data/buildings';
 import { ITEMS, ITEM_COUNT, ITEM_ID } from '../src/data/items';
@@ -413,8 +414,12 @@ describe('Abnahme Phase 6: der Forschungsbaum ist von Spielbeginn an erreichbar'
       sim.flushCommands();
     }
     expect(sim.research.doneCount).toBe(RESEARCH.length);
-    // alles freigeschaltet außer ausgemusterten Gebäuden (nur noch aus alten Spielständen)
-    BUILDINGS.forEach((b, i) => expect(sim.research.buildingUnlocked[i]).toBe(b.retired ? 0 : 1));
+    // alles freigeschaltet außer ausgemusterten Gebäuden (nur noch aus alten Spielständen) und
+    // den Belohnungen des Uhrturms
+    const rewards = new Set(LANDMARK_STAGES.flatMap((s) => s.reward.buildings ?? []));
+    BUILDINGS.forEach((b, i) =>
+      expect(sim.research.buildingUnlocked[i]).toBe(b.retired || rewards.has(b.key) ? 0 : 1),
+    );
     expect(RECIPES.every((_, i) => sim.research.recipeUnlocked[i] === 1)).toBe(true);
     expect(sim.machines.state.length).toBeGreaterThanOrEqual(0);
     expect(MachineState.Working).toBe(1);

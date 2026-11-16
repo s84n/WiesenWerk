@@ -33,7 +33,9 @@ export type Command =
   /** Tag-Nacht-Wechsel an/aus (Einstellung des Spielers; bestimmt den Sonnenstand für Solarfelder). */
   | { type: 'setDayCycle'; on: boolean }
   /** Blaupause: mehrere Gebäude auf einmal bauen (blockierte oder zu teure werden übersprungen). */
-  | { type: 'buildMany'; list: readonly BlueprintPlacement[] };
+  | { type: 'buildMany'; list: readonly BlueprintPlacement[] }
+  /** Uhrturm: aus dem Vorrat beisteuern, was der aktuelle Bauabschnitt noch braucht. */
+  | { type: 'contributeLandmark' };
 
 export interface BeltStep {
   x: number;

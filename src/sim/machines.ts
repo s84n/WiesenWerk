@@ -12,6 +12,7 @@ import {
 } from '../data/recipes';
 import { DEPOSITS, PURITY, TileType } from '../data/world';
 import type { BeltSystem } from './belts';
+import type { LandmarkSystem } from './landmark';
 import type { PowerSystem } from './power';
 import type { ResearchSystem } from './research';
 import type { StatsSystem } from './stats';
@@ -133,7 +134,11 @@ export class MachineSystem {
     this.research = research;
     this.stats = stats;
   }
+  setLandmark(landmark: LandmarkSystem): void {
+    this.landmark = landmark;
+  }
   private belts!: BeltSystem;
+  private landmark!: LandmarkSystem;
   private power!: PowerSystem;
   private research!: ResearchSystem;
   private stats!: StatsSystem;
@@ -177,7 +182,7 @@ export class MachineSystem {
       this.winds.push(id);
     } else if (b.kind === 'battery') {
       this.batteries.push(id);
-    } else if (b.kind === 'depot') {
+    } else if (b.kind === 'depot' || b.kind === 'landmark') {
       this.depots.push(id);
       this.lastDelivery[id] = -1000;
     } else if (b.kind === 'dispenser') {
@@ -208,7 +213,7 @@ export class MachineSystem {
       remove(this.winds, id);
     } else if (kind === 'battery') {
       remove(this.batteries, id);
-    } else if (kind === 'depot') {
+    } else if (kind === 'depot' || kind === 'landmark') {
       remove(this.depots, id);
     } else if (kind === 'dispenser') {
       remove(this.dispensers, id);
@@ -347,8 +352,9 @@ export class MachineSystem {
   /** Nimmt ein Item am Eingang an. Rückgabe: angenommen? */
   accept(id: number, item: number): boolean {
     const b = BUILDINGS[this.store.type[id]].behavior;
-    if (b.kind === 'hq' || b.kind === 'depot') {
-      this.inventory.add(item, 1);
+    if (b.kind === 'hq' || b.kind === 'depot' || b.kind === 'landmark') {
+      // Uhrturm: Gebrauchtes zählt für den Bauabschnitt, alles andere geht in den Vorrat
+      if (b.kind !== 'landmark' || !this.landmark.accept(item)) this.inventory.add(item, 1);
       this.delivered++;
       this.stats.deliver(item);
       this.lastDelivery[id] = this.tick;

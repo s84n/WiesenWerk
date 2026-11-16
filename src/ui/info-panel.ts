@@ -2,6 +2,7 @@ import { BELTS, EXTRACTOR_UPGRADE, MACHINES, POWER } from '../data/balance';
 import { BUILDINGS } from '../data/buildings';
 import { RENDER_CONFIG, SIM_CONFIG } from '../data/config';
 import { ITEMS, ITEM_COUNT, toAmounts } from '../data/items';
+import { LANDMARK_NEEDS, LANDMARK_STAGES, type LandmarkStage } from '../data/landmark';
 import { PALETTE } from '../data/palette';
 import {
   MAX_RECIPE_INPUTS,
@@ -65,7 +66,7 @@ export class InfoPanel {
       }
       return;
     }
-    const key = `${sim.machines.recipe[id]}/${sim.machines.upgraded[id]}/${sim.research.version}`;
+    const key = `${sim.machines.recipe[id]}/${sim.machines.upgraded[id]}/${sim.research.version}/${sim.landmark.stage}`;
     if (id !== this.shownId || key !== this.shownKey) {
       this.build(sim, id);
       this.shownId = id;
@@ -131,6 +132,11 @@ export class InfoPanel {
         el('p', 'info-text', TEXTS.buildings[def.key].description),
         el('p', 'info-text soft', TEXTS.info.depot),
       );
+      return;
+    }
+
+    if (b.kind === 'landmark') {
+      this.buildLandmark(sim);
       return;
     }
 
@@ -434,6 +440,73 @@ export class InfoPanel {
     this.body.append(section);
   }
 
+  /** Uhrturm: aktueller Abschnitt, was er sich wünscht, Beisteuern aus dem Vorrat, Belohnung. */
+  private buildLandmark(sim: Simulation): void {
+    const T = TEXTS.landmark;
+    const lm = sim.landmark;
+    const total = LANDMARK_STAGES.length;
+    if (lm.finished) {
+      this.body.append(el('p', 'info-text', T.finished));
+      this.body.append(el('p', 'info-text soft', bonusText(sim)));
+      return;
+    }
+    const stage = LANDMARK_STAGES[lm.stage];
+    this.body.append(
+      el('div', 'info-label', T.stageOf(lm.stage + 1, total, T.stages[stage.key])),
+      el('p', 'info-text soft', T.intro),
+    );
+
+    const box = el('div', 'research-costs landmark-needs');
+    box.appendChild(el('div', 'research-costs-title', T.needs));
+    const rows = LANDMARK_NEEDS[lm.stage].map((c) => {
+      const row = el('div', 'research-cost');
+      const icon = itemIcon(c.item);
+      icon.classList.add('research-cost-icon');
+      const have = el('span', 'research-cost-have');
+      const amounts = el('span', 'research-cost-amounts');
+      amounts.append(have, document.createTextNode(` / ${formatNumber(c.amount)}`));
+      const name = el('span', 'research-cost-name');
+      const bar = el('div', 'research-cost-bar');
+      const fill = el('div', 'research-cost-fill');
+      bar.appendChild(fill);
+      row.append(icon, name, amounts, bar);
+      row.dataset.item = String(c.item);
+      box.appendChild(row);
+      return { row, have, name, fill, item: c.item, amount: c.amount };
+    });
+    this.body.append(box);
+
+    const button = el('button', 'recipe refill');
+    button.append(el('span', '', T.contribute));
+    button.title = T.contributeHint;
+    button.addEventListener('click', () => {
+      sim.enqueue({ type: 'contributeLandmark' });
+      button.blur();
+    });
+    this.body.append(button);
+
+    const reward = el('div', 'info-section');
+    reward.append(el('div', 'info-label', T.reward));
+    for (const line of rewardLines(stage)) reward.append(el('p', 'info-text', `★ ${line}`));
+    reward.append(el('p', 'info-text soft', bonusText(sim)));
+    this.body.append(reward);
+
+    this.updaters.push((s) => {
+      let canGive = false;
+      for (const r of rows) {
+        const got = s.landmark.delivered[r.item];
+        const stock = s.inventory.get(r.item);
+        const ok = got >= r.amount;
+        r.row.classList.toggle('enough', ok);
+        r.have.textContent = formatNumber(got);
+        r.name.textContent = `${itemName(r.item)} · ${T.stock(formatNumber(stock))}`;
+        r.fill.style.width = `${Math.min(100, (got / r.amount) * 100)}%`;
+        if (!ok && stock > 0) canGive = true;
+      }
+      button.disabled = !canGive;
+    });
+  }
+
   /** Verteiler, Zusammenführer, Bandbrücke: Erklärung und was gerade darin liegt. */
   private buildLogistics(id: number, text: string): void {
     this.body.append(el('p', 'info-text', text));
@@ -677,6 +750,30 @@ export class InfoPanel {
 }
 
 /** Warum der Ausgang blockiert ist: kein Band, falsche Richtung oder volles Band. */
+/** Belohnungen eines Uhrturm-Abschnitts als Textzeilen. */
+export function rewardLines(stage: LandmarkStage): string[] {
+  const T = TEXTS.landmark;
+  const r = stage.reward;
+  const lines: string[] = [];
+  if (r.crafterSpeed) lines.push(T.rewardCrafter(Math.round(r.crafterSpeed * 100)));
+  if (r.extractorSpeed) lines.push(T.rewardExtractor(Math.round(r.extractorSpeed * 100)));
+  for (const key of r.buildings ?? []) lines.push(T.rewardBuilding(TEXTS.buildings[key].name));
+  if (r.clock) lines.push(T.rewardClock);
+  if (r.bell) lines.push(T.rewardBell);
+  return lines;
+}
+
+/** Bisher erreichte Tempo-Boni durch den Uhrturm. */
+function bonusText(sim: Simulation): string {
+  let c = 0;
+  let e = 0;
+  for (let k = 0; k < sim.landmark.stage; k++) {
+    c += LANDMARK_STAGES[k].reward.crafterSpeed ?? 0;
+    e += LANDMARK_STAGES[k].reward.extractorSpeed ?? 0;
+  }
+  return TEXTS.landmark.bonusSoFar(Math.round(c * 100), Math.round(e * 100));
+}
+
 function blockedReason(sim: Simulation, id: number): string {
   const tile = sim.machines.outTile[id];
   if (tile < 0) return '';
