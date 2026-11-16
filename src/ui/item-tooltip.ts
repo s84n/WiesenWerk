@@ -1,5 +1,7 @@
+import { CRAFTER_UPGRADE } from '../data/balance';
 import { BUILDINGS, BUILDING_ID } from '../data/buildings';
-import { ITEMS } from '../data/items';
+import { ITEMS, toAmounts } from '../data/items';
+import { LANDMARK_NEEDS, LANDMARK_STAGES } from '../data/landmark';
 import { RECIPES, RECIPE_INPUTS, RECIPE_OUTPUTS } from '../data/recipes';
 import { RESEARCH } from '../data/research';
 import { TEXTS } from '../data/texts';
@@ -170,7 +172,18 @@ export class ItemTooltip {
       for (const o of RECIPE_OUTPUTS[r]) if (o.item !== item) uses.add(o.item);
     });
     const fuel = ITEMS[item].fuelValue > 0;
-    if (uses.size > 0 || fuel) {
+    // Uhrturm-Abschnitte, die es sich wünschen, und Aufwertung der Maschinen
+    const stages = LANDMARK_STAGES.filter((_, k) => LANDMARK_NEEDS[k].some((a) => a.item === item));
+    const upgrade = toAmounts(CRAFTER_UPGRADE.cost).some((a) => a.item === item);
+    const extra: [number, string][] = [
+      ...stages.map((s): [number, string] => [
+        BUILDING_ID.clockTower,
+        t.landmark(TEXTS.landmark.stages[s.key]),
+      ]),
+      ...(upgrade ? [[BUILDING_ID.furnace, t.crafterUpgrade] as [number, string]] : []),
+      ...(fuel ? [[BUILDING_ID.burner, t.fuel] as [number, string]] : []),
+    ];
+    if (uses.size > 0 || extra.length > 0) {
       parts.push(el('div', 'tip-label', t.usedFor));
       const list = el('div', 'tip-uses');
       for (const u of uses) {
@@ -178,12 +191,12 @@ export class ItemTooltip {
         use.append(plainIcon(u, 'tip-use-icon'), document.createTextNode(itemName(u)));
         list.append(use);
       }
-      if (fuel) {
+      for (const [building, label] of extra) {
         const use = el('span', 'tip-use');
         const img = el('img', 'tip-use-icon');
-        img.src = this.buildingIcons[BUILDING_ID.burner] ?? '';
+        img.src = this.buildingIcons[building] ?? '';
         img.alt = '';
-        use.append(img, document.createTextNode(t.fuel));
+        use.append(img, document.createTextNode(label));
         list.append(use);
       }
       parts.push(list);

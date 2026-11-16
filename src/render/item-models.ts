@@ -105,6 +105,54 @@ const SHAPES: Record<ItemShape, (c: number) => BufferGeometry[]> = {
     }),
     colored(new CylinderGeometry(0.035, 0.035, 0.07, 6).translate(0, 0.03, 0), PALETTE.metalDark),
   ],
+  // Eisenplatte: dicke Platte mit vier Nieten
+  plate: (c) => [
+    box(0.26, 0.05, 0.22, 0, 0, 0, c),
+    ...[
+      [-0.09, -0.07],
+      [0.09, -0.07],
+      [0.09, 0.07],
+      [-0.09, 0.07],
+    ].map(([x, z]) => box(0.035, 0.02, 0.035, x, 0.05, z, PALETTE.metalDark)),
+  ],
+  // Linse: flache Scheibe in einer Messingfassung
+  lens: (c) => [
+    colored(new CylinderGeometry(0.12, 0.12, 0.04, 12).translate(0, 0.02, 0), PALETTE.gold),
+    colored(new CylinderGeometry(0.095, 0.095, 0.06, 12).scale(1, 1, 1).translate(0, 0.03, 0), c),
+    colored(new CylinderGeometry(0.06, 0.06, 0.03, 10).translate(0, 0.065, 0), PALETTE.blade),
+  ],
+  // Uhrwerk: goldene Zahnräder auf einer Grundplatte
+  clockwork: (c) => [
+    box(0.26, 0.03, 0.22, 0, 0, 0, PALETTE.itemIronPlate),
+    colored(new CylinderGeometry(0.08, 0.08, 0.04, 10).translate(-0.04, 0.05, -0.02), c),
+    colored(new CylinderGeometry(0.055, 0.055, 0.04, 8).translate(0.08, 0.07, 0.05), c),
+    ...[0, 1, 2, 3, 4, 5, 6, 7].map((k) => {
+      const a = (k / 8) * Math.PI * 2;
+      return box(0.03, 0.04, 0.03, -0.04 + Math.cos(a) * 0.09, 0.03, -0.02 + Math.sin(a) * 0.09, c);
+    }),
+    colored(
+      new CylinderGeometry(0.02, 0.02, 0.1, 5).translate(-0.04, 0.06, -0.02),
+      PALETTE.metalDark,
+    ),
+  ],
+  // Stahlträger: zwei Doppel-T-Träger mit Querstreben
+  girder: (c) => [
+    box(0.32, 0.03, 0.06, 0, 0, -0.08, c),
+    box(0.32, 0.08, 0.02, 0, 0.03, -0.08, c),
+    box(0.32, 0.03, 0.06, 0, 0.11, -0.08, c),
+    box(0.32, 0.03, 0.06, 0, 0, 0.08, c),
+    box(0.32, 0.08, 0.02, 0, 0.03, 0.08, c),
+    box(0.32, 0.03, 0.06, 0, 0.11, 0.08, c),
+    box(0.04, 0.03, 0.2, -0.1, 0.14, 0, PALETTE.itemSteel),
+    box(0.04, 0.03, 0.2, 0.1, 0.14, 0, PALETTE.itemSteel),
+  ],
+  // Messinstrument: Messinggehäuse mit Glasfenster und Zeiger
+  instrument: (c) => [
+    box(0.22, 0.03, 0.18, 0, 0, 0, PALETTE.woodDark),
+    colored(new CylinderGeometry(0.09, 0.1, 0.12, 12).translate(0, 0.09, 0), c),
+    colored(new CylinderGeometry(0.075, 0.075, 0.02, 12).translate(0, 0.155, 0), PALETTE.itemLens),
+    box(0.012, 0.012, 0.06, 0, 0.165, 0.015, PALETTE.clockHand),
+  ],
 };
 
 let cache: BufferGeometry[] | null = null;

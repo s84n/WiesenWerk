@@ -1,4 +1,11 @@
-import { AUTO_REFILL, EXTRACTOR_UPGRADE, MACHINES, POWER, TREES } from '../data/balance';
+import {
+  AUTO_REFILL,
+  CRAFTER_UPGRADE,
+  EXTRACTOR_UPGRADE,
+  MACHINES,
+  POWER,
+  TREES,
+} from '../data/balance';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
 import { SIM_CONFIG } from '../data/config';
 import { ITEMS, ITEM_ID, toAmounts, type ItemAmount } from '../data/items';
@@ -44,6 +51,7 @@ const off = { x: 0, y: 0 };
 const SCALE = POWER.scale;
 const WOOD = ITEM_ID[TREES.item];
 const UPGRADE_COST = toAmounts(EXTRACTOR_UPGRADE.cost);
+const CRAFTER_UPGRADE_COST = toAmounts(CRAFTER_UPGRADE.cost);
 
 /**
  * Alle produzierenden Gebäude: Abbau (Bergwerk, Holzfäller), Verarbeitung (Rezepte) und Zentrale.
@@ -209,6 +217,7 @@ export class MachineSystem {
       remove(this.crafters, id);
       const r = this.recipe[id];
       if (r >= 0) this.collectBuffers(id, r, result);
+      if (this.upgraded[id]) for (const a of CRAFTER_UPGRADE_COST) result.push({ ...a });
     } else if (kind === 'wind' || kind === 'water' || kind === 'solar') {
       remove(this.winds, id);
     } else if (kind === 'battery') {
@@ -236,18 +245,26 @@ export class MachineSystem {
 
   /** Kann dieses Gebäude auf Stufe 2 aufgewertet werden (ohne Kosten zu prüfen)? */
   canUpgrade(id: number): boolean {
+    if (this.upgraded[id] !== 0) return false;
     const kind = BUILDINGS[this.store.type[id]].behavior.kind;
-    return (
-      (kind === 'miner' || kind === 'lumberjack') &&
-      this.upgraded[id] === 0 &&
-      this.research.extractorUpgrade
-    );
+    if (kind === 'miner' || kind === 'lumberjack') return this.research.extractorUpgrade;
+    if (kind === 'crafter') return this.research.crafterUpgrade;
+    return false;
   }
 
-  /** Wertet Bergwerk oder Holzfäller auf Stufe 2 auf (doppeltes Tempo, doppelter Strom). */
+  /** Kosten der Aufwertung auf Stufe 2 (Abbau bzw. Verarbeitung). */
+  upgradeCost(id: number): readonly ItemAmount[] {
+    return BUILDINGS[this.store.type[id]].behavior.kind === 'crafter'
+      ? CRAFTER_UPGRADE_COST
+      : UPGRADE_COST;
+  }
+
+  /** Wertet ein Gebäude auf Stufe 2 auf (doppeltes Tempo, doppelter Strom). */
   upgrade(id: number): boolean {
-    if (!this.canUpgrade(id) || !this.inventory.canAfford(UPGRADE_COST)) return false;
-    this.inventory.pay(UPGRADE_COST);
+    if (!this.canUpgrade(id)) return false;
+    const cost = this.upgradeCost(id);
+    if (!this.inventory.canAfford(cost)) return false;
+    this.inventory.pay(cost);
     this.upgraded[id] = 1;
     return true;
   }
@@ -278,7 +295,7 @@ export class MachineSystem {
       // Verarbeitung: Fortschritt 1 beim Start, fertig sobald er die Dauer × 1000 übersteigt,
       // also nach genau Dauer × 1000 / Tempo weiteren Ticks
       full = RECIPE_TICKS[r] * SCALE;
-      speed = Math.floor((this.speedOf(id) * this.research.crafterSpeed) / SCALE);
+      speed = Math.floor((this.speedOf(id) * this.craftBoost(id)) / SCALE);
       done = Math.max(0, this.progress[id] - 1);
     } else if (kind === 'miner' || kind === 'lumberjack') {
       if (this.extractItem[id] < 0) return out;
@@ -294,6 +311,13 @@ export class MachineSystem {
       out.remainingTicks = Math.max(0, Math.ceil((full - done) / speed));
     }
     return out;
+  }
+
+  /** Tempo-Faktor (Tausendstel) für Verarbeitung aus Stufe, Verbesserung und Uhrturm. */
+  private craftBoost(id: number): number {
+    return this.upgraded[id]
+      ? CRAFTER_UPGRADE.speedFactor * this.research.crafterSpeed
+      : this.research.crafterSpeed;
   }
 
   /** Tempo-Faktor (Tausendstel) für Abbau aus Stufe und Verbesserung. */
@@ -470,12 +494,11 @@ export class MachineSystem {
     }
 
     // Verarbeitung
-    const boost = this.research.crafterSpeed;
     for (let n = 0; n < this.crafters.length; n++) {
       const id = this.crafters[n];
       const r = this.recipe[id];
       const power = this.speedOf(id);
-      const speed = Math.floor((power * boost) / SCALE);
+      const speed = Math.floor((power * this.craftBoost(id)) / SCALE);
       let working = false;
       if (r < 0) {
         this.setState(id, MachineState.NoRecipe);

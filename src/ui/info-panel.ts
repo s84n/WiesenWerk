@@ -1,7 +1,7 @@
 import { BELTS, EXTRACTOR_UPGRADE, MACHINES, POWER } from '../data/balance';
 import { BUILDINGS } from '../data/buildings';
 import { RENDER_CONFIG, SIM_CONFIG } from '../data/config';
-import { ITEMS, ITEM_COUNT, toAmounts } from '../data/items';
+import { ITEMS, ITEM_COUNT } from '../data/items';
 import { LANDMARK_NEEDS, LANDMARK_STAGES, type LandmarkStage } from '../data/landmark';
 import { PALETTE } from '../data/palette';
 import {
@@ -229,6 +229,7 @@ export class InfoPanel {
       pct.textContent = `${v} %`;
     });
     if (b.kind === 'crafter' || b.kind === 'miner' || b.kind === 'lumberjack') this.buildCycle(id);
+    if (b.kind === 'crafter') this.buildUpgrade(sim, id);
     for (const u of this.updaters) u(sim);
   }
 
@@ -415,16 +416,23 @@ export class InfoPanel {
     this.buildUpgrade(sim, id);
   }
 
-  /** Stufe und Aufwertung (Bergwerk, Holzfäller). */
+  /** Stufe und Aufwertung (Bergwerk, Holzfäller, Maschinen mit Rezept). */
   private buildUpgrade(sim: Simulation, id: number): void {
     const section = el('div', 'info-section');
     const upgraded = sim.machines.upgraded[id] === 1;
+    const crafter = BUILDINGS[sim.buildings.type[id]].behavior.kind === 'crafter';
     section.append(el('div', 'info-label', TEXTS.info.tier(upgraded ? 2 : 1)));
     if (!upgraded) {
-      if (!sim.research.extractorUpgrade) {
-        section.append(el('p', 'info-text soft', TEXTS.info.upgradeLocked));
+      if (!sim.machines.canUpgrade(id)) {
+        section.append(
+          el(
+            'p',
+            'info-text soft',
+            crafter ? TEXTS.info.crafterUpgradeLocked : TEXTS.info.upgradeLocked,
+          ),
+        );
       } else {
-        const cost = toAmounts(EXTRACTOR_UPGRADE.cost);
+        const cost = sim.machines.upgradeCost(id);
         const button = el('button', 'recipe refill');
         button.append(el('span', '', TEXTS.info.upgrade));
         for (const c of cost) button.append(amountChip(c.item, c.amount));
@@ -433,7 +441,9 @@ export class InfoPanel {
           sim.enqueue({ type: 'upgradeBuilding', building: id });
           button.blur();
         });
-        section.append(button, el('p', 'info-text soft', TEXTS.info.upgradeHint));
+        const hint = crafter ? TEXTS.info.crafterUpgradeHint : TEXTS.info.upgradeHint;
+        button.title = hint;
+        section.append(button, el('p', 'info-text soft', hint));
         this.updaters.push((s) => (button.disabled = !s.inventory.canAfford(cost)));
       }
     }

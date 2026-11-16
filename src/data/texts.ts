@@ -30,6 +30,11 @@ export const TEXTS = {
     glass: 'Glas',
     steel: 'Stahl',
     gear: 'Zahnrad',
+    ironPlate: 'Eisenplatte',
+    lens: 'Linse',
+    clockwork: 'Uhrwerk',
+    steelFrame: 'Stahlträger',
+    instrument: 'Messinstrument',
   } satisfies Record<ItemKey, string>,
 
   buildings: {
@@ -246,6 +251,7 @@ export const TEXTS = {
     buy: 'Verbessern',
     recipe: (name: string) => `Rezept ${name}`,
     extractorUpgrade: 'Bergwerk und Holzfäller Stufe 2',
+    crafterUpgrade: 'Maschinen Stufe 2',
     researched: (name: string) => `Erforscht: ${name}`,
     upgraded: (name: string, level: number) => `${name}: jetzt Stufe ${level}`,
     nodes: {
@@ -270,6 +276,8 @@ export const TEXTS = {
       steelmaking: 'Stahlwerk',
       solarPower: 'Sonnenkraft',
       batteries: 'Stromspeicher',
+      precision: 'Feinmechanik',
+      optics: 'Optik',
     } as Record<string, string>,
     upgrades: {
       machineSpeed: {
@@ -339,6 +347,8 @@ export const TEXTS = {
     howTo: 'So bekommst du es',
     usedFor: 'Wird gebraucht für',
     fuel: 'Brennstoff für Brenner',
+    landmark: (stage: string) => `Uhrturm: ${stage}`,
+    crafterUpgrade: 'Maschinen auf Stufe 2',
     seconds: (s: number) => `${s.toLocaleString('de-DE')} s`,
     needsResearch: (names: string) => `Erst erforschen: ${names}`,
   },
@@ -541,6 +551,9 @@ export const TEXTS = {
       'Das Band am Ausgang läuft auf das Gebäude zu. Dreh es um (neu darüberziehen).',
     blockedFull: 'Das Band am Ausgang ist voll. Führt es zur Zentrale oder zu einer Maschine?',
     upgradeLocked: 'Mit der Forschung „Tiefbau“ lässt sich das Gebäude auf Stufe 2 aufwerten.',
+    crafterUpgradeLocked:
+      'Mit der Forschung „Feinmechanik“ lässt sich die Maschine auf Stufe 2 aufwerten.',
+    crafterUpgradeHint: 'Doppeltes Tempo, doppelter Stromverbrauch.',
   },
 
   menu: {

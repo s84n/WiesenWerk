@@ -78,6 +78,15 @@ export const EXTRACTOR_UPGRADE = {
   powerFactor: 2,
 } as const;
 
+/**
+ * Aufwertung von Schmelzofen, Werkstatt, Manufaktur und Gießerei auf Stufe 2 (nach Forschung
+ * „Feinmechanik“). Tempo und Strom wie beim Abbau (`EXTRACTOR_UPGRADE`).
+ */
+export const CRAFTER_UPGRADE = {
+  cost: { clockwork: 2, ironPlate: 4 } as Partial<Record<ItemKey, number>>,
+  speedFactor: 2,
+} as const;
+
 /** Statistik: Produktion und Verbrauch werden über so viele Sekunden gemittelt. */
 export const STATS = {
   windowSeconds: 60,

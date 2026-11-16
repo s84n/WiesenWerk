@@ -24,6 +24,7 @@ export class ResearchSystem {
   readonly buildingUnlocked = new Uint8Array(BUILDINGS.length);
   readonly recipeUnlocked = new Uint8Array(RECIPES.length);
   extractorUpgrade = false;
+  crafterUpgrade = false;
   /** Tempo-Faktoren in Tausendsteln (1000 = 100 %). */
   crafterSpeed: number = SCALE;
   extractorSpeed: number = SCALE;
@@ -109,6 +110,7 @@ export class ResearchSystem {
     BUILDINGS.forEach((b, i) => (this.buildingUnlocked[i] = b.availableFromStart ? 1 : 0));
     RECIPES.forEach((r, i) => (this.recipeUnlocked[i] = r.availableFromStart ? 1 : 0));
     this.extractorUpgrade = false;
+    this.crafterUpgrade = false;
     this.doneCount = 0;
     RESEARCH.forEach((r, i) => {
       if (!this.done[i]) return;
@@ -119,6 +121,7 @@ export class ResearchSystem {
         if (id >= 0) this.recipeUnlocked[id] = 1;
       }
       if (r.extractorUpgrade) this.extractorUpgrade = true;
+      if (r.crafterUpgrade) this.crafterUpgrade = true;
     });
     let crafterBonus = 0;
     let extractorBonus = 0;

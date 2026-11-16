@@ -33,7 +33,12 @@ export type ItemShape =
   | 'sand'
   | 'pane'
   | 'beam'
-  | 'gear';
+  | 'gear'
+  | 'plate'
+  | 'lens'
+  | 'clockwork'
+  | 'girder'
+  | 'instrument';
 
 export const ITEMS = [
   { key: 'wood', kind: 'solid', color: 'itemWood', fuelValue: 120, shape: 'log' },
@@ -58,6 +63,12 @@ export const ITEMS = [
   { key: 'glass', kind: 'solid', color: 'itemGlass', fuelValue: 0, shape: 'pane' },
   { key: 'steel', kind: 'solid', color: 'itemSteel', fuelValue: 0, shape: 'beam' },
   { key: 'gear', kind: 'solid', color: 'itemGear', fuelValue: 0, shape: 'gear' },
+  // Ausbaurunde Spielspaß: Endprodukte aus Eisen, Glas und Stahl
+  { key: 'ironPlate', kind: 'solid', color: 'itemIronPlate', fuelValue: 0, shape: 'plate' },
+  { key: 'lens', kind: 'solid', color: 'itemLens', fuelValue: 0, shape: 'lens' },
+  { key: 'clockwork', kind: 'solid', color: 'itemClockwork', fuelValue: 0, shape: 'clockwork' },
+  { key: 'steelFrame', kind: 'solid', color: 'itemSteelFrame', fuelValue: 0, shape: 'girder' },
+  { key: 'instrument', kind: 'solid', color: 'itemInstrument', fuelValue: 0, shape: 'instrument' },
 ] as const satisfies readonly ItemDef[];
 
 export type ItemKey = (typeof ITEMS)[number]['key'];

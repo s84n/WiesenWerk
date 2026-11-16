@@ -158,18 +158,27 @@ export class ResearchWindow {
         icon.title = TEXTS.research.recipe(itemName(out));
         unlocks.appendChild(icon);
       }
-      if (r.extractorUpgrade) {
-        for (const key of ['miner', 'lumberjack']) {
+      const upgradeIcons: [boolean | undefined, string[], string][] = [
+        [r.extractorUpgrade, ['miner', 'lumberjack'], TEXTS.research.extractorUpgrade],
+        [r.crafterUpgrade, ['furnace', 'workshop', 'assembler'], TEXTS.research.crafterUpgrade],
+      ];
+      for (const [on, keys, title] of upgradeIcons) {
+        if (!on) continue;
+        for (const key of keys) {
           const img = el('img', 'unlock-icon');
           img.src = buildingIcons[BUILDING_ID[key]] ?? '';
           img.alt = '';
-          img.title = TEXTS.research.extractorUpgrade;
+          img.title = title;
           unlocks.appendChild(img);
         }
       }
       card.append(
         unlocks,
-        el('div', 'research-unlock-text', unlockText(r.buildings, r.recipes, r.extractorUpgrade)),
+        el(
+          'div',
+          'research-unlock-text',
+          unlockText(r.buildings, r.recipes, r.extractorUpgrade, r.crafterUpgrade),
+        ),
       );
       const external = r.requires.filter((k) => RESEARCH[RESEARCH_ID[k]].area !== r.area);
       let requiresRow: HTMLElement | null = null;
@@ -365,6 +374,7 @@ function unlockText(
   buildings: readonly string[] | undefined,
   recipes: readonly string[] | undefined,
   extractor: boolean | undefined,
+  crafter: boolean | undefined,
 ): string {
   const parts = [
     ...(buildings ?? []).map((k) => TEXTS.buildings[k].name),
@@ -373,6 +383,7 @@ function unlockText(
       return TEXTS.research.recipe(itemName(RECIPE_OUTPUTS[r][0].item));
     }),
     ...(extractor ? [TEXTS.research.extractorUpgrade] : []),
+    ...(crafter ? [TEXTS.research.crafterUpgrade] : []),
   ];
   return parts.join(', ');
 }

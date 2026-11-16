@@ -140,6 +140,47 @@ export const RECIPES: readonly RecipeDef[] = [
     seconds: 6,
     availableFromStart: false,
   },
+  // Ausbaurunde Spielspaß: Endprodukte aus Eisen, Glas und Stahl
+  {
+    key: 'ironPlate',
+    machine: 'workshop',
+    inputs: { ironIngot: 2 },
+    outputs: { ironPlate: 1 },
+    seconds: 3,
+    availableFromStart: false,
+  },
+  {
+    key: 'lens',
+    machine: 'workshop',
+    inputs: { glass: 2 },
+    outputs: { lens: 1 },
+    seconds: 3,
+    availableFromStart: false,
+  },
+  {
+    key: 'clockwork',
+    machine: 'assembler',
+    inputs: { gear: 4, ironPlate: 1 },
+    outputs: { clockwork: 1 },
+    seconds: 6,
+    availableFromStart: false,
+  },
+  {
+    key: 'steelFrame',
+    machine: 'assembler',
+    inputs: { steel: 2, frame: 1 },
+    outputs: { steelFrame: 1 },
+    seconds: 6,
+    availableFromStart: false,
+  },
+  {
+    key: 'instrument',
+    machine: 'assembler',
+    inputs: { clockwork: 1, lens: 2 },
+    outputs: { instrument: 1 },
+    seconds: 10,
+    availableFromStart: false,
+  },
 ];
 
 /** Eingänge, Ausgänge und Dauer in Ticks mit numerischen IDs (Index = Rezept-ID). */

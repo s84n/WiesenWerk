@@ -78,6 +78,11 @@ export const PALETTE = {
   itemGlass: 0xbfe8f0,
   itemSteel: 0x6f7f8e,
   itemGear: 0x9aa4ac,
+  itemIronPlate: 0x8e979f,
+  itemLens: 0xa8dcef,
+  itemClockwork: 0xd8b04a,
+  itemSteelFrame: 0x5f7085,
+  itemInstrument: 0xb88a3e,
 
   // Neue Vorkommen
   iron: 0x9a6f5e,

@@ -20,6 +20,8 @@ export interface ResearchDef {
   recipes?: readonly string[];
   /** Schaltet die Aufwertung von Bergwerk und Holzfäller auf Stufe 2 frei. */
   extractorUpgrade?: boolean;
+  /** Schaltet die Aufwertung von Schmelzofen, Werkstatt, Manufaktur und Gießerei auf Stufe 2 frei. */
+  crafterUpgrade?: boolean;
   /** Bereich (Reiter im Forschungsfenster). */
   area: ResearchArea;
   /** Platz innerhalb des Bereichs: Spalte und Zeile (höchstens 2 Zeilen, damit nichts scrollt). */
@@ -153,7 +155,7 @@ export const RESEARCH: readonly ResearchDef[] = [
     key: 'ironworking',
     requires: [],
     cost: { copperIngot: 60, stoneBrick: 60 },
-    recipes: ['ironIngot', 'gear'],
+    recipes: ['ironIngot', 'gear', 'ironPlate'],
     area: 'industry',
     pos: [0, 0],
   },
@@ -161,7 +163,7 @@ export const RESEARCH: readonly ResearchDef[] = [
     key: 'glassmaking',
     requires: [],
     cost: { stoneBrick: 80, plank: 40 },
-    recipes: ['glass'],
+    recipes: ['glass', 'lens'],
     area: 'industry',
     pos: [0, 1],
   },
@@ -178,7 +180,7 @@ export const RESEARCH: readonly ResearchDef[] = [
     requires: ['ironworking', 'assembler'],
     cost: { ironIngot: 100, frame: 20 },
     buildings: ['foundry'],
-    recipes: ['steel'],
+    recipes: ['steel', 'steelFrame'],
     area: 'industry',
     pos: [1, 0],
   },
@@ -197,6 +199,24 @@ export const RESEARCH: readonly ResearchDef[] = [
     buildings: ['battery'],
     area: 'energy',
     pos: [2, 1],
+  },
+  // Ausbaurunde Spielspaß: Feinmechanik und Optik
+  {
+    key: 'precision',
+    requires: ['ironworking', 'drives'],
+    cost: { gear: 80, ironPlate: 40, motor: 20 },
+    recipes: ['clockwork'],
+    crafterUpgrade: true,
+    area: 'industry',
+    pos: [1, 1],
+  },
+  {
+    key: 'optics',
+    requires: ['precision', 'glassmaking'],
+    cost: { lens: 60, clockwork: 20 },
+    recipes: ['instrument'],
+    area: 'industry',
+    pos: [2, 0],
   },
 ];
 

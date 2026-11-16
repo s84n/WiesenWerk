@@ -46,17 +46,17 @@ export const LANDMARK_STAGES: readonly LandmarkStage[] = [
   },
   {
     key: 'clockwork',
-    needs: { gear: 120, coil: 40, motor: 25 },
+    needs: { clockwork: 30, ironPlate: 60, coil: 40 },
     reward: { clock: true, extractorSpeed: 0.05 },
   },
   {
     key: 'belfry',
-    needs: { glass: 120, ironIngot: 120, controlUnit: 20 },
+    needs: { lens: 40, glass: 60, ironPlate: 80, controlUnit: 20 },
     reward: { bell: true, crafterSpeed: 0.05 },
   },
   {
     key: 'spire',
-    needs: { steel: 120, copperSheet: 200, circuit: 60 },
+    needs: { steelFrame: 60, copperSheet: 200, instrument: 10 },
     reward: { buildings: ['bandstand'], crafterSpeed: 0.05, extractorSpeed: 0.05 },
   },
 ];
