@@ -41,10 +41,13 @@ export const MACHINES = {
 } as const;
 
 export const BELTS = {
-  /** Interne Längeneinheiten pro Feld. Ganze Zahlen halten die Bänder exakt. */
-  unitsPerTile: 120,
+  /**
+   * Interne Längeneinheiten pro Feld. Ganze Zahlen halten die Bänder exakt; 240 erlaubt das
+   * Tempo 0,75 Felder/s (9 Einheiten je Tick). Bis Spielstand-Version 7 waren es 120.
+   */
+  unitsPerTile: 240,
   /** Mindestabstand zweier Items (halbes Feld). */
-  minSpacing: 60,
+  minSpacing: 120,
 } as const;
 
 export const POWER = {
@@ -70,21 +73,28 @@ export const WIND = {
   periodSeconds: 40,
 } as const;
 
-/** Aufwertung von Bergwerk und Holzfäller auf Stufe 2 (nach Forschung „Tiefbau“). */
-export const EXTRACTOR_UPGRADE = {
-  cost: { motor: 5 } as Partial<Record<ItemKey, number>>,
-  /** Tempo und Stromverbrauch auf Stufe 2 (Vielfaches). */
-  speedFactor: 2,
-  powerFactor: 2,
-} as const;
+type Cost = Partial<Record<ItemKey, number>>;
 
 /**
- * Aufwertung von Schmelzofen, Werkstatt, Manufaktur und Gießerei auf Stufe 2 (nach Forschung
- * „Feinmechanik“). Tempo und Strom wie beim Abbau (`EXTRACTOR_UPGRADE`).
+ * Stufen von Abbau (Bergwerk, Holzfäller) und Fertigung (Schmelzofen, Werkstatt, Manufaktur,
+ * Gießerei), je Gebäude per Befehl `upgradeBuilding`. Index = Stufe − 1 (`machines.upgraded`).
+ *
+ * Faustregel (Wunsch des Auftraggebers): Eine Grundmaschine liefert 30 Items pro Minute, ein Band
+ * ist mit drei Maschinen voll – Mk1 (90/min) mit drei Maschinen der Stufe 1, Mk2 (180/min) mit
+ * drei der Stufe 2, Mk3 (360/min) mit drei der Stufe 3.
  */
-export const CRAFTER_UPGRADE = {
-  cost: { clockwork: 2, ironPlate: 4 } as Partial<Record<ItemKey, number>>,
-  speedFactor: 2,
+export const MACHINE_LEVELS = {
+  /** Tempo je Stufe (Vielfaches). */
+  speed: [1, 2, 4],
+  /** Stromverbrauch je Stufe (Vielfaches): höhere Stufen sind sparsamer als mehr Maschinen. */
+  power: [1, 2, 3],
+  /** Kosten für den Schritt auf Stufe 2 bzw. 3 (Abbau: „Tiefbau“ bzw. „Hochleistung“). */
+  extractorCost: [{ motor: 5 }, { steelFrame: 3, clockwork: 2 }] as readonly Cost[],
+  /** Kosten für den Schritt auf Stufe 2 bzw. 3 (Fertigung: „Feinmechanik“ bzw. „Hochleistung“). */
+  crafterCost: [
+    { clockwork: 2, ironPlate: 4 },
+    { steelFrame: 3, instrument: 1 },
+  ] as readonly Cost[],
 } as const;
 
 /** Statistik: Produktion und Verbrauch werden über so viele Sekunden gemittelt. */

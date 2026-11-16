@@ -63,7 +63,7 @@ describe('Maschinen', () => {
     build(sim, B.workshop, 4, 4);
     const id = sim.buildingAt(4, 4);
     expect(sim.machines.accept(id, ITEM_ID.wood)).toBe(true);
-    run(sim, 41);
+    run(sim, 81); // 4 Sekunden
     expect(sim.machines.outBuf[id * 2]).toBe(2);
   });
 

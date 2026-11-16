@@ -1,4 +1,4 @@
-import { EXTRACTOR_UPGRADE, POWER, WIND } from '../data/balance';
+import { MACHINE_LEVELS, POWER, WIND } from '../data/balance';
 import { BUILDINGS, FREE_GENERATOR_KINDS } from '../data/buildings';
 import { SIM_CONFIG } from '../data/config';
 import { ITEMS } from '../data/items';
@@ -177,7 +177,7 @@ export class PowerSystem {
       for (let k = 0; k < cs.length; k++) {
         const id = cs[k];
         let w = Math.floor((BUILDINGS[store.type[id]].power * 1000 * use) / SCALE);
-        if (m.upgraded[id]) w *= EXTRACTOR_UPGRADE.powerFactor;
+        w *= MACHINE_LEVELS.power[m.upgraded[id]];
         dem += m.drawFull[id] ? w : Math.round(w * POWER.idleShare);
       }
 

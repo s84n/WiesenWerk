@@ -1,11 +1,4 @@
-import {
-  AUTO_REFILL,
-  CRAFTER_UPGRADE,
-  EXTRACTOR_UPGRADE,
-  MACHINES,
-  POWER,
-  TREES,
-} from '../data/balance';
+import { AUTO_REFILL, MACHINE_LEVELS, MACHINES, POWER, TREES } from '../data/balance';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
 import { SIM_CONFIG } from '../data/config';
 import { ITEMS, ITEM_ID, toAmounts, type ItemAmount } from '../data/items';
@@ -50,8 +43,9 @@ export type MachineState = (typeof MachineState)[keyof typeof MachineState];
 const off = { x: 0, y: 0 };
 const SCALE = POWER.scale;
 const WOOD = ITEM_ID[TREES.item];
-const UPGRADE_COST = toAmounts(EXTRACTOR_UPGRADE.cost);
-const CRAFTER_UPGRADE_COST = toAmounts(CRAFTER_UPGRADE.cost);
+/** Kosten je Stufenschritt (Index = bisherige Stufe − 1). */
+const EXTRACTOR_COSTS = MACHINE_LEVELS.extractorCost.map((c) => toAmounts(c));
+const CRAFTER_COSTS = MACHINE_LEVELS.crafterCost.map((c) => toAmounts(c));
 
 /**
  * Alle produzierenden Gebäude: Abbau (Bergwerk, Holzfäller), Verarbeitung (Rezepte) und Zentrale.
@@ -217,7 +211,8 @@ export class MachineSystem {
       remove(this.crafters, id);
       const r = this.recipe[id];
       if (r >= 0) this.collectBuffers(id, r, result);
-      if (this.upgraded[id]) for (const a of CRAFTER_UPGRADE_COST) result.push({ ...a });
+      for (let l = 0; l < this.upgraded[id]; l++)
+        for (const a of CRAFTER_COSTS[l]) result.push({ ...a });
     } else if (kind === 'wind' || kind === 'water' || kind === 'solar') {
       remove(this.winds, id);
     } else if (kind === 'battery') {
@@ -237,7 +232,8 @@ export class MachineSystem {
       const n = this.outBuf[id * MAX_RECIPE_OUTPUTS];
       if (n > 0) result.push({ item: this.extractItem[id], amount: n });
       // Abriss erstattet auch die Aufwertung
-      if (this.upgraded[id]) for (const a of UPGRADE_COST) result.push({ ...a });
+      for (let l = 0; l < this.upgraded[id]; l++)
+        for (const a of EXTRACTOR_COSTS[l]) result.push({ ...a });
     }
     this.treeLists[id] = null;
     return result;
@@ -245,27 +241,40 @@ export class MachineSystem {
 
   /** Kann dieses Gebäude auf Stufe 2 aufgewertet werden (ohne Kosten zu prüfen)? */
   canUpgrade(id: number): boolean {
-    if (this.upgraded[id] !== 0) return false;
+    return this.upgraded[id] < this.maxUpgrade(id);
+  }
+
+  /** Höchste erreichbare Stufe − 1 nach Forschungsstand (0 = keine Aufwertung möglich). */
+  maxUpgrade(id: number): number {
     const kind = BUILDINGS[this.store.type[id]].behavior.kind;
-    if (kind === 'miner' || kind === 'lumberjack') return this.research.extractorUpgrade;
-    if (kind === 'crafter') return this.research.crafterUpgrade;
-    return false;
+    const second =
+      kind === 'miner' || kind === 'lumberjack'
+        ? this.research.extractorUpgrade
+        : kind === 'crafter' && this.research.crafterUpgrade;
+    if (!second) return 0;
+    return this.research.level3 ? MACHINE_LEVELS.speed.length - 1 : 1;
   }
 
-  /** Kosten der Aufwertung auf Stufe 2 (Abbau bzw. Verarbeitung). */
+  /** Hat dieses Gebäude überhaupt Stufen (Abbau oder Fertigung)? */
+  hasLevels(id: number): boolean {
+    const kind = BUILDINGS[this.store.type[id]].behavior.kind;
+    return kind === 'miner' || kind === 'lumberjack' || kind === 'crafter';
+  }
+
+  /** Kosten für den Schritt auf die nächste Stufe (leer, wenn es keine gibt). */
   upgradeCost(id: number): readonly ItemAmount[] {
-    return BUILDINGS[this.store.type[id]].behavior.kind === 'crafter'
-      ? CRAFTER_UPGRADE_COST
-      : UPGRADE_COST;
+    const costs =
+      BUILDINGS[this.store.type[id]].behavior.kind === 'crafter' ? CRAFTER_COSTS : EXTRACTOR_COSTS;
+    return costs[this.upgraded[id]] ?? [];
   }
 
-  /** Wertet ein Gebäude auf Stufe 2 auf (doppeltes Tempo, doppelter Strom). */
+  /** Wertet ein Gebäude um eine Stufe auf (Tempo und Strom nach `MACHINE_LEVELS`). */
   upgrade(id: number): boolean {
     if (!this.canUpgrade(id)) return false;
     const cost = this.upgradeCost(id);
     if (!this.inventory.canAfford(cost)) return false;
     this.inventory.pay(cost);
-    this.upgraded[id] = 1;
+    this.upgraded[id]++;
     return true;
   }
 
@@ -315,14 +324,12 @@ export class MachineSystem {
 
   /** Tempo-Faktor (Tausendstel) für Verarbeitung aus Stufe, Verbesserung und Uhrturm. */
   private craftBoost(id: number): number {
-    return this.upgraded[id]
-      ? CRAFTER_UPGRADE.speedFactor * this.research.crafterSpeed
-      : this.research.crafterSpeed;
+    return MACHINE_LEVELS.speed[this.upgraded[id]] * this.research.crafterSpeed;
   }
 
   /** Tempo-Faktor (Tausendstel) für Abbau aus Stufe und Verbesserung. */
   private extractBoost(id: number): number {
-    const tier = this.upgraded[id] ? EXTRACTOR_UPGRADE.speedFactor : 1;
+    const tier = MACHINE_LEVELS.speed[this.upgraded[id]];
     return tier * this.research.extractorSpeed;
   }
 

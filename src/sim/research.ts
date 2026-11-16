@@ -25,6 +25,8 @@ export class ResearchSystem {
   readonly recipeUnlocked = new Uint8Array(RECIPES.length);
   extractorUpgrade = false;
   crafterUpgrade = false;
+  /** Stufe 3 für Abbau und Fertigung erforscht. */
+  level3 = false;
   /** Tempo-Faktoren in Tausendsteln (1000 = 100 %). */
   crafterSpeed: number = SCALE;
   extractorSpeed: number = SCALE;
@@ -111,6 +113,7 @@ export class ResearchSystem {
     RECIPES.forEach((r, i) => (this.recipeUnlocked[i] = r.availableFromStart ? 1 : 0));
     this.extractorUpgrade = false;
     this.crafterUpgrade = false;
+    this.level3 = false;
     this.doneCount = 0;
     RESEARCH.forEach((r, i) => {
       if (!this.done[i]) return;
@@ -122,6 +125,7 @@ export class ResearchSystem {
       }
       if (r.extractorUpgrade) this.extractorUpgrade = true;
       if (r.crafterUpgrade) this.crafterUpgrade = true;
+      if (r.level3) this.level3 = true;
     });
     let crafterBonus = 0;
     let extractorBonus = 0;

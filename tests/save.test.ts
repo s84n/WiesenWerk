@@ -102,6 +102,27 @@ describe('Speichern und Laden', () => {
     expect(state(loaded)).toBe(state(original));
   });
 
+  it('Version 7 → 8: Abstände auf Bändern verdoppeln sich, die Lage der Items bleibt', () => {
+    const sim = new Simulation(generateWorld(4711, undefined, DEPOSITS));
+    const { startX: x, startY: y } = sim.world;
+    sim.enqueue({
+      type: 'buildLine',
+      building: BUILDING_ID.beltMk1,
+      path: [0, 1, 2, 3, 4].map((k) => ({ x: x + 5 + k, y, dir: 1 })),
+    });
+    sim.flushCommands();
+    const seg = sim.belts.tileSegment[sim.world.index(x + 5, y)];
+    sim.belts.fill(seg, ITEM_ID.stone);
+    for (let t = 0; t < 7; t++) sim.step();
+    const v8 = serialize(sim, META, CAM);
+    const v7 = JSON.parse(JSON.stringify(v8));
+    v7.version = 7;
+    v7.belts.segments = v7.belts.segments.map((s: number[]) =>
+      s.map((v, k) => (k >= 5 && (k - 5) % 2 === 0 ? v / 2 : v)),
+    );
+    expect(migrate(v7)).toEqual(migrate(v8));
+  });
+
   it('wandelt Spielstände der Versionen 1 bis 6 korrekt um', () => {
     // Eine Fabrik ohne Brenner mit vollem Tempo ergibt Werte, die sich verlustfrei zurückrechnen lassen.
     // Alte Spielstände stammen aus der Weltgenerierung Fassung 1.

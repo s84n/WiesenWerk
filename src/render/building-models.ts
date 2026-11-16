@@ -885,19 +885,19 @@ function ornamentalTree(): BufferGeometry {
   ]);
 }
 
-/** Kennzeichen für aufgewertete Gebäude (Stufe 2): kupfernes Zahnrad auf einem Mast. */
-export function upgradeBadge(): BufferGeometry {
+/** Kennzeichen für aufgewertete Gebäude: Zahnrad auf einem Mast (Stufe 2 Kupfer, Stufe 3 Gold). */
+export function upgradeBadge(color: number = PALETTE.copper): BufferGeometry {
   const parts = [
     colored(new CylinderGeometry(0.03, 0.03, 0.5, 5).translate(0.7, 0.25, 0.7), PALETTE.metalDark),
     colored(
       new CylinderGeometry(0.16, 0.16, 0.06, 10).rotateX(Math.PI / 2).translate(0.7, 0.6, 0.7),
-      PALETTE.copper,
+      color,
     ),
   ];
   for (let k = 0; k < 6; k++) {
     const tooth = new BoxGeometry(0.06, 0.08, 0.06).translate(0, 0.19, 0);
     tooth.rotateZ((k * Math.PI) / 3).translate(0.7, 0.6, 0.7);
-    parts.push(colored(tooth, PALETTE.copper));
+    parts.push(colored(tooth, color));
   }
   return merge(parts);
 }

@@ -86,8 +86,9 @@ function lightPool(): BufferGeometry {
 export class BuildingsView {
   readonly group = new Group();
   private readonly perType: DynamicChunkedInstances[];
-  /** Kennzeichen „Stufe 2“ auf aufgewerteten Gebäuden. */
+  /** Kennzeichen „Stufe 2“ (Kupfer) und „Stufe 3“ (Gold) auf aufgewerteten Gebäuden. */
   private readonly badges: DynamicChunkedInstances;
+  private readonly badges3: DynamicChunkedInstances;
   /** Dunkle Flecken unter Gebäuden, wenn echte Schatten aus sind (Stufe „Niedrig“). */
   private readonly blobs: DynamicChunkedInstances;
 
@@ -99,6 +100,7 @@ export class BuildingsView {
     this.perType = staticGeometries().map((g) => new DynamicChunkedInstances(g, material, chunks));
     for (const t of this.perType) this.group.add(t.group);
     this.badges = new DynamicChunkedInstances(upgradeBadge(), material, chunks, false);
+    this.badges3 = new DynamicChunkedInstances(upgradeBadge(PALETTE.gold), material, chunks, false);
     this.blobs = new DynamicChunkedInstances(
       new CircleGeometry(0.5, 14).rotateX(-Math.PI / 2).translate(0, 0.02, 0),
       new MeshBasicMaterial({
@@ -112,7 +114,7 @@ export class BuildingsView {
     );
     this.blobs.group.visible = false;
     this.lights = new DynamicChunkedInstances(lightPool(), this.lightMaterial, chunks, false);
-    this.group.add(this.badges.group, this.blobs.group, this.lights.group);
+    this.group.add(this.badges.group, this.badges3.group, this.blobs.group, this.lights.group);
   }
 
   /** Nachtleuchten (0..1) für die Lichtscheine der Laternen. */
@@ -166,13 +168,15 @@ export class BuildingsView {
     }
   }
 
-  /** Zeigt oder entfernt das Kennzeichen „Stufe 2“. */
+  /** Zeigt, wechselt oder entfernt das Kennzeichen der Stufe. */
   refreshBadge(sim: Simulation, id: number): void {
     this.badges.remove(id);
-    if (!sim.machines.upgraded[id]) return;
+    this.badges3.remove(id);
+    const level = sim.machines.upgraded[id];
+    if (!level) return;
     const b = sim.buildings;
     buildingMatrix(b.type[id], b.x[id], b.y[id], 0, m);
-    this.badges.add(id, this.world.chunkOf(b.x[id], b.y[id]), m);
+    (level >= 2 ? this.badges3 : this.badges).add(id, this.world.chunkOf(b.x[id], b.y[id]), m);
   }
 
   /** Pro Bild: Aufploppen weiterführen (wächst mit kleinem Überschwingen auf volle Größe). */
@@ -198,6 +202,7 @@ export class BuildingsView {
   removed(id: number, type: number): void {
     this.perType[type].remove(id);
     this.badges.remove(id);
+    this.badges3.remove(id);
     this.blobs.remove(id);
     this.lights.remove(id);
   }
@@ -205,6 +210,7 @@ export class BuildingsView {
   apply(visible: Uint16Array, count: number, force: boolean): void {
     for (const t of this.perType) t.apply(visible, count, force);
     this.badges.apply(visible, count, force);
+    this.badges3.apply(visible, count, force);
     this.blobs.apply(visible, count, force);
     this.lights.apply(visible, count, force);
   }
@@ -213,6 +219,7 @@ export class BuildingsView {
     // Geometrien gehören dem Cache und bleiben erhalten.
     for (const t of this.perType) t.dispose();
     this.badges.dispose();
+    this.badges3.dispose();
     this.blobs.dispose();
     this.lights.dispose();
     this.group.clear();

@@ -43,6 +43,11 @@ export class Segment {
   total = 0;
   /** Index (von vorne) des ersten Abstands, der noch schrumpfen kann. */
   active = 0;
+  /**
+   * Rest der Bewegung, wenn das vorderste Item in diesem Tick das Ende erreicht hat. Wird es
+   * abgegeben, fährt das nächste Item den Rest weiter (nur innerhalb eines Ticks, nicht gespeichert).
+   */
+  carry = 0;
   /** Ein Ring ohne Anfang und Ende. */
   readonly cyclic: boolean;
   /** Begrenzungsrechteck in Feldern (für die Darstellung). */
@@ -98,9 +103,16 @@ export class Segment {
     );
   }
 
-  /** Legt ein Item an den Anfang des Segments. Vorher `canInsert` prüfen. */
+  /**
+   * Legt ein Item an den Anfang des Segments. Vorher `canInsert` prüfen.
+   * Ist schon mehr als der Mindestabstand frei, rückt das Item um den Überschuss vor (höchstens
+   * eine Tick-Strecke) – als wäre es mitten im Tick aufs Band gekommen. So geht keine Bewegung
+   * verloren und das Band erreicht genau seinen Durchsatz (z. B. 90 Items/min bei Mk1).
+   */
   insert(item: number): void {
-    const gap = this.lengthUnits - this.total;
+    const free = this.lengthUnits - this.total;
+    const carry = this.count === 0 ? 0 : Math.min(free - SPACING, this.speed - 1);
+    const gap = carry > 0 ? free - carry : free;
     const idx = this.ring(this.count);
     this.gaps[idx] = gap;
     this.items[idx] = item;
@@ -484,6 +496,7 @@ export class BeltSystem {
         const min = k === 0 ? 0 : SPACING;
         const old = seg.gaps[idx];
         let g = old - seg.speed;
+        if (k === 0 && g < 0) seg.carry = -g;
         if (g <= min) {
           g = min;
           seg.active++;
@@ -496,6 +509,7 @@ export class BeltSystem {
 
       // Abgabe am Ende
       if (seg.gaps[seg.head] === 0) this.output(seg);
+      seg.carry = 0;
     }
   }
 
@@ -505,11 +519,25 @@ export class BeltSystem {
       if (this.deliver(seg.targetId, seg.items[seg.head], seg.targetPort)) {
         seg.pop();
         this.itemCount--;
+        this.applyCarry(seg);
       }
     } else if (seg.targetKind === TargetKind.Segment) {
       const next = this.segments[seg.targetId];
-      if (next && next.canInsert()) next.insert(seg.pop());
+      if (next && next.canInsert()) {
+        next.insert(seg.pop());
+        this.applyCarry(seg);
+      }
     }
+  }
+
+  /** Nach einer Abgabe: das neue vorderste Item fährt den Rest dieses Ticks weiter. */
+  private applyCarry(seg: Segment): void {
+    if (seg.carry <= 0 || seg.count === 0) return;
+    const idx = seg.head;
+    const d = Math.min(seg.carry, seg.gaps[idx]);
+    seg.gaps[idx] -= d;
+    seg.total -= d;
+    seg.carry = 0;
   }
 
   /** Ermittelt, wohin das Segment liefert: Gebäudeeingang, anderes Segment oder nichts. */

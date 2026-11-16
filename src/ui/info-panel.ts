@@ -1,4 +1,4 @@
-import { BELTS, EXTRACTOR_UPGRADE, MACHINES, POWER } from '../data/balance';
+import { BELTS, MACHINE_LEVELS, MACHINES, POWER } from '../data/balance';
 import { BUILDINGS } from '../data/buildings';
 import { RENDER_CONFIG, SIM_CONFIG } from '../data/config';
 import { ITEMS, ITEM_COUNT } from '../data/items';
@@ -419,33 +419,36 @@ export class InfoPanel {
   /** Stufe und Aufwertung (Bergwerk, Holzfäller, Maschinen mit Rezept). */
   private buildUpgrade(sim: Simulation, id: number): void {
     const section = el('div', 'info-section');
-    const upgraded = sim.machines.upgraded[id] === 1;
+    const level = sim.machines.upgraded[id]; // Stufe − 1
+    const top = MACHINE_LEVELS.speed.length - 1;
     const crafter = BUILDINGS[sim.buildings.type[id]].behavior.kind === 'crafter';
-    section.append(el('div', 'info-label', TEXTS.info.tier(upgraded ? 2 : 1)));
-    if (!upgraded) {
-      if (!sim.machines.canUpgrade(id)) {
-        section.append(
-          el(
-            'p',
-            'info-text soft',
-            crafter ? TEXTS.info.crafterUpgradeLocked : TEXTS.info.upgradeLocked,
-          ),
-        );
-      } else {
-        const cost = sim.machines.upgradeCost(id);
-        const button = el('button', 'recipe refill');
-        button.append(el('span', '', TEXTS.info.upgrade));
-        for (const c of cost) button.append(amountChip(c.item, c.amount));
-        button.title = TEXTS.info.upgradeHint;
-        button.addEventListener('click', () => {
-          sim.enqueue({ type: 'upgradeBuilding', building: id });
-          button.blur();
-        });
-        const hint = crafter ? TEXTS.info.crafterUpgradeHint : TEXTS.info.upgradeHint;
-        button.title = hint;
-        section.append(button, el('p', 'info-text soft', hint));
-        this.updaters.push((s) => (button.disabled = !s.inventory.canAfford(cost)));
-      }
+    section.append(el('div', 'info-label', TEXTS.info.tier(level + 1)));
+    if (level >= top) {
+      section.append(el('p', 'info-text soft', TEXTS.info.levelMax));
+    } else if (!sim.machines.canUpgrade(id)) {
+      const locked =
+        level >= 1
+          ? TEXTS.info.level3Locked
+          : crafter
+            ? TEXTS.info.crafterUpgradeLocked
+            : TEXTS.info.upgradeLocked;
+      section.append(el('p', 'info-text soft', locked));
+    } else {
+      const cost = sim.machines.upgradeCost(id);
+      const button = el('button', 'recipe refill');
+      button.append(el('span', '', TEXTS.info.upgrade(level + 2)));
+      for (const c of cost) button.append(amountChip(c.item, c.amount));
+      const hint = TEXTS.info.levelHint(
+        MACHINE_LEVELS.speed[level + 1],
+        MACHINE_LEVELS.power[level + 1],
+      );
+      button.title = hint;
+      button.addEventListener('click', () => {
+        sim.enqueue({ type: 'upgradeBuilding', building: id });
+        button.blur();
+      });
+      section.append(button, el('p', 'info-text soft', hint));
+      this.updaters.push((s) => (button.disabled = !s.inventory.canAfford(cost)));
     }
     this.body.append(section);
   }
@@ -628,7 +631,7 @@ export class InfoPanel {
     this.body.append(section);
     this.updaters.push((s) => {
       s.power.ensure();
-      const tier = s.machines.upgraded[id] ? EXTRACTOR_UPGRADE.powerFactor : 1;
+      const tier = MACHINE_LEVELS.power[s.machines.upgraded[id]];
       use.textContent = TEXTS.info.powerUse(
         Math.round(((power * tier * s.research.powerUse) / POWER.scale) * 10) / 10,
       );

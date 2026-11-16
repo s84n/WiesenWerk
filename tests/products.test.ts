@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CRAFTER_UPGRADE } from '../src/data/balance';
+import { BELTS, MACHINE_LEVELS } from '../src/data/balance';
+import { BUILDINGS } from '../src/data/buildings';
+import { SIM_CONFIG } from '../src/data/config';
 import { ITEMS, ITEM_ID, toAmounts } from '../src/data/items';
 import { LANDMARK_NEEDS } from '../src/data/landmark';
 import { RECIPES, RECIPE_OUTPUTS } from '../src/data/recipes';
@@ -35,7 +37,7 @@ describe('Endprodukte aus Eisen, Glas und Stahl', () => {
     for (const r of RECIPES) for (const i of toAmounts(r.inputs)) used.add(i.item);
     for (const r of RESEARCH) for (const c of toAmounts(r.cost)) used.add(c.item);
     for (const needs of LANDMARK_NEEDS) for (const n of needs) used.add(n.item);
-    for (const c of toAmounts(CRAFTER_UPGRADE.cost)) used.add(c.item);
+    for (const c of MACHINE_LEVELS.crafterCost.flatMap((x) => toAmounts(x))) used.add(c.item);
     for (const key of [
       'ironPlate',
       'lens',
@@ -87,15 +89,51 @@ describe('Endprodukte aus Eisen, Glas und Stahl', () => {
     sim.enqueue({ type: 'upgradeBuilding', building: id });
     sim.flushCommands();
     expect(sim.machines.upgraded[id]).toBe(1);
-    expect(sim.inventory.get(ITEM_ID.clockwork)).toBe(clockwork - CRAFTER_UPGRADE.cost.clockwork!);
+    expect(sim.inventory.get(ITEM_ID.clockwork)).toBe(
+      clockwork - MACHINE_LEVELS.crafterCost[0].clockwork!,
+    );
     const after = produce(sim, id, ITEM_ID.wood, 1200);
-    // ohne Aufwertung 60 Bretter pro Minute (abzüglich Anlauf), danach 120
-    expect(before).toBeGreaterThanOrEqual(56);
-    expect(after).toBe(120);
+    // ohne Aufwertung 30 Bretter pro Minute (abzüglich Anlauf), danach 60
+    expect(before).toBeGreaterThanOrEqual(28);
+    expect(after).toBe(60);
+
+    // Stufe 3: viermal so schnell wie Stufe 1, Abriss erstattet beide Schritte
+    const instruments = sim.inventory.get(ITEM_ID.instrument);
+    sim.enqueue({ type: 'upgradeBuilding', building: id });
+    sim.flushCommands();
+    expect(sim.machines.upgraded[id]).toBe(2);
+    expect(produce(sim, id, ITEM_ID.wood, 1200)).toBe(120);
+    sim.enqueue({ type: 'upgradeBuilding', building: id });
+    sim.flushCommands();
+    expect(sim.machines.upgraded[id]).toBe(2); // höher geht es nicht
 
     sim.enqueue({ type: 'demolish', x: 4, y: 4 });
     sim.flushCommands();
     expect(sim.inventory.get(ITEM_ID.clockwork)).toBe(clockwork);
+    expect(sim.inventory.get(ITEM_ID.instrument)).toBe(instruments);
+  });
+
+  it('Faustregel: drei Maschinen einer Stufe füllen ein Band derselben Stufe', () => {
+    const perMinute = (tps: number): number =>
+      Math.round(
+        (Math.round((tps * BELTS.unitsPerTile) / SIM_CONFIG.ticksPerSecond) *
+          SIM_CONFIG.ticksPerSecond *
+          60) /
+          BELTS.minSpacing,
+      );
+    const belts = BUILDINGS.filter((b) => b.behavior.kind === 'belt').map((b) =>
+      b.behavior.kind === 'belt' ? perMinute(b.behavior.tilesPerSecond) : 0,
+    );
+    expect(belts).toEqual([90, 180, 360]);
+    // Grundmaschinen: Bergwerk, Holzfäller, Kupferbarren, Draht, Bretter, Zahnrad je 30/min
+    const miner = BUILDINGS.find((b) => b.key === 'miner')!.behavior;
+    expect(miner.kind === 'miner' && miner.itemsPerMinute).toBe(30);
+    for (const key of ['copperIngot', 'copperWire', 'plank', 'gear']) {
+      const r = RECIPES.find((x) => x.key === key)!;
+      const out = Object.values(r.outputs)[0]!;
+      expect((out * 60) / r.seconds).toBe(30);
+    }
+    MACHINE_LEVELS.speed.forEach((f, level) => expect(3 * 30 * f).toBe(belts[level]));
   });
 
   it('die Aufwertung einer Maschine übersteht Speichern und Laden', () => {

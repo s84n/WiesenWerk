@@ -1,4 +1,4 @@
-import { CRAFTER_UPGRADE } from '../data/balance';
+import { MACHINE_LEVELS } from '../data/balance';
 import { BUILDINGS, BUILDING_ID } from '../data/buildings';
 import { ITEMS, toAmounts } from '../data/items';
 import { LANDMARK_NEEDS, LANDMARK_STAGES } from '../data/landmark';
@@ -174,7 +174,9 @@ export class ItemTooltip {
     const fuel = ITEMS[item].fuelValue > 0;
     // Uhrturm-Abschnitte, die es sich wünschen, und Aufwertung der Maschinen
     const stages = LANDMARK_STAGES.filter((_, k) => LANDMARK_NEEDS[k].some((a) => a.item === item));
-    const upgrade = toAmounts(CRAFTER_UPGRADE.cost).some((a) => a.item === item);
+    const upgrade = [...MACHINE_LEVELS.extractorCost, ...MACHINE_LEVELS.crafterCost].some((c) =>
+      toAmounts(c).some((a) => a.item === item),
+    );
     const extra: [number, string][] = [
       ...stages.map((s): [number, string] => [
         BUILDING_ID.clockTower,

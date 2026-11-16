@@ -161,6 +161,7 @@ export class ResearchWindow {
       const upgradeIcons: [boolean | undefined, string[], string][] = [
         [r.extractorUpgrade, ['miner', 'lumberjack'], TEXTS.research.extractorUpgrade],
         [r.crafterUpgrade, ['furnace', 'workshop', 'assembler'], TEXTS.research.crafterUpgrade],
+        [r.level3, ['miner', 'assembler'], TEXTS.research.level3],
       ];
       for (const [on, keys, title] of upgradeIcons) {
         if (!on) continue;
@@ -177,7 +178,7 @@ export class ResearchWindow {
         el(
           'div',
           'research-unlock-text',
-          unlockText(r.buildings, r.recipes, r.extractorUpgrade, r.crafterUpgrade),
+          unlockText(r.buildings, r.recipes, r.extractorUpgrade, r.crafterUpgrade, r.level3),
         ),
       );
       const external = r.requires.filter((k) => RESEARCH[RESEARCH_ID[k]].area !== r.area);
@@ -375,6 +376,7 @@ function unlockText(
   recipes: readonly string[] | undefined,
   extractor: boolean | undefined,
   crafter: boolean | undefined,
+  level3: boolean | undefined,
 ): string {
   const parts = [
     ...(buildings ?? []).map((k) => TEXTS.buildings[k].name),
@@ -384,6 +386,7 @@ function unlockText(
     }),
     ...(extractor ? [TEXTS.research.extractorUpgrade] : []),
     ...(crafter ? [TEXTS.research.crafterUpgrade] : []),
+    ...(level3 ? [TEXTS.research.level3] : []),
   ];
   return parts.join(', ');
 }

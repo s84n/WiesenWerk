@@ -22,6 +22,8 @@ export interface ResearchDef {
   extractorUpgrade?: boolean;
   /** Schaltet die Aufwertung von Schmelzofen, Werkstatt, Manufaktur und Gießerei auf Stufe 2 frei. */
   crafterUpgrade?: boolean;
+  /** Schaltet Stufe 3 für Abbau und Fertigung frei (wo Stufe 2 schon erforscht ist). */
+  level3?: boolean;
   /** Bereich (Reiter im Forschungsfenster). */
   area: ResearchArea;
   /** Platz innerhalb des Bereichs: Spalte und Zeile (höchstens 2 Zeilen, damit nichts scrollt). */
@@ -217,6 +219,14 @@ export const RESEARCH: readonly ResearchDef[] = [
     recipes: ['instrument'],
     area: 'industry',
     pos: [2, 0],
+  },
+  {
+    key: 'highPerformance',
+    requires: ['optics', 'steelmaking', 'deepMining'],
+    cost: { steelFrame: 40, clockwork: 40, instrument: 10 },
+    level3: true,
+    area: 'industry',
+    pos: [3, 0],
   },
 ];
 

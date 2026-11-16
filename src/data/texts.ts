@@ -252,6 +252,7 @@ export const TEXTS = {
     recipe: (name: string) => `Rezept ${name}`,
     extractorUpgrade: 'Bergwerk und Holzfäller Stufe 2',
     crafterUpgrade: 'Maschinen Stufe 2',
+    level3: 'Stufe 3 für Abbau und Maschinen',
     researched: (name: string) => `Erforscht: ${name}`,
     upgraded: (name: string, level: number) => `${name}: jetzt Stufe ${level}`,
     nodes: {
@@ -278,6 +279,7 @@ export const TEXTS = {
       batteries: 'Stromspeicher',
       precision: 'Feinmechanik',
       optics: 'Optik',
+      highPerformance: 'Hochleistung',
     } as Record<string, string>,
     upgrades: {
       machineSpeed: {
@@ -348,7 +350,7 @@ export const TEXTS = {
     usedFor: 'Wird gebraucht für',
     fuel: 'Brennstoff für Brenner',
     landmark: (stage: string) => `Uhrturm: ${stage}`,
-    crafterUpgrade: 'Maschinen auf Stufe 2',
+    crafterUpgrade: 'Aufwertung von Maschinen und Abbau',
     seconds: (s: number) => `${s.toLocaleString('de-DE')} s`,
     needsResearch: (names: string) => `Erst erforschen: ${names}`,
   },
@@ -543,8 +545,11 @@ export const TEXTS = {
     tunnelExitUnlinked:
       'Kein Tunnel-Eingang in Reichweite (bis zu 6 Felder davor, gleiche Richtung).',
     tier: (n: number) => `Stufe ${n}`,
-    upgrade: 'Auf Stufe 2 aufwerten',
-    upgradeHint: 'Doppeltes Tempo (Bergwerk: doppelter Stromverbrauch).',
+    upgrade: (n: number) => `Auf Stufe ${n} aufwerten`,
+    levelHint: (speed: number, power: number) =>
+      `Danach ${speed}-faches Tempo und ${power}-facher Strom (Holzfäller brauchen keinen). Drei Maschinen einer Stufe füllen ein Band derselben Stufe.`,
+    levelMax: 'Höchste Stufe erreicht.',
+    level3Locked: 'Mit der Forschung „Hochleistung“ geht es weiter auf Stufe 3.',
     blockedNoBelt:
       'Am Ausgang (oranger Pfeil) liegt kein Band. Zieh ein Band von dort zur Zentrale.',
     blockedWrongWay:
@@ -553,7 +558,6 @@ export const TEXTS = {
     upgradeLocked: 'Mit der Forschung „Tiefbau“ lässt sich das Gebäude auf Stufe 2 aufwerten.',
     crafterUpgradeLocked:
       'Mit der Forschung „Feinmechanik“ lässt sich die Maschine auf Stufe 2 aufwerten.',
-    crafterUpgradeHint: 'Doppeltes Tempo, doppelter Stromverbrauch.',
   },
 
   menu: {

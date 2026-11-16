@@ -115,7 +115,12 @@ describe('Forschung', () => {
   });
 
   it('Tiefbau: Bergwerk auf Stufe 2 baut doppelt so schnell ab und braucht doppelt Strom', () => {
-    const sim = unlockAll(makePoweredSim());
+    const sim = makePoweredSim();
+    // ganzer Baum außer „Hochleistung“ (Stufe 3)
+    sim.research.restore(
+      RESEARCH.filter((r) => !r.level3).map((r) => r.key),
+      {},
+    );
     for (let y = 4; y < 6; y++) for (let x = 4; x < 6; x++) setDeposit(sim, x, y);
     build(sim, B.miner, 4, 4);
     const id = sim.buildingAt(4, 4);

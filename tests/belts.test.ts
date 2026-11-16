@@ -1,3 +1,4 @@
+import { BELTS } from '../src/data/balance';
 import { describe, expect, it } from 'vitest';
 import { ITEM_ID } from '../src/data/items';
 import { B, belt, build, line, makePoweredSim as makeSim, run, setDeposit } from './helpers';
@@ -35,16 +36,16 @@ describe('Bandsegmente', () => {
     expect(sim.belts.entryDir(sim.world.index(5, 2))).toBe(1); // betritt die Ecke nach Osten fahrend
   });
 
-  it('transportiert höchstens 60 Items pro Minute (Band Mk1)', () => {
+  it('transportiert höchstens 90 Items pro Minute (Band Mk1)', () => {
     const sim = makeSim(64);
     belt(sim, line(2, 2, 2, 40)); // (2,2)–(2,41)
     build(sim, B.hq, 1, 42); // Eingang Norden bei (2,42)
     const id = sim.belts.tileSegment[sim.world.index(2, 2)];
     sim.belts.fill(id, ORE);
     const before = sim.inventory.get(ORE);
-    run(sim, 1200); // 60 Sekunden
+    run(sim, 800); // 40 Sekunden (das Band fasst nur 81 Items)
     const delivered = sim.inventory.get(ORE) - before;
-    expect(delivered).toBeGreaterThanOrEqual(58);
+    expect(delivered).toBeGreaterThanOrEqual(59);
     expect(delivered).toBeLessThanOrEqual(61);
   });
 
@@ -160,7 +161,7 @@ describe('Gebäude und Bänder', () => {
     expect(sim.belts.insertFromBuilding(middle, 1, ORE)).toBe(false); // dort ist schon ein Item
     const seg = sim.belts.segments[sim.belts.tileSegment[middle]]!;
     expect(seg.count).toBe(1);
-    expect(seg.positionOf(0)).toBe(2 * 120 + 60);
+    expect(seg.positionOf(0)).toBe(2 * BELTS.unitsPerTile + BELTS.unitsPerTile / 2);
     const start = sim.world.index(5, 2);
     expect(sim.belts.insertFromBuilding(start, 0, ORE)).toBe(false); // Band zeigt Richtung Gebäude
     expect(sim.belts.insertFromBuilding(start, 2, ORE)).toBe(true);
@@ -168,7 +169,7 @@ describe('Gebäude und Bänder', () => {
     // eingefädelte Items fahren normal weiter und halten Abstand
     run(sim, 400);
     expect(seg.count).toBe(2);
-    expect(seg.gaps[seg.ring(1)]).toBeGreaterThanOrEqual(60);
+    expect(seg.gaps[seg.ring(1)]).toBeGreaterThanOrEqual(BELTS.minSpacing);
   });
 
   it('Bergwerk liefert auch auf ein Band, das an seinem Ausgang vorbeiläuft', () => {

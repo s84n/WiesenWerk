@@ -48,7 +48,7 @@ export const RECIPES: readonly RecipeDef[] = [
     machine: 'workshop',
     inputs: { wood: 1 },
     outputs: { plank: 2 },
-    seconds: 2,
+    seconds: 4,
     availableFromStart: true,
   },
   {
@@ -56,7 +56,7 @@ export const RECIPES: readonly RecipeDef[] = [
     machine: 'workshop',
     inputs: { copperIngot: 1 },
     outputs: { copperWire: 2 },
-    seconds: 2,
+    seconds: 4,
     availableFromStart: true,
   },
   {

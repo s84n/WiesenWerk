@@ -18,20 +18,20 @@ function itemsAt(sim: ReturnType<typeof makeSim>, x: number, y: number): number[
 }
 
 describe('Bandstufen', () => {
-  it('Mk2 und Mk3 transportieren 120 und 240 Items pro Minute', () => {
+  it('Mk2 und Mk3 transportieren 180 und 360 Items pro Minute', () => {
     for (const [type, expected] of [
-      [B.beltMk2, 120],
-      [B.beltMk3, 240],
+      [B.beltMk2, 180],
+      [B.beltMk3, 360],
     ] as const) {
       const sim = makeSim(64);
       beltOf(sim, type, line(2, 2, 2, 40));
       build(sim, B.hq, 1, 42);
       sim.belts.fill(sim.belts.tileSegment[sim.world.index(2, 2)], ORE);
       const before = sim.inventory.get(ORE);
-      run(sim, 300); // 15 Sekunden (das Band fasst nur 80 Items)
+      run(sim, 200); // 10 Sekunden (das Band fasst nur 81 Items)
       const delivered = sim.inventory.get(ORE) - before;
-      expect(delivered).toBeGreaterThanOrEqual(expected / 4 - 1);
-      expect(delivered).toBeLessThanOrEqual(expected / 4 + 1);
+      expect(delivered).toBeGreaterThanOrEqual(expected / 6 - 1);
+      expect(delivered).toBeLessThanOrEqual(expected / 6 + 1);
     }
   });
 
@@ -61,7 +61,7 @@ describe('Bandstufen', () => {
     expect(sim.typeCount[B.beltMk1]).toBe(0);
     expect(sim.inventory.get(ITEM_ID.wood)).toBe(wood + 5);
     expect(sim.inventory.get(ITEM_ID.copperSheet)).toBe(sheet - 5);
-    expect(sim.belts.segments[sim.belts.tileSegment[sim.world.index(2, 2)]]!.speed).toBe(6);
+    expect(sim.belts.segments[sim.belts.tileSegment[sim.world.index(2, 2)]]!.speed).toBe(18);
   });
 
   it('erlaubt gesperrte Gebäude erst nach der Forschung', () => {
@@ -288,5 +288,35 @@ describe('Tunnelband', () => {
     expect(sim.logistics.pairOf(sim.buildingAt(5, 4))).toBe(-1);
     build(sim, B.tunnelOut, 5, 11, 2); // 6 dazwischen: passt
     expect(sim.logistics.pairOf(sim.buildingAt(5, 4))).toBe(sim.buildingAt(5, 11));
+  });
+});
+
+describe('Zusammenführen lohnt sich', () => {
+  it('drei Bänder mit je 30 Items/min füllen über den Zusammenführer genau ein Mk1-Band', () => {
+    const sim = unlockAll(makeSim(64));
+    build(sim, B.merger, 20, 20);
+    belt(sim, line(4, 20, 1, 16)); // von Westen
+    belt(sim, line(20, 4, 2, 16)); // von Norden
+    belt(sim, line(36, 20, 3, 16)); // von Osten
+    belt(sim, line(20, 21, 2, 8)); // Ausgang nach Süden zur Zentrale
+    build(sim, B.hq, 19, 29);
+    const kinds = [ITEM_ID.copperOre, ITEM_ID.stone, ITEM_ID.wood];
+    const starts: [number, number][] = [
+      [4, 20],
+      [20, 4],
+      [36, 20],
+    ];
+    starts.forEach(([x, y], k) =>
+      sim.belts.fill(sim.belts.tileSegment[sim.world.index(x, y)], kinds[k]),
+    );
+    run(sim, 300); // Anlauf, bis die ersten Items an der Zentrale sind
+    const before = kinds.map((i) => sim.inventory.get(i));
+    run(sim, 600); // 30 Sekunden (die Zubringer fassen je 33 Items)
+    const got = kinds.map((i, k) => sim.inventory.get(i) - before[k]);
+    const total = got.reduce((a, b) => a + b, 0);
+    // Das Band ist voll ausgelastet (90/min), jedes Zubringerband liefert ein Drittel (30/min)
+    expect(total).toBeGreaterThanOrEqual(44);
+    expect(total).toBeLessThanOrEqual(46);
+    for (const n of got) expect(Math.abs(n - 15)).toBeLessThanOrEqual(1);
   });
 });

@@ -18,7 +18,7 @@ import { generateWorld } from './worldgen';
 
 export const SAVE_FORMAT = 'wiesenwerk';
 /** Bei jeder Änderung am Format erhöhen und eine Migration in `MIGRATIONS` ergänzen. */
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 /**
  * Werte pro Maschine in `machines.data`:
@@ -209,7 +209,21 @@ const MIGRATIONS: Record<number, (data: Record<string, unknown>) => Record<strin
   4: migrate4to5,
   5: migrate5to6,
   6: migrate6to7,
+  7: migrate7to8,
 };
+
+/**
+ * Version 7 → 8: Bänder rechnen in 240 statt 120 Einheiten je Feld (damit Mk1 0,75 Felder/s
+ * fahren kann). Die Abstände der Items auf den Bändern verdoppeln sich, ihre Lage bleibt gleich.
+ */
+function migrate7to8(d: Record<string, unknown>): Record<string, unknown> {
+  const belts = d.belts as { segments?: unknown } | undefined;
+  if (!belts || !Array.isArray(belts.segments)) throw new SaveError('damaged', 'Migration 7');
+  const segments = (belts.segments as number[][]).map((s) =>
+    s.map((v, k) => (k >= 5 && (k - 5) % 2 === 0 ? v * 2 : v)),
+  );
+  return { ...d, belts: { ...belts, segments } };
+}
 
 /** Version 6 → 7: neu ist der Uhrturm; ältere Spielstände fangen bei ihm von vorn an. */
 function migrate6to7(d: Record<string, unknown>): Record<string, unknown> {
