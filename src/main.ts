@@ -20,6 +20,7 @@ import { Simulation } from './sim/simulation';
 import { generateWorld } from './sim/worldgen';
 import { BottleneckPanel } from './ui/bottleneck-panel';
 import { BuildBar } from './ui/build-bar';
+import { PhotoBar } from './ui/photo-bar';
 import { setItemIcons } from './ui/dom';
 import { setErrorExport, showErrorScreen } from './ui/error-screen';
 import { GoalsPanel } from './ui/goals-panel';
@@ -118,6 +119,7 @@ function start(): void {
       inventory: () => toggleWindow(inventory),
       minimap: () => minimap.toggle(),
       bottlenecks: () => toggleBottlenecks(),
+      photo: () => setPhoto(true),
       sound: {
         toggle: () => settings.set('muted', !settings.value.muted),
         muted: () => settings.value.muted,
@@ -267,10 +269,45 @@ function start(): void {
   });
   let powerView = false;
 
+  // Fotomodus (Taste P): nur die Welt und eine kleine Leiste mit Uhrzeit und „Foto speichern“
+  let photo = false;
+  const photoBar = new PhotoBar(
+    ui,
+    () => setPhoto(false),
+    () => sound.shutter(),
+  );
+  const setPhoto = (on: boolean): void => {
+    if (on === photo) return;
+    photo = on;
+    ui.classList.toggle('photo', on);
+    tools.cancel();
+    tools.suspended = on;
+    view.photoMode = on;
+    view.rig.setPhoto(on);
+    if (on) {
+      for (const w of windows) w.window.close();
+      photoBar.open(view.atmosphere.dayTime);
+    } else {
+      photoBar.hide();
+      view.photoTime = null;
+    }
+  };
+
   // Esc: Menü schließen bzw. öffnen, wenn nichts anderes abzubrechen ist (läuft vor den Werkzeugen)
   window.addEventListener(
     'keydown',
     (e) => {
+      if (photo && !e.repeat && (e.code === 'Escape' || e.code === 'KeyP' || e.code === 'KeyH')) {
+        if (e.code === 'KeyH') photoBar.toggleBar();
+        else setPhoto(false);
+        e.stopImmediatePropagation();
+        return;
+      }
+      if (photo && (e.code === 'KeyT' || e.code === 'KeyI' || e.ctrlKey || e.metaKey)) {
+        // Im Fotomodus keine Fenster, kein Rückgängig, kein Speichern per Taste
+        e.stopImmediatePropagation();
+        return;
+      }
       if (e.code === 'Escape') {
         if (menu.isOpen) {
           if (inGame) menu.close();
@@ -298,6 +335,7 @@ function start(): void {
       } else if (!e.repeat && !(e.target instanceof HTMLInputElement)) {
         if (e.code === 'KeyT') toggleWindow(research);
         else if (e.code === 'KeyI') toggleWindow(stats);
+        else if (e.code === 'KeyP' && inGame) setPhoto(true);
       }
     },
     { capture: true },
@@ -396,7 +434,9 @@ function start(): void {
       view.setBeltDirections(
         tools.mode === 'build' && BUILDINGS[tools.buildType].behavior.kind === 'belt',
       );
+      view.photoTime = photo ? photoBar.time : null;
       view.render(loop.paused ? 0 : loop.alpha, now);
+      if (photo) photoBar.capture(canvas);
       debug.frame(now, tickMs, ticks, view, sim, loop.paused);
       if (inGame && !menu.isOpen) sound.update(now, view.animations.workingInView, loop.paused);
       // Uhrturm: Glockenschläge zur vollen Stunde (echte Uhrzeit)

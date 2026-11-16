@@ -408,7 +408,11 @@ export class ToolController {
     this.inside = true;
   };
 
+  /** Fotomodus: keine Werkzeuge (Klicks und Tasten bauen oder wählen nichts). */
+  suspended = false;
+
   private readonly onPointerDown = (e: PointerEvent): void => {
+    if (this.suspended) return;
     this.onPointerMove(e);
     if (e.button === 2) {
       this.cancel();
@@ -487,6 +491,7 @@ export class ToolController {
   };
 
   private readonly onKeyDown = (e: KeyboardEvent): void => {
+    if (this.suspended) return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     if (e.repeat) return;
     if (e.code === 'KeyR' && this.mode === 'build') {

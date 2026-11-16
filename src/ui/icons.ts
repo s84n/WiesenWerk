@@ -14,6 +14,7 @@ const PATHS = {
   soundOff: '<path d="M4 9h4l5-4v14l-5-4H4z M17 9l5 6 M22 9l-5 6"/>',
   menu: '<path d="M5 7h14 M5 12h14 M5 17h14"/>',
   close: '<path d="M6 6l12 12 M18 6L6 18"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
   gauge: '<path d="M4 17a8 8 0 1 1 16 0 M12 17l4-5 M4 17h16"/>',
 } as const;
 

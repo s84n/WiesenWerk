@@ -93,6 +93,10 @@ export class GameRenderer {
   showPower = false;
   /** Engpass-Ansicht (Taste B). */
   showBottlenecks = false;
+  /** Fotomodus: Hilfsanzeigen (Symbole, Anschlusspfeile, Vorschau) aus. */
+  photoMode = false;
+  /** Fotomodus: gewählte Tageszeit (0..1) oder null = Spielzeit. */
+  photoTime: number | null = null;
   private itemIconUrls: string[] | null = null;
   private visibility: ChunkVisibility | null = null;
   private appliedVersion = -1;
@@ -394,6 +398,7 @@ export class GameRenderer {
       rig.x,
       rig.z,
       rig.viewHeight,
+      this.photoTime,
     );
 
     // Sonne und Schattenbereich folgen dem Bildausschnitt
@@ -451,8 +456,12 @@ export class GameRenderer {
           rig.viewHeight <= RENDER_CONFIG.lodViewHeight,
         );
         this.status.update(this.sim, now);
-        this.powerView.update(this.sim, now, this.showPower);
-        this.bottleneckView.update(this.sim, now, this.showBottlenecks);
+        this.powerView.update(this.sim, now, this.showPower && !this.photoMode);
+        this.bottleneckView.update(this.sim, now, this.showBottlenecks && !this.photoMode);
+        // Fotomodus: nur die Welt, keine Hilfsanzeigen
+        this.status.mesh.visible = !this.photoMode;
+        this.preview.group.visible = !this.photoMode;
+        if (this.ports) this.ports.group.visible = !this.photoMode;
       }
       this.nature.setDetailVisible(
         this.preset.details && rig.viewHeight < RENDER_CONFIG.detailMaxViewHeight,

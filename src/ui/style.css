@@ -2072,6 +2072,93 @@ body {
   box-shadow: var(--drop-small);
 }
 
+/* ---------- Fotomodus ---------- */
+#ui.photo > *:not(.photo-bar):not(.vignette) {
+  display: none !important;
+}
+
+.photo-bar {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 14px 8px;
+  font-size: 0.85rem;
+}
+
+.photo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.photo-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 900;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.photo-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.photo-slider {
+  width: 200px;
+  accent-color: var(--sun);
+  cursor: pointer;
+}
+
+.photo-time-label {
+  min-width: 82px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.photo-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-weight: 800;
+  padding: 6px 12px;
+  color: var(--ink);
+  white-space: nowrap;
+  background: var(--paper-dim);
+  border: var(--line) solid var(--ink);
+  border-radius: 9px;
+  box-shadow: 0 2px 0 var(--ink);
+  cursor: pointer;
+}
+
+.photo-button.primary {
+  background: var(--sun);
+}
+
+.photo-button.active,
+.photo-button:active {
+  transform: translateY(2px);
+  box-shadow: none;
+  background: var(--meadow);
+}
+
+.photo-button.primary:active {
+  background: var(--sun);
+}
+
+.photo-hint {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
 /* ---------- Engpass-Ansicht ---------- */
 .bottleneck-panel {
   width: 290px;

@@ -37,6 +37,9 @@ export const CAMERA_CONFIG = {
   viewHeightStart: 30,
   viewHeightMin: 8,
   viewHeightMax: 110,
+  /** Fotomodus: näher heranzoomen und in feinen Schritten drehen. */
+  photoViewHeightMin: 3.5,
+  photoRotateDeg: 15,
   /** Neigung der Kamera (klassischer Iso-Winkel ≈ 35,26°). */
   elevationDeg: 35.264,
   /** Abstand der Kamera zum Blickpunkt (nur für Tiefe und Nebel relevant). */

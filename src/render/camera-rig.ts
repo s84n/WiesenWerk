@@ -36,6 +36,21 @@ export class CameraRig {
   private hasAnchor = false;
   private readonly dragAnchor = new Vector3();
   private dragging = false;
+  /** Fotomodus: näher zoomen, fein drehen. */
+  private photo = false;
+
+  /** Fotomodus an/aus. Beim Verlassen rastet die Drehung wieder auf 90°-Schritte ein. */
+  setPhoto(on: boolean): void {
+    this.photo = on;
+    if (on) return;
+    const step = Math.PI / 2;
+    this.tAngle = Math.round((this.tAngle - Math.PI / 4) / step) * step + Math.PI / 4;
+    this.tViewHeight = clamp(this.tViewHeight, C.viewHeightMin, C.viewHeightMax);
+  }
+
+  private get minHeight(): number {
+    return this.photo ? C.photoViewHeightMin : C.viewHeightMin;
+  }
 
   setBounds(size: number): void {
     this.bounds = size;
@@ -97,12 +112,13 @@ export class CameraRig {
   }
 
   rotate(direction: 1 | -1): void {
-    this.tAngle += (direction * Math.PI) / 2;
+    const step = this.photo ? (C.photoRotateDeg * Math.PI) / 180 : Math.PI / 2;
+    this.tAngle += direction * step;
   }
 
   /** Zoomt so, dass der Punkt unter der Maus (NDC-Koordinaten) an seiner Stelle bleibt. */
   zoomAt(factor: number, ndcX: number, ndcY: number): void {
-    this.tViewHeight = clamp(this.tViewHeight * factor, C.viewHeightMin, C.viewHeightMax);
+    this.tViewHeight = clamp(this.tViewHeight * factor, this.minHeight, C.viewHeightMax);
     this.anchorX = ndcX;
     this.anchorY = ndcY;
     this.hasAnchor = true;

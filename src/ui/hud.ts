@@ -43,6 +43,7 @@ export class Hud {
       inventory: () => void;
       minimap: () => void;
       bottlenecks: () => void;
+      photo: () => void;
       sound: { toggle: () => void; muted: () => boolean };
     },
   ) {
@@ -100,6 +101,7 @@ export class Hud {
       ['chart', TEXTS.stats.tooltip, windows.stats],
       ['gauge', TEXTS.bottlenecks.tooltip, windows.bottlenecks],
       ['map', TEXTS.minimap.tooltip, windows.minimap],
+      ['camera', TEXTS.photo.tooltip, windows.photo],
     ] as [IconName, string, () => void][]) {
       const b = el('button', 'hud-button hud-menu');
       b.append(icon(symbol));

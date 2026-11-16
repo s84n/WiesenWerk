@@ -363,9 +363,11 @@ ${NOISE}
     cx: number,
     cz: number,
     view: number,
+    /** Fotomodus: fest gewählte Tageszeit (0..1) statt der Spielzeit. */
+    timeOverride: number | null = null,
   ): void {
     // dieselbe Rechnung wie für die Solarfelder in der Simulation
-    const t = dayTimeAt(simTicks, dayNight);
+    const t = timeOverride ?? dayTimeAt(simTicks, dayNight);
     this.dayTime = t;
 
     // Stützpunkte suchen und mischen

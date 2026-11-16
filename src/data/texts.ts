@@ -677,12 +677,31 @@ export const TEXTS = {
     ['1 – 9', 'Schnellwahl Gebäude'],
     ['V', 'Strom-Ansicht'],
     ['B', 'Engpass-Ansicht: wo die Fabrik stockt'],
+    ['P', 'Fotomodus (H blendet die Leiste aus)'],
     ['T', 'Forschung'],
     ['I', 'Statistik'],
     ['Leertaste', 'Pause'],
     ['Strg + S', 'Speichern'],
     ['F3', 'Debug-Anzeige'],
   ] as const,
+
+  photo: {
+    title: 'Fotomodus',
+    tooltip: 'Fotomodus (P): Oberfläche aus, Tageszeit wählen, Bild speichern',
+    time: 'Uhrzeit',
+    clock: (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+    live: 'Spielzeit',
+    liveLabel: 'wie im Spiel',
+    liveTooltip: 'Tageszeit wieder wie im Spiel weiterlaufen lassen',
+    save: 'Foto speichern',
+    saveTooltip: 'Speichert das Bild (ohne Leiste) als PNG-Datei',
+    done: 'Fertig (Esc)',
+    hint: 'Mausrad: näher heran · Q / E: fein drehen · WASD: bewegen · Leertaste: Pause · H: Leiste aus/ein',
+    fileName: (d: Date) => {
+      const p = (n: number): string => String(n).padStart(2, '0');
+      return `wiesenwerk-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.png`;
+    },
+  },
 
   bottlenecks: {
     title: 'Engpässe',

@@ -287,6 +287,14 @@ export class SoundSystem {
     });
   }
 
+  /** Kameraverschluss (Fotomodus). */
+  shutter(): void {
+    if (!this.ready()) return;
+    const t = this.ctx!.currentTime;
+    this.noiseBurst(t, 'highpass', 3000, 0.35, 0.03);
+    this.noiseBurst(t + 0.07, 'bandpass', 1800, 0.25, 0.05, 2);
+  }
+
   /** Turmglocke: `strokes` Schläge im Abstand von gut 2 Sekunden (zur vollen Stunde). */
   towerBell(strokes: number): void {
     if (!this.ready()) return;
