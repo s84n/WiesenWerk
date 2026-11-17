@@ -200,8 +200,8 @@ body {
 
 /* ---------- Titel, Hinweis, Debug ---------- */
 .title-badge {
-  padding: 5px 16px 6px;
-  background: var(--sun);
+  padding: 8px 14px 5px;
+  background: var(--paper);
   border-radius: 12px;
   transform: rotate(-2.5deg);
   transform-origin: left center;
@@ -209,9 +209,13 @@ body {
 
 .title-badge h1 {
   margin: 0;
-  font-size: 1.45rem;
-  font-weight: 900;
-  letter-spacing: -0.01em;
+  line-height: 0;
+}
+
+.title-badge h1 img {
+  width: 180px;
+  height: auto;
+  user-select: none;
 }
 
 .title-badge .version {
@@ -1249,19 +1253,17 @@ body {
   margin-bottom: 18px;
 }
 
-/* Spieltitel als schräger Aufkleber */
+/* Spiellogo (public/logo.svg, Schatten ist im Bild enthalten) */
 .menu-title {
-  display: inline-block;
-  margin: 0 0 6px;
-  padding: 4px 20px 6px;
-  font-size: 2.2rem;
-  font-weight: 900;
-  letter-spacing: -0.01em;
-  background: var(--sun);
-  border: var(--line) solid var(--ink);
-  border-radius: 14px;
-  box-shadow: var(--drop);
-  transform: rotate(-2deg);
+  margin: 0 0 8px;
+  line-height: 0;
+}
+
+.menu-title img {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  user-select: none;
 }
 
 .menu-head .version {

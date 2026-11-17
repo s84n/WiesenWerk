@@ -497,7 +497,11 @@ function buildStaticUi(ui: HTMLElement): HTMLElement {
   const badge = document.createElement('div');
   badge.className = 'panel title-badge';
   const h1 = document.createElement('h1');
-  h1.textContent = TEXTS.gameTitle;
+  const logo = document.createElement('img');
+  logo.src = './logo.svg';
+  logo.alt = TEXTS.gameTitle;
+  logo.draggable = false;
+  h1.appendChild(logo);
   const version = document.createElement('div');
   version.className = 'version';
   version.textContent = TEXTS.version(__APP_VERSION__, __BUILD_DATE__);

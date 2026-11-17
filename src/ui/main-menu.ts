@@ -56,7 +56,13 @@ export class MainMenu {
     this.overlay = el('div', 'menu-overlay');
     const card = el('div', 'panel menu-card');
     const head = el('div', 'menu-head');
-    head.append(el('h1', 'menu-title', TEXTS.gameTitle), el('div', 'version', versionText));
+    const title = el('h1', 'menu-title');
+    const logo = el('img');
+    logo.src = './logo.svg';
+    logo.alt = TEXTS.gameTitle;
+    logo.draggable = false;
+    title.appendChild(logo);
+    head.append(title, el('div', 'version', versionText));
     this.message = el('div', 'menu-message');
     this.body = el('div', 'menu-body');
     const foot = el('p', 'menu-foot', TEXTS.menu.storageHint);
