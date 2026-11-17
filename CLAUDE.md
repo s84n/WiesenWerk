@@ -177,7 +177,7 @@ Vor jedem Commit: `npm run typecheck && npm run lint && npm test`.
 
 - **Ausbaurunde Spielspaß** (mit dem Auftraggeber abgestimmt, in dieser Reihenfolge): 1. Uhrturm (umgesetzt), 2. neue Endprodukte für Stahl/Glas/Zahnrad (umgesetzt, Uhrturm-Bedarf angepasst), 3. Aufgabenkette durchs ganze Spiel (umgesetzt), 4. Engpass-Anzeige (umgesetzt), 5. Fotomodus (umgesetzt). Alles „ganz entspannt“: Ziele sind Angebote, keine Zeitvorgaben.
 
-- **GitHub Pages:** erst, wenn das Projekt einen noch besseren Stand hat (Auftraggeber). Workflow und Anleitung (README) sind fertig.
+- **GitHub Pages:** vorbereitet (2026-11-17): öffentliches Repository `s84n/wiesenwerk`, Adresse `https://s84n.github.io/wiesenwerk/`. Git-Autor ist immer `s84n <189661563+s84n@users.noreply.github.com>` (lokal im Repo eingestellt, Verlauf umgeschrieben), nie der Klarname. Keine Lizenzdatei (alle Rechte vorbehalten). Hochladen erst nach Go des Auftraggebers.
 - **Musik:** liefert der Auftraggeber noch (`public/audio/musik`, Liste in `src/data/music.ts`).
 - **Rückmeldung zu den hohen Stufen** (Solarfeld, Akku-Haus, Stahl, Glas), sobald der Auftraggeber sie im Spiel erreicht.
 
