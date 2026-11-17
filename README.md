@@ -20,15 +20,15 @@ Weitere Befehle: `npm test` (Tests), `npm run lint` (Codeprüfung), `npm run bui
 ## Veröffentlichung auf GitHub Pages
 
 Jeder Push auf den Zweig `main` baut das Spiel automatisch, prüft es und veröffentlicht es unter
-`https://s84n.github.io/wiesenwerk/`.
+`https://s84n.github.io/WiesenWerk/`.
 
 Einmalige Einrichtung:
 
-1. Auf github.com ein neues, leeres, **öffentliches** Repository mit dem Namen `wiesenwerk` anlegen
+1. Auf github.com ein neues, leeres, **öffentliches** Repository mit dem Namen `WiesenWerk` anlegen
    (ohne README, ohne .gitignore, ohne Lizenz).
 2. Im Projektordner:
    ```bash
-   git remote add origin git@github.com:s84n/wiesenwerk.git
+   git remote add origin git@github.com:s84n/WiesenWerk.git
    git push -u origin main
    ```
 3. Im Repository auf GitHub: **Settings → Pages → Build and deployment → Source:
