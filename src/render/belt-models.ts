@@ -4,15 +4,22 @@ import { chevron, colored, merge } from './geometry';
 
 /**
  * Bandmodelle für ein Feld. Ursprung = Feldmitte, Ausgang immer nach Norden (−z).
- * Die Lauffläche liegt auf Höhe `BELT_SURFACE`.
+ * Das Band steht auf einem Holzbock etwa einen Meter über dem Boden (Arbeiter sind ~0,46 hoch);
+ * die Lauffläche liegt auf Höhe `BELT_SURFACE`.
  */
-export const BELT_SURFACE = 0.12;
-const W = 0.84; // Breite der Lauffläche
+/** Höhe des Bandkörpers über dem Boden (Unterkante der Lauffläche). */
+export const BELT_LIFT = 0.16;
+export const BELT_SURFACE = BELT_LIFT + 0.12;
+const W = 0.6; // Breite der Lauffläche (schlank, damit Bänder wenig verdecken)
 const H = W / 2;
-/** Holzrahmen: schmale Leisten am Rand (außen bündig mit ±0,47 wie früher, nur halb so breit). */
+/** Holzrahmen: schmale Leisten an beiden Seiten der Lauffläche. */
 const RAIL = 0.05;
 const RAIL_H = 0.15;
-const RAIL_X = 0.47 - RAIL / 2;
+const RAIL_X = H + RAIL / 2;
+const RAIL_Y = BELT_LIFT;
+/** Bock: zwei Beine unter den Leisten und eine Querstrebe. */
+const LEG = 0.05;
+const LEG_X = RAIL_X;
 
 function box(
   w: number,
@@ -33,9 +40,18 @@ const TIER_COLORS: readonly { frame: number; arrow: number }[] = [
   { frame: PALETTE.beltFrameMk3, arrow: PALETTE.beltArrowMk3 },
 ];
 
+/** Holzbock unter der Feldmitte (Beine und Querstrebe in Rahmenfarbe). */
+function trestle(color: number, z = 0): BufferGeometry[] {
+  return [
+    box(LEG, BELT_LIFT + 0.02, LEG, -LEG_X, 0, z, color),
+    box(LEG, BELT_LIFT + 0.02, LEG, LEG_X, 0, z, color),
+    box(2 * LEG_X, 0.035, 0.035, 0, BELT_LIFT * 0.4, z, color),
+  ];
+}
+
 function arrow(z: number, color: number): BufferGeometry {
   // dezenter, flacher Winkel auf der Lauffläche (kaum heller als das Band), zeigt nach −z
-  return chevron(0.26, 0.11, 0.035, 0.004, BELT_SURFACE, color).translate(0, 0, z);
+  return chevron(0.22, 0.1, 0.03, 0.004, BELT_SURFACE, color).translate(0, 0, z);
 }
 
 /**
@@ -44,12 +60,12 @@ function arrow(z: number, color: number): BufferGeometry {
  */
 export function beltDirectionMark(): BufferGeometry {
   return merge([
-    chevron(0.46, 0.2, 0.09, 0.02, BELT_SURFACE + 0.005, PALETTE.beltBuildArrow).translate(
+    chevron(0.4, 0.18, 0.08, 0.02, BELT_SURFACE + 0.005, PALETTE.beltBuildArrow).translate(
       0,
       0,
       0.16,
     ),
-    chevron(0.46, 0.2, 0.09, 0.02, BELT_SURFACE + 0.005, PALETTE.beltBuildArrow).translate(
+    chevron(0.4, 0.18, 0.08, 0.02, BELT_SURFACE + 0.005, PALETTE.beltBuildArrow).translate(
       0,
       0,
       -0.12,
@@ -60,9 +76,10 @@ export function beltDirectionMark(): BufferGeometry {
 export function beltStraight(tier = 1): BufferGeometry {
   const c = TIER_COLORS[tier - 1];
   return merge([
-    box(W, 0.1, 1, 0, 0.02, 0, PALETTE.beltSurface),
-    box(RAIL, RAIL_H, 1, -RAIL_X, 0, 0, c.frame),
-    box(RAIL, RAIL_H, 1, RAIL_X, 0, 0, c.frame),
+    box(W, 0.1, 1, 0, BELT_LIFT + 0.02, 0, PALETTE.beltSurface),
+    box(RAIL, RAIL_H, 1, -RAIL_X, RAIL_Y, 0, c.frame),
+    box(RAIL, RAIL_H, 1, RAIL_X, RAIL_Y, 0, c.frame),
+    ...trestle(c.frame),
     arrow(0, c.arrow),
   ]);
 }
@@ -73,14 +90,33 @@ export function beltCurve(left: boolean, tier = 1): BufferGeometry {
   const s = left ? 1 : -1; // Spiegelung über die Lage der Teile, nicht über die Geometrie
   return merge([
     // Querband vom Eingangsrand bis über die Mitte
-    box(0.5 + H, 0.1, W, s * (-0.5 + (0.5 + H) / 2), 0.02, 0, PALETTE.beltSurface),
+    box(0.5 + H, 0.1, W, s * (-0.5 + (0.5 + H) / 2), BELT_LIFT + 0.02, 0, PALETTE.beltSurface),
     // kurzes Stück zum Nordrand
-    box(W, 0.1, 0.5 - H, 0, 0.02, -0.5 + (0.5 - H) / 2, PALETTE.beltSurface),
-    // Außenränder (Süden und gegenüber dem Eingang)
-    box(1, RAIL_H, RAIL, 0, 0, RAIL_X, c.frame),
-    box(RAIL, RAIL_H, 1, s * RAIL_X, 0, 0, c.frame),
+    box(W, 0.1, 0.5 - H, 0, BELT_LIFT + 0.02, -0.5 + (0.5 - H) / 2, PALETTE.beltSurface),
+    // Außenränder: Süden (vom Eingangsrand bis zur Ecke) und gegenüber dem Eingang (Ecke bis Nordrand)
+    box(
+      0.5 + RAIL_X + RAIL / 2,
+      RAIL_H,
+      RAIL,
+      s * (-0.5 + (0.5 + RAIL_X + RAIL / 2) / 2),
+      RAIL_Y,
+      RAIL_X,
+      c.frame,
+    ),
+    box(
+      RAIL,
+      RAIL_H,
+      0.5 + RAIL_X + RAIL / 2,
+      s * RAIL_X,
+      RAIL_Y,
+      -0.5 + (0.5 + RAIL_X + RAIL / 2) / 2,
+      c.frame,
+    ),
     // Eckpfosten innen
-    box(RAIL, RAIL_H, RAIL, s * -RAIL_X, 0, -RAIL_X, c.frame),
+    box(RAIL, RAIL_H, RAIL, s * -RAIL_X, RAIL_Y, -RAIL_X, c.frame),
+    // Bock unter der Kurvenmitte, quer zur Diagonale
+    box(LEG, BELT_LIFT + 0.02, LEG, s * -LEG_X, 0, -LEG_X, c.frame),
+    box(LEG, BELT_LIFT + 0.02, LEG, s * LEG_X, 0, LEG_X, c.frame),
     arrow(-0.18, c.arrow),
   ]);
 }

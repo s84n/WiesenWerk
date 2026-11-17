@@ -19,7 +19,7 @@ const SHAPE_LEFT = 1;
 const SHAPE_RIGHT = 2;
 const TIERS = 3;
 /** Ware auf Bändern etwas größer zeichnen, damit der Warenfluss gut zu sehen ist. */
-const ITEM_SCALE = 1.2;
+const ITEM_SCALE = 1.1;
 
 /**
  * Bänder (gerade Stücke und Kurven als Instanzen) und die Items darauf.

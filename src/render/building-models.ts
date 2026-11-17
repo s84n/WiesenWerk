@@ -11,7 +11,7 @@ import {
   type BufferGeometry,
 } from 'three';
 import { PALETTE } from '../data/palette';
-import { beltStraight } from './belt-models';
+import { BELT_LIFT, beltStraight } from './belt-models';
 import { colored, merge } from './geometry';
 import { bandstand, clockTowerFull, clockTowerSite, fountain } from './landmark-models';
 
@@ -412,12 +412,15 @@ function assembler(): BufferGeometry {
  */
 function tunnel(entrance: boolean): BufferGeometry {
   const dir = entrance ? -1 : 1; // Lage des Portals: Norden (−z) beim Eingang, Süden beim Ausgang
-  const ramp = new BoxGeometry(0.74, 0.08, 0.75).rotateX(dir * 0.22).translate(0, 0.1, -dir * 0.1);
+  // Rampe vom Bandbock (Bandhöhe am offenen Rand) hinab zur Portalöffnung
+  const ramp = new BoxGeometry(0.6, 0.08, 0.8)
+    .rotateX(dir * 0.36)
+    .translate(0, BELT_LIFT - 0.02, -dir * 0.1);
   return merge([
     box(0.96, 0.06, 0.96, 0, 0, 0, PALETTE.rockDark),
     colored(ramp, PALETTE.beltSurface),
-    box(0.1, 0.16, 0.7, -0.42, 0, -dir * 0.12, PALETTE.beltFrame),
-    box(0.1, 0.16, 0.7, 0.42, 0, -dir * 0.12, PALETTE.beltFrame),
+    box(0.05, 0.2, 0.7, -0.325, 0.06, -dir * 0.12, PALETTE.beltFrame),
+    box(0.05, 0.2, 0.7, 0.325, 0.06, -dir * 0.12, PALETTE.beltFrame),
     // Portal
     box(0.96, 0.55, 0.26, 0, 0, dir * 0.36, PALETTE.stone),
     box(0.62, 0.36, 0.05, 0, 0.04, dir * 0.22, PALETTE.rockDark),
@@ -646,17 +649,24 @@ function merger(): BufferGeometry {
 }
 
 function bridge(): BufferGeometry {
+  // Unteres Band auf Bandhöhe, oberes Band hoch genug darüber, dass die Ware unten durchpasst
+  const lo = BELT_LIFT;
+  const hi = BELT_LIFT + 0.5;
   return merge([
-    // unteres Band (Nord → Süd)
-    box(0.74, 0.1, 1, 0, 0.02, 0, PALETTE.beltSurface),
-    // Rampe des oberen Bandes (West → Ost) auf Stützen
-    box(1, 0.08, 0.74, 0, 0.62, 0, PALETTE.beltSurface),
-    box(1, 0.12, 0.08, 0, 0.58, 0.41, PALETTE.beltFrame),
-    box(1, 0.12, 0.08, 0, 0.58, -0.41, PALETTE.beltFrame),
-    box(0.1, 0.62, 0.1, -0.44, 0, 0.41, PALETTE.woodDark),
-    box(0.1, 0.62, 0.1, 0.44, 0, 0.41, PALETTE.woodDark),
-    box(0.1, 0.62, 0.1, -0.44, 0, -0.41, PALETTE.woodDark),
-    box(0.1, 0.62, 0.1, 0.44, 0, -0.41, PALETTE.woodDark),
+    // unteres Band (Nord → Süd) auf kurzen Beinen
+    box(0.6, 0.1, 1, 0, lo + 0.02, 0, PALETTE.beltSurface),
+    box(0.05, 0.15, 1, -0.325, lo, 0, PALETTE.beltFrame),
+    box(0.05, 0.15, 1, 0.325, lo, 0, PALETTE.beltFrame),
+    box(0.05, lo + 0.02, 0.05, -0.325, 0, 0, PALETTE.beltFrame),
+    box(0.05, lo + 0.02, 0.05, 0.325, 0, 0, PALETTE.beltFrame),
+    // oberes Band (West → Ost) auf vier Stützen
+    box(1, 0.08, 0.6, 0, hi + 0.04, 0, PALETTE.beltSurface),
+    box(1, 0.12, 0.06, 0, hi, 0.34, PALETTE.beltFrame),
+    box(1, 0.12, 0.06, 0, hi, -0.34, PALETTE.beltFrame),
+    box(0.08, hi, 0.08, -0.44, 0, 0.42, PALETTE.woodDark),
+    box(0.08, hi, 0.08, 0.44, 0, 0.42, PALETTE.woodDark),
+    box(0.08, hi, 0.08, -0.44, 0, -0.42, PALETTE.woodDark),
+    box(0.08, hi, 0.08, 0.44, 0, -0.42, PALETTE.woodDark),
   ]);
 }
 
