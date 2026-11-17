@@ -1,45 +1,122 @@
-# Wiesenwerk
+<p align="center">
+  <img src="public/logo.svg" alt="Wiesenwerk" width="520">
+</p>
 
-Ein gemütliches Fabrik- und Automatisierungsspiel für den Browser, gebaut mit three.js und
-TypeScript. Keine Gegner, kein Zeitdruck – nur Wiese, Bänder und Maschinen.
+<p align="center">
+  <strong>Ein gemütliches Fabrikspiel für den Browser.</strong><br>
+  Keine Gegner, kein Zeitdruck: nur eine grüne Wiese, Förderbänder und kleine Maschinen.
+</p>
 
-Die vollständige Spielbeschreibung steht in [`docs/projektskript.md`](docs/projektskript.md).
+<p align="center">
+  <a href="https://s84n.github.io/WiesenWerk/"><strong>▶&nbsp;&nbsp;Jetzt im Browser spielen</strong></a>
+  &nbsp;·&nbsp; kostenlos, ohne Installation, ohne Anmeldung
+</p>
 
-## Lokal starten
+<p align="center">
+  <img src="docs/bilder/fabrik.jpg" alt="Eine kleine Fabrik mit Bergwerken, Schmelzöfen, Werkstätten und Förderbändern, daneben das Dorf mit Uhrturm" width="100%">
+</p>
 
-Voraussetzung: [Node.js](https://nodejs.org) ab Version 20.
+## Worum es geht
+
+Du beginnst auf einer Wiese mit Wald, Steinen und ein paar Erzvorkommen. Zuerst fällst du
+Bäume von Hand. Bald arbeiten Holzfäller und Bergwerke für dich, Förderbänder tragen Erz zu
+Schmelzöfen, Werkstätten machen aus Barren Draht und Zahnräder, und Strommasten verbinden alles
+zu einem Netz. Schritt für Schritt wächst daraus eine kleine Fabrik, die ganz von allein
+läuft – und rund um deine Zentrale ein Dorf, dessen Bewohner tagsüber spazieren gehen.
+
+Das große Ziel ist ein **Uhrturm**: Abschnitt für Abschnitt wünscht er sich die Waren deiner
+Fabrik, und am Ende zeigt seine Uhr die echte Uhrzeit und läutet zur vollen Stunde.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/bilder/turm.jpg" alt="Der fertige Uhrturm mit Musikpavillon, Brunnen und Windrädern"></td>
+    <td width="50%"><img src="docs/bilder/ui.jpg" alt="Spielansicht mit Bauleiste, Vorrat und Minikarte"></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Der Uhrturm als Langzeitziel</em></td>
+    <td align="center"><em>Bauleiste, Vorrat und Minikarte</em></td>
+  </tr>
+</table>
+
+## Was dich erwartet
+
+- 🌾 **Eine eigene Welt für jedes Spiel:** Wälder, Seen, Felsen und Vorkommen von Kupfer, Eisen,
+  Kohle und Sand – erzeugt aus einer Zahl, die du dir aussuchen kannst. Drei Kartengrößen.
+- ⚙️ **Fabriken, die wirklich laufen:** Bergwerke, Schmelzöfen, Werkstätten, Manufakturen und
+  Gießereien. Förderbänder in drei Stufen, Verteiler, Zusammenführer, Brücken, Tunnel und Lager.
+- ⚡ **Strom selbst erzeugen:** Biomassebrenner, Windräder, Wasserräder, Solarfelder und
+  Akku-Häuser, verbunden über Strommasten.
+- 🔬 **Forschung:** Vom ersten Kupferbarren bis zu Stahlträgern, Uhrwerken und Messinstrumenten.
+  Maschinen lassen sich in drei Stufen ausbauen.
+- 📜 **Aufgaben in sieben Kapiteln**, die dich durch das ganze Spiel führen – als freundliche
+  Angebote, nie als Pflicht.
+- 🔍 **Engpass-Ansicht:** zeigt auf einen Blick, wo deine Fabrik stockt und warum.
+- 📋 **Blaupausen, Rückgängig und Pipette**, damit Umbauen Spaß macht statt Arbeit.
+- 🌅 **Tag und Nacht, Regen und kleines Leben:** goldene Nachmittage, Laternen am Abend,
+  Vogelschwärme, Schmetterlinge und Enten auf dem See.
+- 📷 **Fotomodus:** Oberfläche ausblenden, Tageszeit wählen und deine Fabrik als Bild speichern.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/bilder/abend.jpg" alt="Die Fabrik in der Abenddämmerung"></td>
+    <td width="50%"><img src="docs/bilder/nacht.jpg" alt="Die Fabrik bei Nacht mit leuchtenden Fenstern und Laternen"></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Abenddämmerung</em></td>
+    <td align="center"><em>Nachts leuchten Fenster und Laternen</em></td>
+  </tr>
+</table>
+
+## Steuerung
+
+| Taste                 | Wirkung                                    |
+| --------------------- | ------------------------------------------ |
+| W A S D / Pfeiltasten | Kamera verschieben                         |
+| Mausrad               | Zoomen                                     |
+| Q / E                 | Kamera drehen                              |
+| Linksklick            | Bauen, auswählen, von Hand abbauen         |
+| Linksklick ziehen     | Förderbänder und Wege bauen                |
+| Rechtsklick / Esc     | Abbrechen, Fenster schließen, Menü         |
+| R                     | Gebäude drehen                             |
+| 1 – 9                 | Schnellwahl Gebäude                        |
+| X                     | Abreißen                                   |
+| C / Strg + V          | Blaupause kopieren / wieder einfügen       |
+| F                     | Pipette: Gebäude unter der Maus übernehmen |
+| Strg + Z              | Rückgängig                                 |
+| T / I                 | Forschung / Statistik                      |
+| V / B                 | Strom-Ansicht / Engpass-Ansicht            |
+| M                     | Minikarte                                  |
+| P                     | Fotomodus                                  |
+| Leertaste             | Pause                                      |
+| Strg + S              | Speichern                                  |
+
+Die vollständige Liste steht im Spiel unter **Menü → Tastenbelegung**.
+
+## Gut zu wissen
+
+- **Spielstände** bleiben in deinem Browser auf deinem Gerät. Das Spiel speichert alle zwei
+  Minuten automatisch. Über **Exportieren** sicherst du eine Fabrik als `.fabrik`-Datei, die du
+  später wieder importieren oder einfach ins Fenster ziehen kannst.
+- **Keine Werbung, keine Anmeldung, kein Tracking.** Das Spiel lädt nichts von fremden Servern.
+- **Läuft am besten** in einem aktuellen Chrome, Edge oder Firefox am Computer. Die Grafik passt
+  sich beim ersten Start automatisch an deinen Rechner an und lässt sich unter **Einstellungen**
+  ändern.
+
+## Selbst bauen
+
+Wiesenwerk ist mit [three.js](https://threejs.org) und TypeScript geschrieben und wird mit
+[Vite](https://vitejs.dev) gebaut. Voraussetzung ist [Node.js](https://nodejs.org) ab Version 20.
 
 ```bash
-npm install      # einmalig: Abhängigkeiten installieren
+npm install      # Abhängigkeiten installieren
 npm run dev      # Entwicklungsserver starten, dann http://localhost:5173 öffnen
+npm test         # Tests der Spiellogik
+npm run build    # Fertiges Spiel nach dist/ bauen
 ```
 
-Weitere Befehle: `npm test` (Tests), `npm run lint` (Codeprüfung), `npm run build` (Build nach
-`dist/`), `npm run preview` (Build lokal ansehen).
+---
 
-## Veröffentlichung auf GitHub Pages
-
-Jeder Push auf den Zweig `main` baut das Spiel automatisch, prüft es und veröffentlicht es unter
-`https://s84n.github.io/WiesenWerk/`.
-
-Einmalige Einrichtung:
-
-1. Auf github.com ein neues, leeres, **öffentliches** Repository mit dem Namen `WiesenWerk` anlegen
-   (ohne README, ohne .gitignore, ohne Lizenz).
-2. Im Projektordner:
-   ```bash
-   git remote add origin git@github.com:s84n/WiesenWerk.git
-   git push -u origin main
-   ```
-3. Im Repository auf GitHub: **Settings → Pages → Build and deployment → Source:
-   „GitHub Actions“** auswählen.
-4. Unter **Actions** den Lauf „Veröffentlichen auf GitHub Pages“ abwarten (grüner Haken). Falls
-   er vor Schritt 3 schon gelaufen und fehlgeschlagen ist: Lauf öffnen und „Re-run all jobs“.
-
-## Eigene Musik
-
-1. MP3- oder OGG-Dateien in den Ordner `public/audio/musik/` legen (Ordner ggf. anlegen).
-2. Die Dateinamen in `src/data/music.ts` in die Liste `MUSIC_TRACKS` eintragen, z. B.
-   `export const MUSIC_TRACKS = ['morgenwiese.mp3', 'abendrot.ogg'];`
-3. Neu bauen bzw. `npm run dev` neu starten. Die Stücke laufen in zufälliger Reihenfolge mit
-   weichem Überblenden; die Lautstärke regelst du im Menü unter **Einstellungen**.
+<p align="center">
+  <img src="public/favicon.svg" alt="" width="40"><br>
+  <sub>© Wiesenwerk · Alle Rechte vorbehalten</sub>
+</p>
