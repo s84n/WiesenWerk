@@ -11,12 +11,13 @@ import {
   type Material,
 } from 'three';
 import { BUILDINGS } from '../data/buildings';
-import { VILLAGE_CONFIG } from '../data/config';
+import { LIFE_CONFIG, VILLAGE_CONFIG } from '../data/config';
 import { PALETTE } from '../data/palette';
 import { TileType } from '../data/world';
 import type { SimEvent } from '../sim/events';
 import { hash3Float } from '../sim/rng';
 import type { Simulation } from '../sim/simulation';
+import { bulb, bulbWarm, campfire } from './animal-models';
 import { FrameInstances } from './frame-instances';
 import { colored, merge } from './geometry';
 import type { ViewRect } from './machine-animations';
@@ -109,6 +110,19 @@ export class Village {
   private lastRefresh = -1e9;
   /** Familien, die wegen der Kuchen eingezogen sind (bei Änderung neu verteilen). */
   private cakes = 0;
+  /** Dorffest: läuft gerade (von außen gesetzt, siehe `festivalAt`). */
+  festival = false;
+  /** Feststelle (Feldindex, −1 = keine): freier Platz nahe der Zentrale. */
+  private festSpot = -1;
+  private garlands: { tile: number; d: number }[] = [];
+  private readonly bulbs: FrameInstances;
+  private readonly bulbsWarm: FrameInstances;
+  private readonly fire: FrameInstances;
+
+  /** Feldindizes der Häuser (für Hühner und das Fest). */
+  get housesPlaced(): readonly number[] {
+    return this.placed;
+  }
 
   constructor(material: Material) {
     this.houses = HOUSE_LOOKS.map(([wall, roof], k) => {
@@ -121,6 +135,9 @@ export class Village {
       return mesh;
     });
     this.people = SHIRTS.map((c) => new FrameInstances(villager(c), material, this.group, 16));
+    this.bulbs = new FrameInstances(bulb(), material, this.group, 64);
+    this.bulbsWarm = new FrameInstances(bulbWarm(), material, this.group, 64);
+    this.fire = new FrameInstances(campfire(), material, this.group, 1);
   }
 
   /** Neue Simulation: alles neu berechnen. */
@@ -147,8 +164,15 @@ export class Village {
       this.refresh(sim);
     }
     for (const p of this.people) p.begin();
-    if (near && daylight > 0.45 && this.placed.length > 0) this.walk(sim, now / 1000, view);
+    this.bulbs.begin();
+    this.bulbsWarm.begin();
+    this.fire.begin();
+    if (this.festival && this.festSpot >= 0) this.celebrate(sim, now / 1000, view);
+    else if (near && daylight > 0.45 && this.placed.length > 0) this.walk(sim, now / 1000, view);
     for (const p of this.people) p.end();
+    this.bulbs.end();
+    this.bulbsWarm.end();
+    this.fire.end();
   }
 
   private refresh(sim: Simulation): void {
@@ -179,6 +203,30 @@ export class Village {
         this.placed.push(t);
         taken.add(t);
       }
+    }
+    // Feststelle: der nächste freie Platz zur Zentrale, der kein Haus trägt
+    this.festSpot = -1;
+    if (this.hq >= 0) {
+      const taken = new Set(this.placed);
+      for (const t of this.candidates) {
+        if (sim.world.tiles[t] !== TileType.Meadow || !this.freeAround(sim, t, taken)) continue;
+        this.festSpot = t;
+        break;
+      }
+    }
+    // Lichterketten: zu den nächsten Häusern (nur hier berechnet, nicht jedes Bild)
+    this.garlands = [];
+    if (this.festSpot >= 0) {
+      const size = sim.world.size;
+      const fx = (this.festSpot % size) + 0.5;
+      const fz = Math.floor(this.festSpot / size) + 0.5;
+      this.garlands = this.placed
+        .map((tile) => ({
+          tile,
+          d: Math.hypot((tile % size) + 0.5 - fx, Math.floor(tile / size) + 0.5 - fz),
+        }))
+        .sort((a, c) => a.d - c.d)
+        .slice(0, LIFE_CONFIG.festivalGarlands);
     }
     // Instanzen setzen: Aussehen fest je Feld, Blick zur Zentrale
     const counts = [0, 0, 0];
@@ -242,6 +290,49 @@ export class Village {
     }
     scored.sort((a, c) => a[1] - c[1]);
     this.candidates = scored.map((s) => s[0]);
+  }
+
+  /**
+   * Dorffest: Lagerfeuer an der Feststelle, Lichterketten von dort zu den nächsten Häusern
+   * (Glühbirnen leuchten nachts über die Fensterfarbe), die Bewohner tanzen im Kreis ums Feuer.
+   */
+  private celebrate(sim: Simulation, t: number, view: ViewRect): void {
+    const size = sim.world.size;
+    const fx = (this.festSpot % size) + 0.5;
+    const fz = Math.floor(this.festSpot / size) + 0.5;
+    if (fx < view.minX - 20 || fx > view.maxX + 20 || fz < view.minY - 20 || fz > view.maxY + 20)
+      return;
+    const flicker = 1 + Math.sin(t * 13) * 0.06 + Math.sin(t * 7.3) * 0.05;
+    pos.set(fx, 0, fz);
+    q.identity();
+    scl.set(1.4, 1.4 * flicker, 1.4);
+    this.fire.push(m.compose(pos, q, scl));
+    // Lichterketten zu den nächsten Häusern, leicht durchhängend
+    const near = this.garlands;
+    q.identity();
+    scl.set(1, 1, 1);
+    for (const { tile, d } of near) {
+      const hx = (tile % size) + 0.5;
+      const hz = Math.floor(tile / size) + 0.5;
+      const n = Math.max(4, Math.round(d * 2.2));
+      for (let k = 1; k < n; k++) {
+        const u = k / n;
+        const sag = Math.sin(u * Math.PI) * Math.min(0.5, d * 0.08);
+        pos.set(fx + (hx - fx) * u, 1.25 - sag - u * 0.35, fz + (hz - fz) * u);
+        (k % 2 ? this.bulbs : this.bulbsWarm).push(m.compose(pos, q, scl));
+      }
+    }
+    // Reigen: zwei Bewohner je Haus (höchstens 14), Hände hoch im Takt
+    const dancers = Math.min(14, this.placed.length * 2);
+    const radius = 0.9 + dancers * 0.06;
+    for (let k = 0; k < dancers; k++) {
+      const a = t * 0.5 + (k / dancers) * Math.PI * 2;
+      const hop = Math.abs(Math.sin(t * 6 + k)) * 0.06;
+      pos.set(fx + Math.cos(a) * radius, hop, fz + Math.sin(a) * radius);
+      q.setFromAxisAngle(UP, -a);
+      scl.set(1.5, 1.5, 1.5);
+      this.people[k % SHIRTS.length].push(m.compose(pos, q, scl));
+    }
   }
 
   /** Bewohner: zwei von drei spazieren ums Haus, jeder dritte geht zur Zentrale und zurück. */

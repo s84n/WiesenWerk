@@ -14,11 +14,13 @@ import {
 import { BUILDINGS } from '../data/buildings';
 import { PALETTE } from '../data/palette';
 import { POWER } from '../data/balance';
+import { LIFE_CONFIG } from '../data/config';
 import { MachineState } from '../sim/machines';
 import { hash3Float } from '../sim/rng';
 import type { Simulation } from '../sim/simulation';
 import { SLIDERS, SMOKE, SPINNERS } from './building-models';
 import { buildingMatrix } from './buildings-view';
+import { cat } from './animal-models';
 import { colored, merge } from './geometry';
 import { FrameInstances } from './frame-instances';
 
@@ -33,6 +35,15 @@ const q = new Quaternion();
 const q2 = new Quaternion();
 const UP = new Vector3(0, 1, 0);
 const AXES = { x: new Vector3(1, 0, 0), y: new Vector3(0, 1, 0), z: new Vector3(0, 0, 1) };
+
+/**
+ * Katzen dösen an warmen Stellen (Gebäudekoordinaten und Blickrichtung): auf dem Dachrand des
+ * Schmelzofens und vor dem Backofen. Nur an manchen Gebäuden (`LIFE_CONFIG.catChance`).
+ */
+const CAT_SPOTS: Record<string, readonly [number, number, number, number]> = {
+  furnace: [0.56, 1.08, 0.45, 2.2],
+  bakery: [0.62, 0.08, 0.32, -0.6],
+};
 
 const SMOKE_PUFFS = 5;
 const SMOKE_LIFE = 2.6;
@@ -413,6 +424,7 @@ export class MachineAnimations {
   /** Anteil der Partikel aus der Grafikstufe (0..1). */
   particles = 1;
   private readonly sparks: FrameInstances;
+  private readonly cats: FrameInstances;
 
   constructor(material: Material) {
     for (const [model, def] of Object.entries(SPINNERS)) {
@@ -431,6 +443,7 @@ export class MachineAnimations {
       material,
       this.group,
     );
+    this.cats = new FrameInstances(cat(), material, this.group, 8);
     for (const kind of WORKER_KINDS)
       this.figures.set(kind, new FrameInstances(worker(kind), material, this.group));
     for (const [model, def] of Object.entries(SLIDERS))
@@ -445,6 +458,7 @@ export class MachineAnimations {
       ...this.figures.values(),
       this.smoke,
       this.sparks,
+      this.cats,
     ]);
   }
 
@@ -627,6 +641,16 @@ export class MachineAnimations {
         q.setFromAxisAngle(UP, life * 9);
         this.sparks.push(m.compose(v, q, scl));
       }
+    }
+
+    // Katze an warmen Stellen: atmet langsam, wenn der Ofen arbeitet, ist es ihr am liebsten
+    const spot = CAT_SPOTS[def.model];
+    if (spot && hash3Float(id, 6, 71) < LIFE_CONFIG.catChance) {
+      v.set(spot[0], spot[1], spot[2]).applyMatrix4(mB);
+      const breathe = 1 + Math.sin(t * 1.6 + id) * 0.04;
+      q.setFromAxisAngle(UP, spot[3] - (sim.buildings.rot[id] * Math.PI) / 2);
+      scl.set(1.3, 1.3 * breathe, 1.3);
+      this.cats.push(m.compose(v, q, scl));
     }
 
     const seed = hash3Float(id, 1, 31);

@@ -253,6 +253,23 @@ export const PALETTE = {
   greenhouseFrame: 0xf1ede2,
   /** Bauvorschau: Bereich, den ein Garten oder eine Deko gemütlich macht. */
   cozyArea: 0xf6b26b,
+  // Tiere und Überraschungen
+  wool: 0xf4efe4,
+  woolShade: 0xe3dccd,
+  sheepFace: 0x3b3433,
+  chicken: 0xfbf7ee,
+  comb: 0xd8353a,
+  catFur: 0xe0954a,
+  catStripe: 0xb86c2c,
+  hedgehog: 0x7a5a42,
+  hedgehogFace: 0xc9a27e,
+  hay: 0xe8c66a,
+  rainbowRed: 0xf26b6b,
+  rainbowOrange: 0xf6a35a,
+  rainbowYellow: 0xf6dc6a,
+  rainbowGreen: 0x8fd47a,
+  rainbowBlue: 0x7ab8ee,
+  rainbowViolet: 0xae8ce6,
   /** Rosen an Rosenbögen und ausgetretene Trampelpfade. */
   rose: 0xe2667e,
   roseLight: 0xf29aac,

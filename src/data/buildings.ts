@@ -824,6 +824,20 @@ export const BUILDINGS: readonly BuildingDef[] = [
     model: 'composter',
     availableFromStart: false,
   },
+  // Tiere: eingezäunte Weide mit Schafen (rein optisch, macht die Umgebung gemütlich)
+  {
+    key: 'sheepPasture',
+    power: 0,
+    size: [3, 3],
+    category: 'garden',
+    cost: { wood: 25, stone: 8 },
+    placement: 'ground',
+    behavior: { kind: 'decor' },
+    cozy: { value: 25, radius: 4 },
+    ports: [],
+    model: 'sheepPasture',
+    availableFromStart: true,
+  },
 ];
 
 /** Gebäude, bei denen `machines.recipe` eine Auswahl des Spielers ist (Rezept bzw. Item). */

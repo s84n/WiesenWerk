@@ -23,6 +23,7 @@ import {
   orchard,
   vegetableBed,
 } from './garden-models';
+import { sheepPasture } from './animal-models';
 import { bandstand, clockTowerFull, clockTowerSite, fountain } from './landmark-models';
 
 /**
@@ -1087,6 +1088,7 @@ const MODELS: Record<string, () => BufferGeometry> = {
   greenhouse,
   bakery,
   composter,
+  sheepPasture,
   hedgeCover: () => coverPreview('hedgeCover'),
   roseArch: () => coverPreview('roseArch'),
   // Uhrturm: als Gebäude-Instanz nur der Bauplatz, den Turm selbst zeichnet `LandmarkView`

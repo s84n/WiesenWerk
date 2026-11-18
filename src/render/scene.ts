@@ -39,6 +39,9 @@ import { renderIcons } from './icons';
 import { itemGeometries } from './item-models';
 import { GardenView } from './garden-view';
 import { OvergrowthView } from './overgrowth';
+import { AnimalsView } from './animals';
+import { festivalAt } from '../sim/daylight';
+import { ITEM_ID } from '../data/items';
 import { MachineAnimations, type ViewRect } from './machine-animations';
 import { PortMarkers } from './port-markers';
 import { BottleneckView } from './bottleneck-view';
@@ -95,6 +98,11 @@ export class GameRenderer {
   readonly animations: MachineAnimations;
   private readonly gardens: GardenView;
   private readonly overgrowth: OvergrowthView;
+  private readonly animals: AnimalsView;
+  /** Läuft gerade ein Dorffest (für die Meldung in der Oberfläche)? */
+  get festival(): boolean {
+    return this.village.festival;
+  }
   private readonly viewRect: ViewRect = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
   private readonly status = new StatusIcons();
   private readonly powerView = new PowerView();
@@ -171,6 +179,8 @@ export class GameRenderer {
     this.scene.add(this.gardens.group);
     this.overgrowth = new OvergrowthView(this.material);
     this.scene.add(this.overgrowth.group);
+    this.animals = new AnimalsView(this.material);
+    this.scene.add(this.animals.group);
     this.effects = new Effects(this.material);
     this.life = new AmbientLife(this.material);
     this.scene.add(this.life.group);
@@ -474,6 +484,25 @@ export class GameRenderer {
           1 - this.atmosphere.glow,
           this.atmosphere.rain,
           this.preset.details,
+        );
+        this.village.festival = festivalAt(
+          this.sim.tick,
+          this.dayNight && this.photoTime === null,
+          this.village.housesPlaced.length,
+          this.sim.stats.totalProduced[ITEM_ID.cake],
+        );
+        this.animals.update(
+          this.sim,
+          now,
+          this.viewRect,
+          rig.viewHeight <= RENDER_CONFIG.lodViewHeight,
+          1 - this.atmosphere.glow,
+          this.atmosphere.rain,
+          this.village.housesPlaced,
+          rig.camera,
+          rig.x,
+          rig.z,
+          rig.viewHeight,
         );
         this.village.update(
           this.sim,

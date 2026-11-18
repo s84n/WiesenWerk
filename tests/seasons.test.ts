@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DAY_CONFIG, SEASON_CONFIG, SIM_CONFIG } from '../src/data/config';
-import { seasonAt, seasonWeights } from '../src/sim/daylight';
+import { DAY_CONFIG, LIFE_CONFIG, SEASON_CONFIG, SIM_CONFIG } from '../src/data/config';
+import { festivalAt, seasonAt, seasonWeights } from '../src/sim/daylight';
 
 const SEASON_TICKS =
   SEASON_CONFIG.daysPerSeason * DAY_CONFIG.daySeconds * SIM_CONFIG.ticksPerSecond;
@@ -31,5 +31,28 @@ describe('Jahreszeiten', () => {
     seasonWeights(3.97, w);
     expect(w[3]).toBeGreaterThan(0);
     expect(w[0]).toBeGreaterThan(0);
+  });
+});
+
+describe('Dorffest', () => {
+  const tickAt = (day: number, time: number): number =>
+    Math.round(
+      (day + time - DAY_CONFIG.startTime) * DAY_CONFIG.daySeconds * SIM_CONFIG.ticksPerSecond,
+    );
+  const festDay = LIFE_CONFIG.festivalEveryDays - 1;
+
+  it('abends an jedem dritten Tag, wenn das Dorf groß genug ist', () => {
+    expect(festivalAt(tickAt(festDay, 0.85), true, 5, 0)).toBe(true);
+    // tagsüber nicht, an anderen Tagen nicht, mit zu wenigen Häusern nicht
+    expect(festivalAt(tickAt(festDay, 0.5), true, 5, 0)).toBe(false);
+    expect(festivalAt(tickAt(festDay - 1, 0.85), true, 5, 0)).toBe(false);
+    expect(festivalAt(tickAt(festDay, 0.85), true, LIFE_CONFIG.festivalMinHouses - 1, 0)).toBe(
+      false,
+    );
+  });
+
+  it('mit vielen gebackenen Kuchen jeden Abend, ohne Tag-Nacht-Wechsel nie', () => {
+    expect(festivalAt(tickAt(festDay - 1, 0.85), true, 5, LIFE_CONFIG.festivalCakes)).toBe(true);
+    expect(festivalAt(tickAt(festDay, 0.85), false, 5, LIFE_CONFIG.festivalCakes)).toBe(false);
   });
 });

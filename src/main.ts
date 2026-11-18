@@ -270,6 +270,7 @@ function start(): void {
     toggleBottlenecks: () => toggleBottlenecks(),
   });
   let powerView = false;
+  let festivalShown = false;
 
   // Fotomodus (Taste P): nur die Welt und eine kleine Leiste mit Uhrzeit und „Foto speichern“
   let photo = false;
@@ -420,6 +421,9 @@ function start(): void {
       sim.clearEvents();
 
       hud.update(sim, now, view.atmosphere.season, view.seasons);
+      // Dorffest beginnt: kleine Meldung (nur im laufenden Spiel)
+      if (view.festival && !festivalShown && inGame) toasts.message(TEXTS.village.festival, true);
+      festivalShown = view.festival;
       buildBar.update(sim, now);
       info.update(sim, now);
       research.update(sim, now);

@@ -218,6 +218,11 @@ export const TEXTS = {
       description:
         'Apfelbäume blühen erst rosa, dann hängen rote Äpfel daran. Macht eine große Umgebung besonders gemütlich.',
     },
+    sheepPasture: {
+      name: 'Schafweide',
+      description:
+        'Eine eingezäunte Weide mit Unterstand. Ein paar Schafe grasen hier gemütlich – und machen die Umgebung gemütlich.',
+    },
     bakery: {
       name: 'Backstube',
       description:
@@ -846,6 +851,7 @@ export const TEXTS = {
 
   village: {
     hint: 'Je größer deine Fabrik, desto mehr Menschen ziehen ins Dorf rund um die Zentrale.',
+    festival: 'Dorffest! Heute Abend feiert das Dorf mit Lichterketten und Lagerfeuer.',
   },
 
   hud: {

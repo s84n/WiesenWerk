@@ -191,6 +191,31 @@ export const SEASON_CONFIG = {
   snowSlowdown: 7,
 } as const;
 
+/**
+ * Kleines Leben der Ausbaurunde Gemütlichkeit (rein optisch): Tiere, Dorffest, Überraschungen.
+ */
+export const LIFE_CONFIG = {
+  /** Schafe je Weide. */
+  sheepPerPasture: 4,
+  /** Hühner je Dorfhaus (höchstens; manche Häuser haben keine). */
+  chickensPerHouse: 2,
+  /** Anteil der Schmelzöfen und Backstuben, an denen eine Katze döst. */
+  catChance: 0.35,
+  /** Anteil der Gärten, durch die in der Dämmerung ein Igel streift. */
+  hedgehogChance: 0.3,
+  /** Dorffest: ab so vielen Häusern, abends zwischen diesen Tageszeiten. */
+  festivalMinHouses: 3,
+  festivalFrom: 0.76,
+  festivalTo: 0.97,
+  /** Ohne viele Kuchen jeden so vielten Tag, ab `festivalCakes` gebackenen Kuchen jeden Abend. */
+  festivalEveryDays: 3,
+  festivalCakes: 20,
+  /** Lichterketten: zu so vielen Häusern (die nächsten zur Feststelle). */
+  festivalGarlands: 6,
+  /** Regenbogen nach einem Schauer: so viele Sekunden (Echtzeit). */
+  rainbowSeconds: 40,
+} as const;
+
 /** Wetter (nur Ultra): leichte Regenschauer, gleich für jeden Spielstand mit gleicher Spielzeit. */
 export const WEATHER_CONFIG = {
   /** Länge eines Wetterabschnitts in Sekunden Spielzeit. */

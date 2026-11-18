@@ -1,5 +1,5 @@
 import { SOLAR } from '../data/balance';
-import { DAY_CONFIG, SEASON_CONFIG, SIM_CONFIG } from '../data/config';
+import { DAY_CONFIG, LIFE_CONFIG, SEASON_CONFIG, SIM_CONFIG } from '../data/config';
 
 /**
  * Tageszeit (0 = Mitternacht, 0,5 = Mittag) zum Tick. Dieselbe Rechnung nutzt die Darstellung
@@ -36,6 +36,23 @@ export function seasonWeights(season: number, out: number[]): number[] {
   out[i] = 1 - next;
   out[(i + 1) % 4] += next;
   return out;
+}
+
+/**
+ * Dorffest (rein optisch): abends, wenn das Dorf mindestens `festivalMinHouses` Häuser hat –
+ * jeden `festivalEveryDays`-ten Tag, mit vielen gebackenen Kuchen jeden Abend. Ohne
+ * Tag-Nacht-Wechsel gibt es keinen Abend und damit kein Fest.
+ */
+export function festivalAt(tick: number, cycle: boolean, houses: number, cakes: number): boolean {
+  const C = LIFE_CONFIG;
+  if (!cycle || houses < C.festivalMinHouses) return false;
+  const t = dayTimeAt(tick, true);
+  if (t < C.festivalFrom || t > C.festivalTo) return false;
+  if (cakes >= C.festivalCakes) return true;
+  const day = Math.floor(
+    DAY_CONFIG.startTime + tick / SIM_CONFIG.ticksPerSecond / DAY_CONFIG.daySeconds,
+  );
+  return day % C.festivalEveryDays === C.festivalEveryDays - 1;
 }
 
 /** Sonnenstärke in Tausendsteln (0 nachts, 1000 tagsüber, weiche Übergänge morgens und abends). */
