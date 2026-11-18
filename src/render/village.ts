@@ -20,6 +20,9 @@ import type { Simulation } from '../sim/simulation';
 import { FrameInstances } from './frame-instances';
 import { colored, merge } from './geometry';
 import type { ViewRect } from './machine-animations';
+import { ITEM_ID } from '../data/items';
+
+const CAKE = ITEM_ID.cake;
 
 const C = VILLAGE_CONFIG;
 const m = new Matrix4();
@@ -104,6 +107,8 @@ export class Village {
   private placed: number[] = [];
   private dirty = true;
   private lastRefresh = -1e9;
+  /** Familien, die wegen der Kuchen eingezogen sind (bei Änderung neu verteilen). */
+  private cakes = 0;
 
   constructor(material: Material) {
     this.houses = HOUSE_LOOKS.map(([wall, roof], k) => {
@@ -134,6 +139,8 @@ export class Village {
   }
 
   update(sim: Simulation, now: number, view: ViewRect, near: boolean, daylight: number): void {
+    if (Math.floor(sim.stats.totalProduced[CAKE] / C.cakesPerHouse) !== this.cakes)
+      this.dirty = true;
     if (this.dirty && now - this.lastRefresh >= C.refreshMs) {
       this.dirty = false;
       this.lastRefresh = now;
@@ -154,6 +161,8 @@ export class Village {
       this.computeCandidates(sim);
     }
     this.placed = [];
+    // Apfelkuchen machen das Dorf glücklich: je `cakesPerHouse` gebackene zieht eine Familie ein
+    this.cakes = Math.floor(sim.stats.totalProduced[CAKE] / C.cakesPerHouse);
     if (this.hq >= 0) {
       let factory = 0;
       sim.typeCount.forEach((n, type) => {
@@ -161,7 +170,7 @@ export class Village {
         if (k !== 'belt' && k !== 'decor' && k !== 'pole' && k !== 'tunnel' && k !== 'hq')
           factory += n;
       });
-      const want = Math.min(C.maxHouses, Math.floor(factory / C.buildingsPerHouse));
+      const want = Math.min(C.maxHouses, Math.floor(factory / C.buildingsPerHouse) + this.cakes);
       const w = sim.world;
       const taken = new Set<number>();
       for (const t of this.candidates) {

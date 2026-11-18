@@ -38,7 +38,13 @@ export type ItemShape =
   | 'lens'
   | 'clockwork'
   | 'girder'
-  | 'instrument';
+  | 'instrument'
+  | 'apple'
+  | 'vegetable'
+  | 'jar'
+  | 'bouquet'
+  | 'cake'
+  | 'sack';
 
 export const ITEMS = [
   { key: 'wood', kind: 'solid', color: 'itemWood', fuelValue: 120, shape: 'log' },
@@ -69,6 +75,13 @@ export const ITEMS = [
   { key: 'clockwork', kind: 'solid', color: 'itemClockwork', fuelValue: 0, shape: 'clockwork' },
   { key: 'steelFrame', kind: 'solid', color: 'itemSteelFrame', fuelValue: 0, shape: 'girder' },
   { key: 'instrument', kind: 'solid', color: 'itemInstrument', fuelValue: 0, shape: 'instrument' },
+  // Ausbaurunde Gemütlichkeit: Garten-Waren
+  { key: 'apple', kind: 'solid', color: 'itemApple', fuelValue: 0, shape: 'apple' },
+  { key: 'vegetable', kind: 'solid', color: 'itemVegetable', fuelValue: 0, shape: 'vegetable' },
+  { key: 'honey', kind: 'solid', color: 'itemHoney', fuelValue: 0, shape: 'jar' },
+  { key: 'flowers', kind: 'solid', color: 'itemFlowers', fuelValue: 0, shape: 'bouquet' },
+  { key: 'cake', kind: 'solid', color: 'itemCake', fuelValue: 0, shape: 'cake' },
+  { key: 'compost', kind: 'solid', color: 'itemCompost', fuelValue: 0, shape: 'sack' },
 ] as const satisfies readonly ItemDef[];
 
 export type ItemKey = (typeof ITEMS)[number]['key'];

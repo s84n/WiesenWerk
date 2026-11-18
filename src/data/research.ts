@@ -233,7 +233,7 @@ export const RESEARCH: readonly ResearchDef[] = [
     key: 'gardening',
     requires: [],
     cost: { wood: 60, stone: 40, plank: 20 },
-    buildings: ['beehive', 'orchard', 'roseArch'],
+    buildings: ['beehive', 'orchard', 'roseArch', 'composter'],
     area: 'beauty',
     pos: [0, 1],
   },
@@ -244,6 +244,15 @@ export const RESEARCH: readonly ResearchDef[] = [
     buildings: ['greenhouse'],
     area: 'beauty',
     pos: [1, 1],
+  },
+  {
+    key: 'baking',
+    requires: ['gardening'],
+    cost: { apple: 40, honey: 10, plank: 60, stoneBrick: 40 },
+    buildings: ['bakery'],
+    recipes: ['cake'],
+    area: 'beauty',
+    pos: [2, 1],
   },
 ];
 

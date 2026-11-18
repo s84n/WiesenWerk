@@ -2,7 +2,7 @@ import { SIM_CONFIG } from './config';
 import { toAmounts, type ItemAmount, type ItemKey } from './items';
 
 /** Maschinenarten, die Rezepte ausführen. */
-export type MachineKind = 'furnace' | 'workshop' | 'assembler' | 'foundry';
+export type MachineKind = 'furnace' | 'workshop' | 'assembler' | 'foundry' | 'bakery' | 'composter';
 
 export interface RecipeDef {
   key: string;
@@ -180,6 +180,31 @@ export const RECIPES: readonly RecipeDef[] = [
     outputs: { instrument: 1 },
     seconds: 10,
     availableFromStart: false,
+  },
+  // Ausbaurunde Gemütlichkeit: Backstube und Komposter
+  {
+    key: 'cake',
+    machine: 'bakery',
+    inputs: { apple: 2, honey: 1 },
+    outputs: { cake: 1 },
+    seconds: 6,
+    availableFromStart: false,
+  },
+  {
+    key: 'compost',
+    machine: 'composter',
+    inputs: { wood: 2 },
+    outputs: { compost: 1 },
+    seconds: 4,
+    availableFromStart: true,
+  },
+  {
+    key: 'compostVegetable',
+    machine: 'composter',
+    inputs: { vegetable: 2 },
+    outputs: { compost: 1 },
+    seconds: 4,
+    availableFromStart: true,
   },
 ];
 

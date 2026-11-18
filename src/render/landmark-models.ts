@@ -2,6 +2,7 @@ import {
   BoxGeometry,
   ConeGeometry,
   CylinderGeometry,
+  IcosahedronGeometry,
   SphereGeometry,
   type BufferGeometry,
 } from 'three';
@@ -54,6 +55,7 @@ const STAGE_BOUNDS: readonly (readonly [number, number, number])[] = [
   [4.3, 5.4, 0.95],
   [5.4, 6.7, 0.95],
   [6.7, 8.8, 1.05],
+  [0.65, 3.6, 1.05],
 ];
 
 /** Bauplatz: Steinplatte, Bauschild und Materialstapel (verschwinden später im Fundament). */
@@ -277,7 +279,82 @@ function spire(): BufferGeometry {
   return merge(parts);
 }
 
-const STAGE_MODELS = [foundation, walls, chamber, clockwork, belfry, spire];
+/** Abschnitt 7 (Ausbaurunde Gemütlichkeit): Blumenkästen, Girlande und Pflanzkübel. */
+function flowerDecor(): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const blooms = [PALETTE.flowerPink, PALETTE.flowerYellow, PALETTE.flowerWhite, PALETTE.rose];
+  const flowerBox = (x: number, y: number, z: number, w: number, k: number): void => {
+    parts.push(side(box(w, 0.09, 0.12, x, y, z, PALETTE.woodDark), k));
+    for (let i = 0; i < 4; i++) {
+      const fx = x - w / 2 + (i + 0.5) * (w / 4);
+      parts.push(
+        side(colored(new IcosahedronGeometry(0.05, 0).translate(fx, y + 0.12, z), PALETTE.leaf), k),
+      );
+      parts.push(
+        side(
+          colored(
+            new IcosahedronGeometry(0.035, 0).translate(fx, y + 0.17, z + 0.02),
+            blooms[(i + k) % blooms.length],
+          ),
+          k,
+        ),
+      );
+    }
+  };
+  for (let k = 0; k < 4; k++) {
+    // unter den Fenstern der Turmstube und der Mauern
+    for (const x of [-0.42, 0.42]) flowerBox(x, 3.3, 0.93, 0.34, k);
+    flowerBox(0, 1.85, 0.87, 0.3, k);
+    // Girlande unter dem Gesims
+    for (let i = 0; i < 9; i++) {
+      const x = -0.8 + i * 0.2;
+      const sag = Math.sin((i / 8) * Math.PI) * 0.1;
+      parts.push(
+        side(
+          colored(
+            new IcosahedronGeometry(0.045, 0).translate(x, 3.04 - sag, 0.88),
+            i % 2 ? PALETTE.leafDark : PALETTE.hedge,
+          ),
+          k,
+        ),
+      );
+      if (i % 2 === 0)
+        parts.push(
+          side(
+            colored(
+              new IcosahedronGeometry(0.03, 0).translate(x, 3.0 - sag, 0.92),
+              blooms[i % blooms.length],
+            ),
+            k,
+          ),
+        );
+    }
+  }
+  // Pflanzkübel an den Ecken des Fundaments
+  for (const [x, z] of [
+    [-1.05, -1.05],
+    [1.05, -1.05],
+    [1.05, 1.05],
+    [-1.05, 1.05],
+  ]) {
+    parts.push(
+      colored(new CylinderGeometry(0.16, 0.12, 0.22, 8).translate(x, 0.76, z), PALETTE.towerBrick),
+    );
+    parts.push(colored(new IcosahedronGeometry(0.17, 0).translate(x, 0.98, z), PALETTE.leaf));
+    parts.push(
+      colored(new IcosahedronGeometry(0.06, 0).translate(x + 0.08, 1.08, z + 0.06), PALETTE.rose),
+    );
+    parts.push(
+      colored(
+        new IcosahedronGeometry(0.05, 0).translate(x - 0.07, 1.1, z - 0.05),
+        PALETTE.flowerYellow,
+      ),
+    );
+  }
+  return merge(parts);
+}
+
+const STAGE_MODELS = [foundation, walls, chamber, clockwork, belfry, spire, flowerDecor];
 
 let stageCache: BufferGeometry[] | null = null;
 /** Geometrie je Abschnitt (Index = Abschnitt, nicht verschmolzen mit den anderen). */

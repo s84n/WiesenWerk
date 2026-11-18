@@ -14,7 +14,9 @@ import { PALETTE } from '../data/palette';
 import { BELT_LIFT, beltStraight } from './belt-models';
 import { colored, merge } from './geometry';
 import {
+  bakery,
   beehive,
+  composter,
   coverPreview,
   flowerMeadow,
   greenhouse,
@@ -1074,6 +1076,7 @@ export const SMOKE: Record<string, readonly [number, number, number]> = {
   furnace: [0.45, 2.05, -0.4],
   burner: [0.25, 2.55, -0.25],
   foundry: [0.95, 3.25, -0.6],
+  bakery: [0.62, 0.95, -0.55],
 };
 
 const MODELS: Record<string, () => BufferGeometry> = {
@@ -1082,6 +1085,8 @@ const MODELS: Record<string, () => BufferGeometry> = {
   beehive,
   orchard,
   greenhouse,
+  bakery,
+  composter,
   hedgeCover: () => coverPreview('hedgeCover'),
   roseArch: () => coverPreview('roseArch'),
   // Uhrturm: als Gebäude-Instanz nur der Bauplatz, den Turm selbst zeichnet `LandmarkView`

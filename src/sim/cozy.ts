@@ -16,6 +16,8 @@ export class CozySystem {
   bonus = new Uint16Array(0);
   /** Wachstumstempo je Garten in Tausendsteln (1000 = normal, mit Bienen mehr). */
   growth = new Uint16Array(0);
+  /** Bienenstock: Zahl der bestäubten Gärten (für den Honig). */
+  hiveGardens = new Uint16Array(0);
   /** Summe der Gemütlichkeit je Feld (für Anzeigen, ungedeckelt). */
   readonly field: Uint16Array;
   /** Erhöht sich bei jeder Neuberechnung (für Anzeigen). */
@@ -47,6 +49,12 @@ export class CozySystem {
     return id < this.bonus.length ? this.bonus[id] : 0;
   }
 
+  /** Bestäubte Gärten eines Bienenstocks, rechnet bei Bedarf neu. */
+  gardensOf(id: number): number {
+    this.ensure();
+    return id < this.hiveGardens.length ? this.hiveGardens[id] : 0;
+  }
+
   /** Wachstumstempo eines Gartens (Tausendstel), rechnet bei Bedarf neu. */
   growthOf(id: number): number {
     this.ensure();
@@ -59,10 +67,12 @@ export class CozySystem {
     if (this.bonus.length < cap) {
       this.bonus = new Uint16Array(cap);
       this.growth = new Uint16Array(cap);
+      this.hiveGardens = new Uint16Array(cap);
       this.stamp = new Int32Array(cap);
     } else {
       this.bonus.fill(0);
       this.growth.fill(0);
+      this.hiveGardens.fill(0);
       this.stamp.fill(0);
     }
     this.field.fill(0);
@@ -102,6 +112,7 @@ export class CozySystem {
             } else if (kind === 'garden') {
               // Mehrere Bienenstöcke helfen nicht mehr als einer
               this.growth[other] = SCALE + bees!.growthBoost;
+              this.hiveGardens[id]++;
             }
           }
         }

@@ -70,14 +70,29 @@ export type Behavior =
    * Garten: Pflanzen wachsen in `growSeconds` heran, stehen `ripeSeconds` reif da und werden dann
    * geerntet; danach beginnt es von vorn. Braucht keinen Strom.
    */
-  | { kind: 'garden'; growSeconds: number; ripeSeconds: number }
+  | {
+      kind: 'garden';
+      growSeconds: number;
+      ripeSeconds: number;
+      /** Ernte je Durchlauf, geht direkt in den Vorrat (mit Kompost doppelt). */
+      yields: Partial<Record<ItemKey, number>>;
+    }
   /**
    * Bandverkleidung (Hecke, Rosenbogen): wird über vorhandene Bänder gezogen, belegt kein Feld
    * und ändert nichts am Warenfluss (`Simulation.covers`).
    */
   | { kind: 'cover' }
-  /** Bienenstock: Gärten, deren Grundfläche das Quadrat ± `radius` berührt, wachsen schneller. */
-  | { kind: 'beehive'; radius: number; growthBoost: number }
+  /**
+   * Bienenstock: Gärten, deren Grundfläche das Quadrat ± `radius` berührt, wachsen schneller.
+   * Je bestäubtem Garten (höchstens `maxGardens`) entsteht alle `honeySeconds` ein Honig.
+   */
+  | {
+      kind: 'beehive';
+      radius: number;
+      growthBoost: number;
+      honeySeconds: number;
+      maxGardens: number;
+    }
   /**
    * Wahrzeichen (Uhrturm): nimmt die Waren für den aktuellen Bauabschnitt an (`src/data/landmark.ts`),
    * alles andere geht wie bei einem Depot in den Vorrat.
@@ -681,7 +696,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
     category: 'garden',
     cost: { wood: 12, stone: 4 },
     placement: 'ground',
-    behavior: { kind: 'garden', growSeconds: 180, ripeSeconds: 40 },
+    behavior: { kind: 'garden', growSeconds: 180, ripeSeconds: 40, yields: { vegetable: 8 } },
     cozy: { value: 25, radius: 4 },
     ports: [],
     model: 'vegetableBed',
@@ -694,7 +709,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
     category: 'garden',
     cost: { wood: 6, stone: 6 },
     placement: 'ground',
-    behavior: { kind: 'garden', growSeconds: 150, ripeSeconds: 60 },
+    behavior: { kind: 'garden', growSeconds: 150, ripeSeconds: 60, yields: { flowers: 6 } },
     cozy: { value: 30, radius: 4 },
     ports: [],
     model: 'flowerMeadow',
@@ -707,7 +722,13 @@ export const BUILDINGS: readonly BuildingDef[] = [
     category: 'garden',
     cost: { plank: 10, stone: 6 },
     placement: 'ground',
-    behavior: { kind: 'beehive', radius: 5, growthBoost: 500 },
+    behavior: {
+      kind: 'beehive',
+      radius: 5,
+      growthBoost: 500,
+      honeySeconds: 60,
+      maxGardens: 4,
+    },
     cozy: { value: 10, radius: 3 },
     ports: [],
     model: 'beehive',
@@ -720,7 +741,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
     category: 'garden',
     cost: { plank: 30, stone: 20 },
     placement: 'ground',
-    behavior: { kind: 'garden', growSeconds: 360, ripeSeconds: 80 },
+    behavior: { kind: 'garden', growSeconds: 360, ripeSeconds: 80, yields: { apple: 16 } },
     cozy: { value: 50, radius: 5 },
     ports: [],
     model: 'orchard',
@@ -733,7 +754,12 @@ export const BUILDINGS: readonly BuildingDef[] = [
     category: 'garden',
     cost: { glass: 30, frame: 10, stoneBrick: 20 },
     placement: 'ground',
-    behavior: { kind: 'garden', growSeconds: 120, ripeSeconds: 40 },
+    behavior: {
+      kind: 'garden',
+      growSeconds: 120,
+      ripeSeconds: 40,
+      yields: { vegetable: 5, flowers: 4 },
+    },
     cozy: { value: 40, radius: 5 },
     ports: [],
     model: 'greenhouse',
@@ -765,6 +791,38 @@ export const BUILDINGS: readonly BuildingDef[] = [
     model: 'roseArch',
     availableFromStart: false,
     line: true,
+  },
+  // Garten-Waren verarbeiten
+  {
+    key: 'bakery',
+    power: 6,
+    size: [2, 2],
+    category: 'garden',
+    cost: { plank: 30, stoneBrick: 30 },
+    placement: 'ground',
+    behavior: { kind: 'crafter', machine: 'bakery' },
+    cozy: { value: 10, radius: 3 },
+    ports: [
+      { x: 0, y: 0, dir: 0, kind: 'in' },
+      { x: 0, y: 1, dir: 2, kind: 'out' },
+    ],
+    model: 'bakery',
+    availableFromStart: false,
+  },
+  {
+    key: 'composter',
+    power: 0,
+    size: [2, 2],
+    category: 'garden',
+    cost: { wood: 20, stone: 6 },
+    placement: 'ground',
+    behavior: { kind: 'crafter', machine: 'composter' },
+    ports: [
+      { x: 0, y: 0, dir: 0, kind: 'in' },
+      { x: 0, y: 1, dir: 2, kind: 'out' },
+    ],
+    model: 'composter',
+    availableFromStart: false,
   },
 ];
 

@@ -1,7 +1,7 @@
 import { LANDMARK_STAGES } from '../src/data/landmark';
 import { describe, expect, it } from 'vitest';
 import { BUILDINGS, BUILDING_COSTS } from '../src/data/buildings';
-import { ITEMS, ITEM_COUNT, ITEM_ID } from '../src/data/items';
+import { ITEMS, ITEM_COUNT, ITEM_ID, toAmounts } from '../src/data/items';
 import { RECIPES, RECIPE_INPUTS, RECIPE_OUTPUTS } from '../src/data/recipes';
 import {
   RESEARCH,
@@ -349,6 +349,8 @@ describe('Abnahme Phase 6: der Forschungsbaum ist von Spielbeginn an erreichbar'
       workshop: 'workshop',
       assembler: 'assembler',
       foundry: 'foundry',
+      bakery: 'bakery',
+      composter: 'composter',
     };
     const producible = (): Set<number> => {
       const items = new Set([
@@ -361,6 +363,23 @@ describe('Abnahme Phase 6: der Forschungsbaum ist von Spielbeginn an erreichbar'
       ]);
       for (let changed = true; changed;) {
         changed = false;
+        // Gärten (Ernte in den Vorrat) und Bienenstöcke (Honig), sobald baubar und bezahlbar
+        BUILDINGS.forEach((def, type) => {
+          if (!unlockedBuildings.has(def.key)) return;
+          if (!BUILDING_COSTS[type].every((c) => items.has(c.item))) return;
+          const out =
+            def.behavior.kind === 'garden'
+              ? toAmounts(def.behavior.yields).map((a) => a.item)
+              : def.behavior.kind === 'beehive'
+                ? [ITEM_ID.honey]
+                : [];
+          for (const item of out) {
+            if (!items.has(item)) {
+              items.add(item);
+              changed = true;
+            }
+          }
+        });
         RECIPES.forEach((r, i) => {
           if (!unlockedRecipes.has(r.key) || !unlockedBuildings.has(machineOf[r.machine])) return;
           // auch die Maschine selbst muss bezahlbar sein

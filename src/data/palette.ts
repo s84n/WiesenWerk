@@ -83,6 +83,13 @@ export const PALETTE = {
   itemClockwork: 0xd8b04a,
   itemSteelFrame: 0x5f7085,
   itemInstrument: 0xb88a3e,
+  itemApple: 0xd94a3a,
+  itemVegetable: 0x8fc46a,
+  itemHoney: 0xf0b236,
+  itemFlowers: 0xee8fb0,
+  itemCake: 0xf3dcae,
+  itemCompost: 0x6b4e33,
+  cakeCream: 0xfff6e6,
 
   // Neue Vorkommen
   iron: 0x9a6f5e,

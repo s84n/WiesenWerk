@@ -1,7 +1,7 @@
-import { BELTS, MACHINE_LEVELS, MACHINES, POWER } from '../data/balance';
+import { BELTS, GARDENS, MACHINE_LEVELS, MACHINES, POWER } from '../data/balance';
 import { BUILDINGS } from '../data/buildings';
 import { RENDER_CONFIG, SIM_CONFIG } from '../data/config';
-import { ITEMS, ITEM_COUNT } from '../data/items';
+import { ITEMS, ITEM_COUNT, toAmounts, type ItemKey } from '../data/items';
 import { LANDMARK_NEEDS, LANDMARK_STAGES, type LandmarkStage } from '../data/landmark';
 import { PALETTE } from '../data/palette';
 import {
@@ -148,7 +148,7 @@ export class InfoPanel {
     }
 
     if (b.kind === 'garden') {
-      this.buildGarden(id);
+      this.buildGarden(id, b.yields);
       this.buildCozySource(def.cozy?.value ?? 0);
       for (const u of this.updaters) u(sim);
       return;
@@ -158,7 +158,12 @@ export class InfoPanel {
       this.body.append(el('p', 'info-text soft', TEXTS.buildings[def.key].description));
       const p = el('p', 'info-text');
       this.body.append(p);
-      this.updaters.push((s) => (p.textContent = TEXTS.info.beehive(pollinated(s, id, b.radius))));
+      const honey = el('p', 'info-text');
+      this.body.append(honey);
+      this.updaters.push((s) => {
+        p.textContent = TEXTS.info.beehive(pollinated(s, id, b.radius));
+        honey.textContent = TEXTS.info.honeyRate(s.machines.honeyPerMinute(id));
+      });
       this.buildCozySource(def.cozy?.value ?? 0);
       for (const u of this.updaters) u(sim);
       return;
@@ -256,7 +261,7 @@ export class InfoPanel {
   }
 
   /** Garten: Wachstumsstufe mit Balken, Zeit bis zur Ernte, Bienen und Zahl der Ernten. */
-  private buildGarden(id: number): void {
+  private buildGarden(id: number, yields: Partial<Record<ItemKey, number>>): void {
     const stateRow = el('div', 'info-state');
     const dot = el('span', 'state-dot working');
     const stateText = el('span');
@@ -269,9 +274,23 @@ export class InfoPanel {
     const text = el('span', 'util-text');
     bar.append(fill, text);
     section.append(bar);
+    // Ernte: was in den Vorrat kommt (gedüngt doppelt)
+    const crop = el('div', 'info-section');
+    crop.append(el('div', 'info-label', TEXTS.info.gardenYield));
+    const chips = el('div', 'buffer-row');
+    const amounts = toAmounts(yields);
+    const chipEls = amounts.map((a) => {
+      const c = amountChip(a.item, a.amount);
+      chips.append(c);
+      return c;
+    });
+    crop.append(chips);
+    const compost = el('p', 'info-text soft');
+    crop.append(compost);
     const bees = el('p', 'info-text soft');
     const harvests = el('p', 'info-text soft');
-    this.body.append(section, bees, harvests);
+    this.body.append(section, crop, bees, harvests);
+    let shownFactor = 1;
     const stages = TEXTS.info.gardenStages;
     this.updaters.push((s) => {
       const g = s.machines.gardenGrowth(id);
@@ -281,6 +300,17 @@ export class InfoPanel {
       text.textContent = TEXTS.info.gardenRemaining(seconds(s.machines.gardenTicksLeft(id)));
       const hasBees = s.cozy.growthOf(id) > POWER.scale;
       bees.textContent = hasBees ? TEXTS.info.gardenBees : TEXTS.info.gardenNoBees;
+      const factor = s.machines.fuelItem[id] > 0 ? GARDENS.compostFactor : 1;
+      if (factor !== shownFactor) {
+        shownFactor = factor;
+        amounts.forEach((a, k) => {
+          const fresh = amountChip(a.item, a.amount * factor);
+          chipEls[k].replaceWith(fresh);
+          chipEls[k] = fresh;
+        });
+      }
+      compost.textContent = factor > 1 ? TEXTS.info.gardenComposted : TEXTS.info.gardenNoCompost;
+      compost.className = factor > 1 ? 'info-text cozy' : 'info-text soft';
       const n = s.machines.fuelEnergy[id];
       harvests.textContent = n > 0 ? TEXTS.info.harvests(n) : '';
       harvests.style.display = n > 0 ? '' : 'none';

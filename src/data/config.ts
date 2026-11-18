@@ -191,6 +191,8 @@ export const VILLAGE_CONFIG = {
   /** Je so viele Gebäude (ohne Bänder, Masten, Deko) zieht eine Familie ein. */
   buildingsPerHouse: 3,
   maxHouses: 28,
+  /** Je so viele gebackene Kuchen zieht zusätzlich eine Familie ein. */
+  cakesPerHouse: 10,
   /** Häuser stehen in diesem Abstand (Felder) um die Zentrale. */
   minDistance: 3,
   maxDistance: 18,

@@ -29,6 +29,12 @@ describe('Endprodukte aus Eisen, Glas und Stahl', () => {
   it('jedes Item, das der Uhrturm wünscht, lässt sich gewinnen oder herstellen', () => {
     const raw = new Set<number>([ITEM_ID[TREES.item], ...DEPOSITS.map((d) => ITEM_ID[d.item])]);
     for (const r of RECIPES) for (const o of toAmounts(r.outputs)) raw.add(o.item);
+    // Garten-Waren: Ernte der Gärten, Honig der Bienenstöcke
+    for (const def of BUILDINGS) {
+      if (def.behavior.kind === 'garden')
+        for (const y of toAmounts(def.behavior.yields)) raw.add(y.item);
+      if (def.behavior.kind === 'beehive') raw.add(ITEM_ID.honey);
+    }
     for (const needs of LANDMARK_NEEDS) for (const n of needs) expect(raw.has(n.item)).toBe(true);
   });
 

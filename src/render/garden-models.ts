@@ -4,6 +4,7 @@ import {
   CylinderGeometry,
   IcosahedronGeometry,
   SphereGeometry,
+  TorusGeometry,
   type BufferGeometry,
 } from 'three';
 import { PALETTE } from '../data/palette';
@@ -542,5 +543,87 @@ export function coverPreview(name: string): BufferGeometry {
   const def = COVER_MODELS[name];
   const parts = [def.side().rotateY(-Math.PI / 2), def.side().rotateY(Math.PI / 2)];
   if (def.roof) parts.push(def.roof());
+  return merge(parts);
+}
+
+// ------------------------------------------------------------------ Garten-Waren verarbeiten
+
+/** Satteldach entlang x, Unterkante auf Höhe `y`. */
+function gable(width: number, length: number, height: number, y: number, z: number, c: number) {
+  const g = new CylinderGeometry(1, 1, length, 3).rotateX(-Math.PI / 2).rotateY(Math.PI / 2);
+  g.translate(0, 0.5, 0).scale(1, height / 1.5, width / Math.sqrt(3));
+  return colored(g.translate(0, y, z), c);
+}
+
+/**
+ * Backstube 2 × 2: weißes Fachwerkhäuschen mit rotem Dach, runder Steinofen mit Schornstein an
+ * der Seite, Brezel-Schild über der Tür und ein Tisch mit Kuchen davor.
+ */
+export function bakery(): BufferGeometry {
+  const parts = [
+    box(1.72, 0.08, 1.72, 0, 0, 0, PALETTE.stoneWallLight),
+    box(1.3, 0.85, 1.2, -0.12, 0.08, -0.1, PALETTE.cream),
+    gable(1.45, 1.42, 0.55, 0.93, -0.1, PALETTE.roof),
+    // Fachwerk vorne
+    box(0.06, 0.85, 0.03, -0.75, 0.08, 0.51, PALETTE.woodDark),
+    box(0.06, 0.85, 0.03, 0.51, 0.08, 0.51, PALETTE.woodDark),
+    box(1.3, 0.06, 0.03, -0.12, 0.88, 0.51, PALETTE.woodDark),
+    // Tür und Fenster (leuchten nachts)
+    box(0.3, 0.55, 0.03, 0.15, 0.08, 0.52, PALETTE.woodDark),
+    box(0.3, 0.26, 0.03, -0.42, 0.45, 0.52, PALETTE.windowLight),
+    // Schild mit Brezel
+    box(0.03, 0.03, 0.22, 0.15, 0.78, 0.62, PALETTE.metalDark),
+    colored(new TorusGeometry(0.07, 0.022, 4, 10).translate(0.15, 0.68, 0.72), PALETTE.itemCake),
+    // runder Backofen aus Stein mit glühender Öffnung und Schornstein
+    colored(
+      new SphereGeometry(0.42, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2).translate(0.62, 0.08, -0.35),
+      PALETTE.stoneWall,
+    ),
+    box(0.2, 0.16, 0.04, 0.62, 0.1, 0.06, PALETTE.glow),
+    box(0.18, 0.55, 0.18, 0.62, 0.35, -0.55, PALETTE.brick),
+    // Tisch mit Kuchen
+    box(0.4, 0.04, 0.24, -0.45, 0.32, 0.72, PALETTE.wood),
+    box(0.04, 0.28, 0.04, -0.6, 0.04, 0.72, PALETTE.woodDark),
+    box(0.04, 0.28, 0.04, -0.3, 0.04, 0.72, PALETTE.woodDark),
+    colored(
+      new CylinderGeometry(0.09, 0.09, 0.06, 10).translate(-0.5, 0.39, 0.72),
+      PALETTE.itemCake,
+    ),
+    colored(
+      new CylinderGeometry(0.08, 0.08, 0.02, 10).translate(-0.5, 0.43, 0.72),
+      PALETTE.itemApple,
+    ),
+  ];
+  return merge(parts);
+}
+
+/** Komposter 2 × 2: drei Holzkästen aus Latten mit dunklen Komposthaufen, Schaufel daneben. */
+export function composter(): BufferGeometry {
+  // Holzboden etwas über dem Gelände, Kästen mittig darauf
+  const parts = [box(1.72, 0.08, 1.72, 0, 0, 0, PALETTE.woodDark)];
+  for (const x of [-0.55, 0, 0.55]) {
+    for (let k = 0; k < 3; k++) {
+      const y = 0.08 + k * 0.15;
+      parts.push(box(0.5, 0.09, 0.04, x, y, -0.35, PALETTE.wood));
+      parts.push(box(0.04, 0.09, 0.6, x - 0.24, y, -0.07, PALETTE.woodDark));
+      parts.push(box(0.04, 0.09, 0.6, x + 0.24, y, -0.07, PALETTE.woodDark));
+      if (k < 2) parts.push(box(0.5, 0.09, 0.04, x, y, 0.21, PALETTE.wood));
+    }
+    parts.push(
+      colored(
+        new SphereGeometry(0.24, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2)
+          .scale(1, 0.9, 1.1)
+          .translate(x, 0.08, -0.07),
+        x === 0 ? PALETTE.itemCompost : PALETTE.gardenSoilDark,
+      ),
+    );
+  }
+  // frische Grünabfälle obenauf, Schaufel und Gießkanne
+  parts.push(colored(new IcosahedronGeometry(0.08, 0).translate(-0.55, 0.34, -0.05), PALETTE.leaf));
+  parts.push(
+    colored(new IcosahedronGeometry(0.06, 0).translate(0.5, 0.32, -0.1), PALETTE.leafLight),
+  );
+  parts.push(box(0.04, 0.5, 0.04, 0.75, 0.04, 0.55, PALETTE.wood));
+  parts.push(box(0.14, 0.16, 0.03, 0.75, 0.04, 0.55, PALETTE.metal));
   return merge(parts);
 }

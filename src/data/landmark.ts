@@ -59,6 +59,12 @@ export const LANDMARK_STAGES: readonly LandmarkStage[] = [
     needs: { steelFrame: 60, copperSheet: 200, instrument: 10 },
     reward: { buildings: ['bandstand'], crafterSpeed: 0.05, extractorSpeed: 0.05 },
   },
+  // Ausbaurunde Gemütlichkeit: Blumenkästen und Girlanden aus dem Garten
+  {
+    key: 'flowers',
+    needs: { flowers: 120, apple: 80, honey: 40, cake: 30 },
+    reward: { crafterSpeed: 0.05, extractorSpeed: 0.05 },
+  },
 ];
 
 /** Bedarf je Abschnitt mit numerischen Item-IDs. */

@@ -299,6 +299,30 @@ export const ROUTES: Record<string, readonly Route[]> = {
       cycle: 12,
     },
   ],
+  // Bäcker schiebt Bleche in den Ofen und trägt Kuchen zum Tisch
+  bakery: [
+    {
+      points: [
+        [0.15, 0.75],
+        [0.62, 0.25],
+        [-0.45, 0.95],
+      ],
+      carryBack: 'crate',
+      cycle: 8,
+    },
+  ],
+  // schaufelt Grünzeug in die Kästen
+  composter: [
+    {
+      points: [
+        [0.75, 0.75],
+        [0.2, 0.35],
+        [-0.55, 0.35],
+      ],
+      carryOut: 'basket',
+      cycle: 9,
+    },
+  ],
   // stapelt Kisten vor dem Lager
   storage: [
     {

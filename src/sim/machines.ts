@@ -1,4 +1,4 @@
-import { AUTO_REFILL, MACHINE_LEVELS, MACHINES, POWER, TREES } from '../data/balance';
+import { AUTO_REFILL, GARDENS, MACHINE_LEVELS, MACHINES, POWER, TREES } from '../data/balance';
 import { BUILDINGS, type BuildingDef } from '../data/buildings';
 import { SIM_CONFIG } from '../data/config';
 import { ITEMS, ITEM_ID, toAmounts, type ItemAmount } from '../data/items';
@@ -44,6 +44,8 @@ export type MachineState = (typeof MachineState)[keyof typeof MachineState];
 const off = { x: 0, y: 0 };
 const SCALE = POWER.scale;
 const WOOD = ITEM_ID[TREES.item];
+const COMPOST = ITEM_ID.compost;
+const HONEY = ITEM_ID.honey;
 /** Kosten je Stufenschritt (Index = bisherige Stufe − 1). */
 const EXTRACTOR_COSTS = MACHINE_LEVELS.extractorCost.map((c) => toAmounts(c));
 const CRAFTER_COSTS = MACHINE_LEVELS.crafterCost.map((c) => toAmounts(c));
@@ -107,9 +109,16 @@ export class MachineSystem {
   readonly dispensers: number[] = [];
   /**
    * Gärten, nach ID sortiert (feste Reihenfolge auch nach dem Laden). Wachstum in `progress`
-   * (Tausendstel-Ticks), Zahl der Ernten in `fuelEnergy` – beides wird ohnehin gespeichert.
+   * (Tausendstel-Ticks), Zahl der Ernten in `fuelEnergy`, gedüngt (1) in `fuelItem` – alles wird
+   * ohnehin gespeichert.
    */
   readonly gardens: number[] = [];
+  /** Bienenstöcke, nach ID sortiert; Honig-Fortschritt in `progress`. */
+  readonly beehives: number[] = [];
+  /** Ernte je Gartentyp als Item-Mengen (Index = Gebäudetyp). */
+  private readonly yields: readonly ItemAmount[][] = BUILDINGS.map((d) =>
+    d.behavior.kind === 'garden' ? toAmounts(d.behavior.yields) : [],
+  );
   /** Alle Listen zusammen (für Darstellung, ohne jedes Bild ein neues Array zu bauen). */
   readonly lists: readonly number[][] = [
     this.crafters,
@@ -202,6 +211,9 @@ export class MachineSystem {
       this.extractTicks[id] = Math.round((60 * SIM_CONFIG.ticksPerSecond) / b.itemsPerMinute);
       insertSorted(this.dispensers, id);
       this.setState(id, MachineState.NoRecipe);
+    } else if (b.kind === 'beehive') {
+      insertSorted(this.beehives, id);
+      this.extractTicks[id] = b.honeySeconds * SIM_CONFIG.ticksPerSecond;
     } else if (b.kind === 'garden') {
       insertSorted(this.gardens, id);
       this.extractTicks[id] = (b.growSeconds + b.ripeSeconds) * SIM_CONFIG.ticksPerSecond;
@@ -232,6 +244,8 @@ export class MachineSystem {
       remove(this.batteries, id);
     } else if (kind === 'garden') {
       this.gardens.splice(this.gardens.indexOf(id), 1);
+    } else if (kind === 'beehive') {
+      this.beehives.splice(this.beehives.indexOf(id), 1);
     } else if (kind === 'depot' || kind === 'landmark') {
       remove(this.depots, id);
     } else if (kind === 'dispenser') {
@@ -638,7 +652,11 @@ export class MachineSystem {
     this.updateGardens();
   }
 
-  /** Gärten wachsen (mit Bienen schneller), werden nach der Reifezeit geerntet und neu bestellt. */
+  /**
+   * Gärten wachsen (mit Bienen schneller), werden nach der Reifezeit geerntet (Ernte direkt in
+   * den Vorrat, gedüngt doppelt) und neu bestellt; dabei nehmen die Gärtner Kompost aus dem
+   * Vorrat mit, falls welcher da ist. Bienenstöcke machen Honig je bestäubtem Garten.
+   */
   updateGardens(): void {
     for (let n = 0; n < this.gardens.length; n++) {
       const id = this.gardens[n];
@@ -647,8 +665,39 @@ export class MachineSystem {
       if (this.progress[id] >= full) {
         this.progress[id] -= full;
         this.fuelEnergy[id]++;
+        const factor = this.fuelItem[id] > 0 ? GARDENS.compostFactor : 1;
+        for (const y of this.yields[this.store.type[id]]) {
+          this.inventory.add(y.item, y.amount * factor);
+          this.stats.produce(y.item, y.amount * factor);
+        }
+        this.fuelItem[id] = 0;
+        if (this.inventory.get(COMPOST) > 0) {
+          this.inventory.add(COMPOST, -1);
+          this.stats.consume(COMPOST, 1);
+          this.fuelItem[id] = 1;
+        }
       }
     }
+    for (let n = 0; n < this.beehives.length; n++) {
+      const id = this.beehives[n];
+      const b = BUILDINGS[this.store.type[id]].behavior;
+      if (b.kind !== 'beehive') continue;
+      const gardens = Math.min(b.maxGardens, this.cozy.gardensOf(id));
+      this.progress[id] += gardens;
+      this.setState(id, gardens > 0 ? MachineState.Working : MachineState.Idle);
+      if (this.progress[id] >= this.extractTicks[id]) {
+        this.progress[id] -= this.extractTicks[id];
+        this.inventory.add(HONEY, 1);
+        this.stats.produce(HONEY, 1);
+      }
+    }
+  }
+
+  /** Honig je Minute eines Bienenstocks (für die Anzeige). */
+  honeyPerMinute(id: number): number {
+    const b = BUILDINGS[this.store.type[id]].behavior;
+    if (b.kind !== 'beehive') return 0;
+    return (Math.min(b.maxGardens, this.cozy.gardensOf(id)) * 60) / b.honeySeconds;
   }
 
   private hasInputs(id: number, r: number): boolean {

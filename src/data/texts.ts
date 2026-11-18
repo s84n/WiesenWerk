@@ -35,6 +35,12 @@ export const TEXTS = {
     clockwork: 'Uhrwerk',
     steelFrame: 'Stahlträger',
     instrument: 'Messinstrument',
+    apple: 'Äpfel',
+    vegetable: 'Gemüse',
+    honey: 'Honig',
+    flowers: 'Blumen',
+    cake: 'Apfelkuchen',
+    compost: 'Kompost',
   } satisfies Record<ItemKey, string>,
 
   buildings: {
@@ -212,6 +218,16 @@ export const TEXTS = {
       description:
         'Apfelbäume blühen erst rosa, dann hängen rote Äpfel daran. Macht eine große Umgebung besonders gemütlich.',
     },
+    bakery: {
+      name: 'Backstube',
+      description:
+        'Backt aus Äpfeln und Honig duftenden Apfelkuchen. Jeder Kuchen macht das Dorf glücklicher – es wächst.',
+    },
+    composter: {
+      name: 'Komposter',
+      description:
+        'Macht aus Holz oder Gemüse Kompost. Liegt Kompost im Vorrat, nehmen ihn die Gärtner mit: doppelte Ernte.',
+    },
     hedgeCover: {
       name: 'Hecke',
       description:
@@ -239,6 +255,7 @@ export const TEXTS = {
       clockwork: 'Uhrwerk',
       belfry: 'Glockenstube',
       spire: 'Turmspitze',
+      flowers: 'Blumenschmuck',
     } as Record<string, string>,
     stageOf: (n: number, total: number, name: string) => `Abschnitt ${n} von ${total}: ${name}`,
     needs: 'Gewünscht',
@@ -316,6 +333,7 @@ export const TEXTS = {
       optics: 'Optik',
       highPerformance: 'Hochleistung',
       gardening: 'Gartenbau',
+      baking: 'Backkunst',
       greenhouse: 'Gewächshäuser',
     } as Record<string, string>,
     upgrades: {
@@ -403,6 +421,10 @@ export const TEXTS = {
       ironOre: 'Von Eisenvorkommen (rötlich-grau): von Hand oder mit dem Bergwerk',
       coal: 'Von Kohlevorkommen (schwarz): von Hand oder mit dem Bergwerk. Guter Brennstoff!',
       sand: 'Von Sandvorkommen (hellgelb): von Hand oder mit dem Bergwerk',
+      apple: 'Aus dem Obstgarten: die Gärtner ernten und bringen die Äpfel in den Vorrat',
+      vegetable: 'Aus Gemüsebeet und Gewächshaus: die Gärtner ernten von selbst',
+      honey: 'Vom Bienenstock: je bestäubtem Garten in der Nähe ein Glas pro Minute',
+      flowers: 'Von Blumenwiese und Gewächshaus: die Gärtner pflücken von selbst',
     } as Record<string, string>,
     made: (building: string, inputs: string) => `${building} aus ${inputs}`,
     locked: '(erst erforschen)',
@@ -546,6 +568,13 @@ export const TEXTS = {
     gardenBees: 'Bienen in der Nähe: wächst anderthalbmal so schnell',
     gardenNoBees: 'Tipp: Ein Bienenstock in der Nähe lässt den Garten schneller wachsen.',
     harvests: (n: number) => `Schon ${n.toLocaleString('de-DE')}-mal geerntet`,
+    gardenYield: 'Ernte',
+    gardenComposted: 'Gedüngt: diese Ernte fällt doppelt aus',
+    gardenNoCompost: 'Tipp: Kompost im Vorrat verdoppelt die nächste Ernte (Komposter).',
+    honeyRate: (n: number) =>
+      n === 0
+        ? 'Noch kein Garten in der Nähe – ohne Blüten kein Honig.'
+        : `Macht ${n.toLocaleString('de-DE')} Glas Honig pro Minute.`,
     cozy: 'Gemütlichkeit',
     cozyBonus: (pct: string) => `+${pct} % Tempo durch Gärten und Deko in der Nähe`,
     cozyNone: 'Gärten und Deko in der Nähe machen diese Maschine bis zu 10 % schneller.',

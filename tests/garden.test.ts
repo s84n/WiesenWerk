@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { COZY, POWER } from '../src/data/balance';
 import { BUILDINGS } from '../src/data/buildings';
 import { SIM_CONFIG } from '../src/data/config';
-import { ITEM_COUNT } from '../src/data/items';
+import { ITEM_COUNT, ITEM_ID } from '../src/data/items';
 import { DEPOSITS } from '../src/data/world';
 import type { CycleInfo } from '../src/sim/machines';
 import { PlaceResult, checkPlacement } from '../src/sim/placement';
@@ -148,5 +148,94 @@ describe('Gärten im Spielstand', () => {
     expect(JSON.stringify(serialize(loaded, saved.meta, [0, 0, 0]))).toBe(
       JSON.stringify(serialize(sim, saved.meta, [0, 0, 0])),
     );
+  });
+});
+
+describe('Garten-Waren', () => {
+  function emptySim(): Simulation {
+    const sim = makeSim();
+    sim.inventory.amounts.fill(0);
+    for (const key of ['wood', 'stone', 'plank'] as const) sim.inventory.add(ITEM_ID[key], 1000);
+    return sim;
+  }
+
+  it('die Ernte kommt direkt in den Vorrat', () => {
+    const sim = emptySim();
+    build(sim, B.vegetableBed, 4, 4);
+    const { growSeconds, ripeSeconds } = gardenDef('vegetableBed');
+    run(sim, (growSeconds + ripeSeconds) * TPS);
+    expect(sim.inventory.get(ITEM_ID.vegetable)).toBe(8);
+    expect(sim.stats.totalProduced[ITEM_ID.vegetable]).toBe(8);
+  });
+
+  it('Kompost im Vorrat verdoppelt die nächste Ernte', () => {
+    const sim = emptySim();
+    build(sim, B.flowerMeadow, 4, 4);
+    const { growSeconds, ripeSeconds } = gardenDef('flowerMeadow');
+    sim.inventory.add(ITEM_ID.compost, 1);
+    const cycle = (growSeconds + ripeSeconds) * TPS;
+    run(sim, cycle); // erste Ernte normal, danach wird gedüngt
+    expect(sim.inventory.get(ITEM_ID.flowers)).toBe(6);
+    expect(sim.inventory.get(ITEM_ID.compost)).toBe(0);
+    run(sim, cycle);
+    expect(sim.inventory.get(ITEM_ID.flowers)).toBe(6 + 12);
+    run(sim, cycle);
+    expect(sim.inventory.get(ITEM_ID.flowers)).toBe(6 + 12 + 6);
+  });
+
+  it('Bienenstöcke machen Honig je bestäubtem Garten (gedeckelt)', () => {
+    const sim = unlockAll(emptySim());
+    build(sim, B.beehive, 10, 10);
+    const hive = sim.buildingAt(10, 10);
+    run(sim, 60 * TPS);
+    expect(sim.inventory.get(ITEM_ID.honey)).toBe(0);
+    build(sim, B.flowerMeadow, 7, 10);
+    build(sim, B.flowerMeadow, 12, 10);
+    expect(sim.machines.honeyPerMinute(hive)).toBe(2);
+    run(sim, 60 * TPS);
+    expect(sim.inventory.get(ITEM_ID.honey)).toBe(2);
+    for (const [x, y] of [
+      [10, 7],
+      [10, 12],
+      [7, 13],
+    ])
+      build(sim, B.flowerMeadow, x, y);
+    expect(sim.machines.honeyPerMinute(hive)).toBe(4);
+  });
+
+  it('die Backstube backt aus Äpfeln und Honig Apfelkuchen', () => {
+    const sim = unlockAll(makePoweredSim());
+    build(sim, B.bakery, 10, 10);
+    const bakery = sim.buildingAt(10, 10);
+    for (let k = 0; k < 2; k++) sim.machines.accept(bakery, ITEM_ID.apple);
+    sim.machines.accept(bakery, ITEM_ID.honey);
+    run(sim, 8 * TPS);
+    expect(sim.stats.totalProduced[ITEM_ID.cake]).toBe(1);
+  });
+
+  it('Bienenstöcke behalten ihren Honig-Fortschritt im Spielstand', () => {
+    const sim = unlockAll(new Simulation(generateWorld(4711, undefined, DEPOSITS)));
+    for (let i = 0; i < ITEM_COUNT; i++) sim.inventory.add(i, 1000);
+    const c = sim.world.size >> 1;
+    const placed: number[] = [];
+    for (const type of [B.beehive, B.flowerMeadow]) {
+      search: for (let y = c - 20; y < c + 20; y++)
+        for (let x = c - 20; x < c + 20; x++)
+          if (
+            checkPlacement(sim, type, x, y, 0) === PlaceResult.Ok &&
+            (placed.length === 0 || Math.abs(x - placed[0]) + Math.abs(y - placed[1]) < 5)
+          ) {
+            build(sim, type, x, y);
+            placed.push(x, y);
+            break search;
+          }
+    }
+    const hive = sim.buildingAt(placed[0], placed[1]);
+    run(sim, 700);
+    expect(sim.machines.progress[hive]).toBeGreaterThan(0);
+    const loaded = deserialize(
+      JSON.parse(JSON.stringify(serialize(sim, { name: 'T', savedAt: 0 }, [0, 0, 0]))),
+    );
+    expect(loaded.machines.progress[hive]).toBe(sim.machines.progress[hive]);
   });
 });
