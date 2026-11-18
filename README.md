@@ -27,6 +27,28 @@ läuft – und rund um deine Zentrale ein Dorf, dessen Bewohner tagsüber spazie
 Das große Ziel ist ein **Uhrturm**: Abschnitt für Abschnitt wünscht er sich die Waren deiner
 Fabrik, und am Ende zeigt seine Uhr die echte Uhrzeit und läutet zur vollen Stunde.
 
+## Gärten und Gemütlichkeit
+
+Wiesenwerk soll sich nicht nach einer Reihe von Förderbändern anfühlen. Zwischen deinen Maschinen
+legst du **Gemüsebeete, Blumenwiesen, Obstgärten und Gewächshäuser** an. Dort wachsen die
+Pflanzen sichtbar heran: Keimlinge werden zu Kohlköpfen und Kürbissen, Apfelbäume blühen erst
+rosa und tragen dann rote Äpfel. Gärtner gießen und ernten, Bienen summen vom Bienenstock zu den
+Blüten.
+
+- 🌻 **Gemütlichkeit lohnt sich:** Gärten, Bänke, Laternen und Zierbäume machen Maschinen in ihrer
+  Nähe bis zu 10 % schneller – nur ein Bonus, nie eine Strafe.
+- 🍎 **Garten-Waren:** Gemüse, Blumen, Äpfel und Honig kommen von selbst in den Vorrat. Die
+  Backstube backt daraus Apfelkuchen, und jeder Kuchen lässt dein Dorf wachsen. Kompost aus dem
+  Komposter verdoppelt die nächste Ernte.
+- 🌿 **Natur erobert zurück:** Je länger ein Gebäude steht, desto mehr Gras, Blumen und Efeu wachsen
+  an seinem Sockel. Wo die Arbeiter laufen, entsteht ein Trampelpfad.
+- 🌹 **Hecken und Rosenbögen** ziehst du wie ein Band über deine Förderbänder – aus Bandstraßen
+  werden grüne Alleen, die Ware läuft darunter weiter.
+
+<p align="center">
+  <img src="docs/bilder/garten.jpg" alt="Gemüsebeete, Blumenwiesen, Obstgärten, ein Gewächshaus und ein Bienenstock zwischen Backstube, Komposter und einem Förderband unter Rosenbögen" width="100%">
+</p>
+
 <table>
   <tr>
     <td width="50%"><img src="docs/bilder/turm.jpg" alt="Der fertige Uhrturm mit Musikpavillon, Brunnen und Windrädern"></td>
@@ -48,6 +70,8 @@ Fabrik, und am Ende zeigt seine Uhr die echte Uhrzeit und läutet zur vollen Stu
   Akku-Häuser, verbunden über Strommasten.
 - 🔬 **Forschung:** Vom ersten Kupferbarren bis zu Stahlträgern, Uhrwerken und Messinstrumenten.
   Maschinen lassen sich in drei Stufen ausbauen.
+- 🌱 **Gärten, Bienen und Backstube:** wachsende Beete und Obstgärten, Honig, Apfelkuchen und ein
+  Dorf, das mit deinen Kuchen wächst.
 - 📜 **Aufgaben in sieben Kapiteln**, die dich durch das ganze Spiel führen – als freundliche
   Angebote, nie als Pflicht.
 - 🔍 **Engpass-Ansicht:** zeigt auf einen Blick, wo deine Fabrik stockt und warum.
@@ -75,7 +99,7 @@ Fabrik, und am Ende zeigt seine Uhr die echte Uhrzeit und läutet zur vollen Stu
 | Mausrad               | Zoomen                                     |
 | Q / E                 | Kamera drehen                              |
 | Linksklick            | Bauen, auswählen, von Hand abbauen         |
-| Linksklick ziehen     | Förderbänder und Wege bauen                |
+| Linksklick ziehen     | Förderbänder, Wege und Hecken bauen        |
 | Rechtsklick / Esc     | Abbrechen, Fenster schließen, Menü         |
 | R                     | Gebäude drehen                             |
 | 1 – 9                 | Schnellwahl Gebäude                        |
