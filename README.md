@@ -44,10 +44,27 @@ Blüten.
   an seinem Sockel. Wo die Arbeiter laufen, entsteht ein Trampelpfad.
 - 🌹 **Hecken und Rosenbögen** ziehst du wie ein Band über deine Förderbänder – aus Bandstraßen
   werden grüne Alleen, die Ware läuft darunter weiter.
+- 🍂 **Vier Jahreszeiten:** frisches Frühlingsgrün, buntes Herbstlaub mit wehenden Blättern und
+  ein verschneiter Winter. Im Fotomodus wählst du die Jahreszeit frei.
+- 🐑 **Tiere und kleine Überraschungen:** Schafe auf der Weide, Hühner vor den Dorfhäusern, eine
+  Katze, die auf dem warmen Ofen döst, Igel in der Dämmerung und ein Regenbogen nach dem Regen.
+- 🔥 **Dorffest:** An manchen Abenden – mit genug Apfelkuchen jeden Abend – feiert das Dorf mit
+  Lichterketten, Lagerfeuer und Reigen.
 
 <p align="center">
   <img src="docs/bilder/garten.jpg" alt="Gemüsebeete, Blumenwiesen, Obstgärten, ein Gewächshaus und ein Bienenstock zwischen Backstube, Komposter und einem Förderband unter Rosenbögen" width="100%">
 </p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/bilder/winter.jpg" alt="Die Gärten im Winter: Schnee auf Dächern, Beeten und Bäumen"></td>
+    <td width="50%"><img src="docs/bilder/dorffest.jpg" alt="Dorffest am Abend mit Lagerfeuer, Lichterketten und tanzenden Dorfbewohnern"></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Winter im Garten</em></td>
+    <td align="center"><em>Dorffest mit Lagerfeuer und Lichterketten</em></td>
+  </tr>
+</table>
 
 <table>
   <tr>
