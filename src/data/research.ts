@@ -228,6 +228,23 @@ export const RESEARCH: readonly ResearchDef[] = [
     area: 'industry',
     pos: [3, 0],
   },
+  // Ausbaurunde Gemütlichkeit: Gärten
+  {
+    key: 'gardening',
+    requires: [],
+    cost: { wood: 60, stone: 40, plank: 20 },
+    buildings: ['beehive', 'orchard'],
+    area: 'beauty',
+    pos: [0, 1],
+  },
+  {
+    key: 'greenhouse',
+    requires: ['gardening', 'glassmaking'],
+    cost: { glass: 40, plank: 60 },
+    buildings: ['greenhouse'],
+    area: 'beauty',
+    pos: [1, 1],
+  },
 ];
 
 export const RESEARCH_ID = Object.fromEntries(RESEARCH.map((r, i) => [r.key, i])) as Record<

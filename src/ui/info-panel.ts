@@ -143,6 +143,24 @@ export class InfoPanel {
 
     if (b.kind === 'decor') {
       this.body.append(el('p', 'info-text soft', TEXTS.buildings[def.key].description));
+      this.buildCozySource(def.cozy?.value ?? 0);
+      return;
+    }
+
+    if (b.kind === 'garden') {
+      this.buildGarden(id);
+      this.buildCozySource(def.cozy?.value ?? 0);
+      for (const u of this.updaters) u(sim);
+      return;
+    }
+
+    if (b.kind === 'beehive') {
+      this.body.append(el('p', 'info-text soft', TEXTS.buildings[def.key].description));
+      const p = el('p', 'info-text');
+      this.body.append(p);
+      this.updaters.push((s) => (p.textContent = TEXTS.info.beehive(pollinated(s, id, b.radius))));
+      this.buildCozySource(def.cozy?.value ?? 0);
+      for (const u of this.updaters) u(sim);
       return;
     }
 
@@ -229,9 +247,62 @@ export class InfoPanel {
       fill.style.width = `${v}%`;
       pct.textContent = `${v} %`;
     });
-    if (b.kind === 'crafter' || b.kind === 'miner' || b.kind === 'lumberjack') this.buildCycle(id);
+    if (b.kind === 'crafter' || b.kind === 'miner' || b.kind === 'lumberjack') {
+      this.buildCycle(id);
+      this.buildCozy(id);
+    }
     if (b.kind === 'crafter') this.buildUpgrade(sim, id);
     for (const u of this.updaters) u(sim);
+  }
+
+  /** Garten: Wachstumsstufe mit Balken, Zeit bis zur Ernte, Bienen und Zahl der Ernten. */
+  private buildGarden(id: number): void {
+    const stateRow = el('div', 'info-state');
+    const dot = el('span', 'state-dot working');
+    const stateText = el('span');
+    stateRow.append(dot, stateText);
+    this.body.append(stateRow);
+    const section = el('div', 'info-section');
+    section.append(el('div', 'info-label', TEXTS.info.garden));
+    const bar = el('div', 'util-bar');
+    const fill = el('div', 'util-fill garden');
+    const text = el('span', 'util-text');
+    bar.append(fill, text);
+    section.append(bar);
+    const bees = el('p', 'info-text soft');
+    const harvests = el('p', 'info-text soft');
+    this.body.append(section, bees, harvests);
+    const stages = TEXTS.info.gardenStages;
+    this.updaters.push((s) => {
+      const g = s.machines.gardenGrowth(id);
+      const stage = g >= 1 ? 4 : g >= 0.75 ? 3 : g >= 0.4 ? 2 : g >= 0.12 ? 1 : 0;
+      stateText.textContent = stages[stage];
+      fill.style.width = `${Math.round(g * 100)}%`;
+      text.textContent = TEXTS.info.gardenRemaining(seconds(s.machines.gardenTicksLeft(id)));
+      const hasBees = s.cozy.growthOf(id) > POWER.scale;
+      bees.textContent = hasBees ? TEXTS.info.gardenBees : TEXTS.info.gardenNoBees;
+      const n = s.machines.fuelEnergy[id];
+      harvests.textContent = n > 0 ? TEXTS.info.harvests(n) : '';
+      harvests.style.display = n > 0 ? '' : 'none';
+    });
+  }
+
+  /** Gemütlichkeit einer Maschine: Bonus durch Gärten und Deko in der Nähe. */
+  private buildCozy(id: number): void {
+    const line = el('p', 'info-text cozy');
+    line.title = TEXTS.info.cozy;
+    this.body.append(line);
+    this.updaters.push((s) => {
+      const bonus = s.cozy.bonusOf(id);
+      line.textContent = bonus > 0 ? TEXTS.info.cozyBonus(percent(bonus)) : TEXTS.info.cozyNone;
+      line.classList.toggle('soft', bonus === 0);
+    });
+  }
+
+  /** Gärten und Deko: wie viel Gemütlichkeit sie verbreiten. */
+  private buildCozySource(value: number): void {
+    if (value <= 0) return;
+    this.body.append(el('p', 'info-text cozy', TEXTS.info.cozySource(percent(value))));
   }
 
   /** Fortschritt des aktuellen Teils: Balken plus Restzeit und Zeit je Teil (Spielsekunden). */
@@ -763,7 +834,30 @@ export class InfoPanel {
   }
 }
 
-/** Warum der Ausgang blockiert ist: kein Band, falsche Richtung oder volles Band. */
+/** Tausendstel als Prozent mit höchstens einer Nachkommastelle („2,5“). */
+function percent(thousandths: number): string {
+  return (thousandths / 10).toLocaleString('de-DE', { maximumFractionDigits: 1 });
+}
+
+/** Gärten, die ein Bienenstock bestäubt (Grundfläche berührt das Quadrat ± Reichweite). */
+function pollinated(sim: Simulation, id: number, radius: number): number {
+  const b = sim.buildings;
+  let n = 0;
+  for (const g of sim.machines.gardens) {
+    const def = BUILDINGS[b.type[g]];
+    const w = footprintW(def, b.rot[g]);
+    const h = footprintH(def, b.rot[g]);
+    if (
+      b.x[g] + w - 1 >= b.x[id] - radius &&
+      b.x[g] <= b.x[id] + radius &&
+      b.y[g] + h - 1 >= b.y[id] - radius &&
+      b.y[g] <= b.y[id] + radius
+    )
+      n++;
+  }
+  return n;
+}
+
 /** Belohnungen eines Uhrturm-Abschnitts als Textzeilen. */
 export function rewardLines(stage: LandmarkStage): string[] {
   const T = TEXTS.landmark;

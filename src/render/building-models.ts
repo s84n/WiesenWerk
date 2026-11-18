@@ -13,6 +13,7 @@ import {
 import { PALETTE } from '../data/palette';
 import { BELT_LIFT, beltStraight } from './belt-models';
 import { colored, merge } from './geometry';
+import { beehive, flowerMeadow, greenhouse, orchard, vegetableBed } from './garden-models';
 import { bandstand, clockTowerFull, clockTowerSite, fountain } from './landmark-models';
 
 /**
@@ -1069,6 +1070,11 @@ export const SMOKE: Record<string, readonly [number, number, number]> = {
 };
 
 const MODELS: Record<string, () => BufferGeometry> = {
+  vegetableBed,
+  flowerMeadow,
+  beehive,
+  orchard,
+  greenhouse,
   // Uhrturm: als Gebäude-Instanz nur der Bauplatz, den Turm selbst zeichnet `LandmarkView`
   clockTower: clockTowerSite,
   fountain,

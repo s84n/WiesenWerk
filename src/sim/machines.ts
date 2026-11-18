@@ -12,6 +12,7 @@ import {
 } from '../data/recipes';
 import { DEPOSITS, PURITY, TileType } from '../data/world';
 import type { BeltSystem } from './belts';
+import type { CozySystem } from './cozy';
 import type { LandmarkSystem } from './landmark';
 import type { PowerSystem } from './power';
 import type { ResearchSystem } from './research';
@@ -104,6 +105,11 @@ export class MachineSystem {
    * zuerst bekommt. So ist sie auch nach dem Laden gleich, ohne sie zu speichern.
    */
   readonly dispensers: number[] = [];
+  /**
+   * Gärten, nach ID sortiert (feste Reihenfolge auch nach dem Laden). Wachstum in `progress`
+   * (Tausendstel-Ticks), Zahl der Ernten in `fuelEnergy` – beides wird ohnehin gespeichert.
+   */
+  readonly gardens: number[] = [];
   /** Alle Listen zusammen (für Darstellung, ohne jedes Bild ein neues Array zu bauen). */
   readonly lists: readonly number[][] = [
     this.crafters,
@@ -112,6 +118,7 @@ export class MachineSystem {
     this.winds,
     this.batteries,
     this.dispensers,
+    this.gardens,
   ];
   /** Gelieferte Items je Typ (für Statistik und Tests). */
   delivered = 0;
@@ -139,6 +146,10 @@ export class MachineSystem {
   setLandmark(landmark: LandmarkSystem): void {
     this.landmark = landmark;
   }
+  setCozy(cozy: CozySystem): void {
+    this.cozy = cozy;
+  }
+  private cozy!: CozySystem;
   private belts!: BeltSystem;
   private landmark!: LandmarkSystem;
   private power!: PowerSystem;
@@ -189,10 +200,12 @@ export class MachineSystem {
       this.lastDelivery[id] = -1000;
     } else if (b.kind === 'dispenser') {
       this.extractTicks[id] = Math.round((60 * SIM_CONFIG.ticksPerSecond) / b.itemsPerMinute);
-      let k = this.dispensers.length;
-      while (k > 0 && this.dispensers[k - 1] > id) k--;
-      this.dispensers.splice(k, 0, id);
+      insertSorted(this.dispensers, id);
       this.setState(id, MachineState.NoRecipe);
+    } else if (b.kind === 'garden') {
+      insertSorted(this.gardens, id);
+      this.extractTicks[id] = (b.growSeconds + b.ripeSeconds) * SIM_CONFIG.ticksPerSecond;
+      this.setState(id, MachineState.Working);
     } else if (b.kind === 'lumberjack') {
       this.extractItem[id] = WOOD;
       this.extractTicks[id] = Math.round((60 * SIM_CONFIG.ticksPerSecond) / b.itemsPerMinute);
@@ -217,10 +230,13 @@ export class MachineSystem {
       remove(this.winds, id);
     } else if (kind === 'battery') {
       remove(this.batteries, id);
+    } else if (kind === 'garden') {
+      this.gardens.splice(this.gardens.indexOf(id), 1);
     } else if (kind === 'depot' || kind === 'landmark') {
       remove(this.depots, id);
     } else if (kind === 'dispenser') {
-      remove(this.dispensers, id);
+      // nicht mit `remove` (vertauscht), die Liste muss sortiert bleiben
+      this.dispensers.splice(this.dispensers.indexOf(id), 1);
       const n = this.outBuf[id * MAX_RECIPE_OUTPUTS];
       if (n > 0 && this.recipe[id] >= 0) result.push({ item: this.recipe[id], amount: n });
     } else if (kind === 'burner') {
@@ -322,15 +338,39 @@ export class MachineSystem {
     return out;
   }
 
-  /** Tempo-Faktor (Tausendstel) für Verarbeitung aus Stufe, Verbesserung und Uhrturm. */
+  /** Tempo-Faktor (Tausendstel) für Verarbeitung aus Stufe, Verbesserung, Uhrturm und Gemütlichkeit. */
   private craftBoost(id: number): number {
-    return MACHINE_LEVELS.speed[this.upgraded[id]] * this.research.crafterSpeed;
+    const base = MACHINE_LEVELS.speed[this.upgraded[id]] * this.research.crafterSpeed;
+    return this.withCozy(id, base);
   }
 
-  /** Tempo-Faktor (Tausendstel) für Abbau aus Stufe und Verbesserung. */
+  /** Tempo-Faktor (Tausendstel) für Abbau aus Stufe, Verbesserung und Gemütlichkeit. */
   private extractBoost(id: number): number {
     const tier = MACHINE_LEVELS.speed[this.upgraded[id]];
-    return tier * this.research.extractorSpeed;
+    return this.withCozy(id, tier * this.research.extractorSpeed);
+  }
+
+  /** Rechnet den Gemütlichkeits-Bonus auf einen Tempo-Faktor (ohne Bonus: unverändert). */
+  private withCozy(id: number, boost: number): number {
+    const bonus = this.cozy.bonusOf(id);
+    return bonus === 0 ? boost : Math.floor((boost * (SCALE + bonus)) / SCALE);
+  }
+
+  /**
+   * Wachstum eines Gartens für die Anzeige: 0..1 bis zur Reife, danach bleibt es bis zur
+   * Ernte bei 1.
+   */
+  gardenGrowth(id: number): number {
+    const b = BUILDINGS[this.store.type[id]].behavior;
+    if (b.kind !== 'garden') return 0;
+    const grow = b.growSeconds * SIM_CONFIG.ticksPerSecond * SCALE;
+    return Math.min(1, this.progress[id] / grow);
+  }
+
+  /** Verbleibende Ticks bis zur nächsten Ernte beim aktuellen Wachstumstempo. */
+  gardenTicksLeft(id: number): number {
+    const full = this.extractTicks[id] * SCALE;
+    return Math.max(0, Math.ceil((full - this.progress[id]) / this.cozy.growthOf(id)));
   }
 
   /** Wählt ein Rezept. Der bisherige Pufferinhalt geht in den Vorrat. */
@@ -594,6 +634,21 @@ export class MachineSystem {
           this.outBuf[slot]--;
       }
     }
+
+    this.updateGardens();
+  }
+
+  /** Gärten wachsen (mit Bienen schneller), werden nach der Reifezeit geerntet und neu bestellt. */
+  updateGardens(): void {
+    for (let n = 0; n < this.gardens.length; n++) {
+      const id = this.gardens[n];
+      this.progress[id] += this.cozy.growthOf(id);
+      const full = this.extractTicks[id] * SCALE;
+      if (this.progress[id] >= full) {
+        this.progress[id] -= full;
+        this.fuelEnergy[id]++;
+      }
+    }
   }
 
   private hasInputs(id: number, r: number): boolean {
@@ -763,6 +818,13 @@ export class MachineSystem {
     this.lastDelivery = grow(this.lastDelivery, cap);
     this.cap = cap;
   }
+}
+
+/** Fügt eine ID in eine aufsteigend sortierte Liste ein. */
+function insertSorted(list: number[], id: number): void {
+  let k = list.length;
+  while (k > 0 && list[k - 1] > id) k--;
+  list.splice(k, 0, id);
 }
 
 function remove(list: number[], id: number): void {

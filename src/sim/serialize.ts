@@ -120,7 +120,7 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
     if (!b.alive[id]) continue;
     list.push(id, b.type[id], b.x[id], b.y[id], b.rot[id]);
     const kind = BUILDINGS[b.type[id]].behavior.kind;
-    if (kind === 'belt' || kind === 'decor') continue;
+    if (kind === 'belt' || kind === 'decor' || kind === 'beehive') continue;
     if (LogisticsSystem.handles(kind)) {
       logData.push(id, lg.cursor[id]);
       for (let j = 0; j < MAX_PORTS; j++) logData.push(lg.buf[id * MAX_PORTS + j]);

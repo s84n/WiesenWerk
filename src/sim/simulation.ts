@@ -4,6 +4,7 @@ import { ITEM_ID, toAmounts } from '../data/items';
 import { DEPOSITS, TileType } from '../data/world';
 import { BeltSystem } from './belts';
 import { BuildingStore, footprintH, footprintW } from './buildings';
+import { CozySystem } from './cozy';
 import type { BeltStep, BlueprintPlacement, Command } from './commands';
 import type { SimEvent } from './events';
 import { GoalSystem } from './goals';
@@ -34,6 +35,7 @@ export class Simulation {
   readonly logistics: LogisticsSystem;
   readonly research: ResearchSystem;
   readonly landmark: LandmarkSystem;
+  readonly cozy: CozySystem;
   readonly stats = new StatsSystem();
   readonly goals = new GoalSystem();
   /** Anzahl lebender Gebäude je Typ. */
@@ -64,6 +66,8 @@ export class Simulation {
       this.events.push({ type: 'landmarkStage', stage }),
     );
     this.machines.setLandmark(this.landmark);
+    this.cozy = new CozySystem(world, this.buildings);
+    this.machines.setCozy(this.cozy);
     this.inventory.refund(toAmounts(START_INVENTORY));
     this.inventory.flowIn.fill(0); // Startvorrat ist kein Zufluss
   }
@@ -325,6 +329,7 @@ export class Simulation {
       if (recipe >= 0) this.machines.setRecipe(id, recipe);
       this.belts.buildingChanged();
       this.power.markDirty();
+      this.cozy.markDirty();
     }
     this.events.push({ type: 'buildingAdded', id });
   }
@@ -352,6 +357,7 @@ export class Simulation {
     } else {
       this.belts.buildingChanged();
       this.power.markDirty();
+      this.cozy.markDirty();
     }
     this.inventory.refund(BUILDING_COSTS[type]);
     b.remove(id);

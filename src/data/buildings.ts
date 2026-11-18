@@ -64,15 +64,32 @@ export type Behavior =
   | { kind: 'solar'; powerKW: number }
   /** Akku-Haus: speichert bis `capacityKJ` überschüssigen Strom aus Wind, Wasser und Sonne, gibt bis `rateKW` ab. */
   | { kind: 'battery'; capacityKJ: number; rateKW: number }
-  /** Dekoration: rein optisch. */
+  /** Dekoration: rein optisch (kann aber über `cozy` die Umgebung gemütlicher machen). */
   | { kind: 'decor' }
+  /**
+   * Garten: Pflanzen wachsen in `growSeconds` heran, stehen `ripeSeconds` reif da und werden dann
+   * geerntet; danach beginnt es von vorn. Braucht keinen Strom.
+   */
+  | { kind: 'garden'; growSeconds: number; ripeSeconds: number }
+  /** Bienenstock: Gärten, deren Grundfläche das Quadrat ± `radius` berührt, wachsen schneller. */
+  | { kind: 'beehive'; radius: number; growthBoost: number }
   /**
    * Wahrzeichen (Uhrturm): nimmt die Waren für den aktuellen Bauabschnitt an (`src/data/landmark.ts`),
    * alles andere geht wie bei einem Depot in den Vorrat.
    */
   | { kind: 'landmark' };
 
-export type BuildCategory = 'extraction' | 'production' | 'logistics' | 'energy' | 'decoration';
+export type BuildCategory =
+  'extraction' | 'production' | 'logistics' | 'energy' | 'garden' | 'decoration';
+
+/**
+ * Gemütlichkeit: Das Gebäude macht Maschinen, deren Grundfläche das Quadrat Grundfläche ± `radius`
+ * berührt, um `value` Tausendstel schneller (zusammen höchstens `COZY.maxBonus`).
+ */
+export interface CozyDef {
+  value: number;
+  radius: number;
+}
 
 export interface BuildingDef {
   key: string;
@@ -103,6 +120,8 @@ export interface BuildingDef {
    * alten Spielständen arbeiten aber weiter. Einträge nie löschen, sonst verschieben sich die IDs.
    */
   retired?: boolean;
+  /** Macht die Umgebung gemütlich (Tempo-Bonus für Maschinen in der Nähe). */
+  cozy?: CozyDef;
 }
 
 /**
@@ -363,6 +382,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   },
   {
     key: 'lantern',
+    cozy: { value: 5, radius: 3 },
     power: 0,
     size: [1, 1],
     category: 'decoration',
@@ -375,6 +395,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   },
   {
     key: 'flowerbed',
+    cozy: { value: 10, radius: 3 },
     power: 0,
     size: [1, 1],
     category: 'decoration',
@@ -400,6 +421,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   },
   {
     key: 'bench',
+    cozy: { value: 5, radius: 3 },
     power: 0,
     size: [1, 1],
     category: 'decoration',
@@ -412,6 +434,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   },
   {
     key: 'ornamentalTree',
+    cozy: { value: 15, radius: 3 },
     power: 0,
     size: [1, 1],
     category: 'decoration',
@@ -606,6 +629,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   // ---------------------------------------------------------------- Wahrzeichen
   {
     key: 'clockTower',
+    cozy: { value: 30, radius: 6 },
     power: 0,
     size: [3, 3],
     category: 'decoration',
@@ -620,6 +644,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   /** Belohnungen des Uhrturms (keine Forschung, siehe `LANDMARK_STAGES`). */
   {
     key: 'fountain',
+    cozy: { value: 30, radius: 4 },
     power: 0,
     size: [2, 2],
     category: 'decoration',
@@ -632,6 +657,7 @@ export const BUILDINGS: readonly BuildingDef[] = [
   },
   {
     key: 'bandstand',
+    cozy: { value: 40, radius: 5 },
     power: 0,
     size: [3, 3],
     category: 'decoration',
@@ -640,6 +666,72 @@ export const BUILDINGS: readonly BuildingDef[] = [
     behavior: { kind: 'decor' },
     ports: [],
     model: 'bandstand',
+    availableFromStart: false,
+  },
+  // ---------------------------------------------------------------- Gärten (Ausbaurunde Gemütlichkeit)
+  {
+    key: 'vegetableBed',
+    power: 0,
+    size: [2, 2],
+    category: 'garden',
+    cost: { wood: 12, stone: 4 },
+    placement: 'ground',
+    behavior: { kind: 'garden', growSeconds: 180, ripeSeconds: 40 },
+    cozy: { value: 25, radius: 4 },
+    ports: [],
+    model: 'vegetableBed',
+    availableFromStart: true,
+  },
+  {
+    key: 'flowerMeadow',
+    power: 0,
+    size: [2, 2],
+    category: 'garden',
+    cost: { wood: 6, stone: 6 },
+    placement: 'ground',
+    behavior: { kind: 'garden', growSeconds: 150, ripeSeconds: 60 },
+    cozy: { value: 30, radius: 4 },
+    ports: [],
+    model: 'flowerMeadow',
+    availableFromStart: true,
+  },
+  {
+    key: 'beehive',
+    power: 0,
+    size: [1, 1],
+    category: 'garden',
+    cost: { plank: 10, stone: 6 },
+    placement: 'ground',
+    behavior: { kind: 'beehive', radius: 5, growthBoost: 500 },
+    cozy: { value: 10, radius: 3 },
+    ports: [],
+    model: 'beehive',
+    availableFromStart: false,
+  },
+  {
+    key: 'orchard',
+    power: 0,
+    size: [3, 3],
+    category: 'garden',
+    cost: { plank: 30, stone: 20 },
+    placement: 'ground',
+    behavior: { kind: 'garden', growSeconds: 360, ripeSeconds: 80 },
+    cozy: { value: 50, radius: 5 },
+    ports: [],
+    model: 'orchard',
+    availableFromStart: false,
+  },
+  {
+    key: 'greenhouse',
+    power: 0,
+    size: [3, 3],
+    category: 'garden',
+    cost: { glass: 30, frame: 10, stoneBrick: 20 },
+    placement: 'ground',
+    behavior: { kind: 'garden', growSeconds: 120, ripeSeconds: 40 },
+    cozy: { value: 40, radius: 5 },
+    ports: [],
+    model: 'greenhouse',
     availableFromStart: false,
   },
 ];
@@ -665,5 +757,6 @@ export const CATEGORIES: readonly BuildCategory[] = [
   'production',
   'logistics',
   'energy',
+  'garden',
   'decoration',
 ];

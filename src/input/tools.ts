@@ -200,6 +200,18 @@ export class ToolController {
         this.rot,
         result === PlaceResult.Ok,
       );
+      // Gärten und Deko: Bereich, den sie gemütlich machen (bzw. den die Bienen bestäuben)
+      const b = def.behavior;
+      const r = b.kind === 'beehive' ? b.radius : (def.cozy?.radius ?? -1);
+      if (r >= 0) {
+        this.preview.showRange(
+          this.placeX - r,
+          this.placeY - r,
+          this.placeX + w - 1 + r,
+          this.placeY + h - 1 + r,
+          PALETTE.cozyArea,
+        );
+      }
       // Strommast: Versorgungsbereich, Verbindungsreichweite und künftige Kabel zeigen
       if (def.behavior.kind === 'pole') {
         const r = def.behavior.supplyRadius;

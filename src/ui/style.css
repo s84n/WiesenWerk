@@ -22,6 +22,7 @@
   --sun: #f6c945;
   --rose: #f4a9c4;
   --lilac: #b9a3e3;
+  --sage: #7fc29b;
 
   /* Text-Signalfarben (auf Papier gut lesbar) */
   --good: #3f7a1f;
@@ -627,6 +628,9 @@ body {
 [data-cat='energy'] {
   --cat: var(--meadow);
 }
+[data-cat='garden'] {
+  --cat: var(--sage);
+}
 [data-cat='decoration'] {
   --cat: var(--rose);
 }
@@ -1008,6 +1012,17 @@ body {
   font-size: 0.8rem;
 }
 
+.info-text.cozy {
+  color: #a0571f;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.info-text.cozy.soft {
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
 .info-text.warn {
   color: var(--bad);
   font-size: 0.8rem;
@@ -1107,6 +1122,10 @@ body {
 .util-fill.cycle {
   background: repeating-linear-gradient(-45deg, var(--sky) 0 8px, #a3d9ef 8px 16px);
   transition: none;
+}
+
+.util-fill.garden {
+  background: repeating-linear-gradient(-45deg, var(--sage) 0 8px, #a6d8b9 8px 16px);
 }
 
 .util-fill.fuel {

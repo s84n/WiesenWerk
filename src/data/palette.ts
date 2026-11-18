@@ -225,6 +225,24 @@ export const PALETTE = {
   duckHead: 0x3f7a4a,
   beak: 0xf2a33a,
   blobShadow: 0x3a3040,
+
+  // Gärten (Ausbaurunde Gemütlichkeit). Blätter nutzen bewusst die Laubfarben (wiegen im Wind).
+  gardenSoil: 0x8a6544,
+  gardenSoilDark: 0x6e4f35,
+  seedling: 0xa6cf6a,
+  cabbage: 0x9fd08a,
+  cabbageDark: 0x79b06a,
+  pumpkin: 0xf0953a,
+  blossom: 0xf7c6d6,
+  apple: 0xd9483b,
+  straw: 0xe2c06e,
+  strawDark: 0xc9a352,
+  bee: 0xf2c230,
+  beeStripe: 0x3a3030,
+  glassPane: 0xcfe9ef,
+  greenhouseFrame: 0xf1ede2,
+  /** Bauvorschau: Bereich, den ein Garten oder eine Deko gemütlich macht. */
+  cozyArea: 0xf6b26b,
 } as const;
 
 export type PaletteKey = keyof typeof PALETTE;

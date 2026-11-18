@@ -305,8 +305,15 @@ export class BuildPreview {
     this.links.visible = n > 0;
   }
 
-  /** Zeigt zusätzlich einen Versorgungsbereich (Strommast). */
-  showRange(x0: number, y0: number, x1: number, y1: number): void {
+  /** Zeigt zusätzlich einen Bereich (Versorgung eines Strommasts, Gemütlichkeit eines Gartens). */
+  showRange(
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    color: number = PALETTE.powerArea,
+  ): void {
+    this.rangeMaterial.color.setHex(color);
     const w = x1 - x0 + 1;
     const h = y1 - y0 + 1;
     this.range.position.set(x0 + w / 2, 0.075, y0 + h / 2);

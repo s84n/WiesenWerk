@@ -192,6 +192,31 @@ export const TEXTS = {
       name: 'Musikpavillon',
       description: 'Ein Pavillon mit Kupferdach. Belohnung für die Turmspitze des Uhrturms.',
     },
+    vegetableBed: {
+      name: 'Gemüsebeet',
+      description:
+        'Kohl und Kürbisse wachsen hier langsam heran, ein Gärtner kümmert sich darum. Macht die Umgebung gemütlich: Maschinen in der Nähe arbeiten etwas schneller.',
+    },
+    flowerMeadow: {
+      name: 'Blumenwiese',
+      description:
+        'Eine bunte Wiese, die mit der Zeit immer dichter blüht. Macht die Umgebung gemütlich: Maschinen in der Nähe arbeiten etwas schneller.',
+    },
+    beehive: {
+      name: 'Bienenstock',
+      description:
+        'Die Bienen fliegen zu den Gärten in der Nähe (11 × 11 Felder) – dort wächst alles anderthalbmal so schnell.',
+    },
+    orchard: {
+      name: 'Obstgarten',
+      description:
+        'Apfelbäume blühen erst rosa, dann hängen rote Äpfel daran. Macht eine große Umgebung besonders gemütlich.',
+    },
+    greenhouse: {
+      name: 'Gewächshaus',
+      description:
+        'Unter Glas wächst alles schneller, und nachts leuchtet es warm. Macht eine große Umgebung gemütlich.',
+    },
   } as Record<string, { name: string; description: string }>,
 
   landmark: {
@@ -280,6 +305,8 @@ export const TEXTS = {
       precision: 'Feinmechanik',
       optics: 'Optik',
       highPerformance: 'Hochleistung',
+      gardening: 'Gartenbau',
+      greenhouse: 'Gewächshäuser',
     } as Record<string, string>,
     upgrades: {
       machineSpeed: {
@@ -446,6 +473,7 @@ export const TEXTS = {
     production: 'Produktion',
     logistics: 'Logistik',
     energy: 'Energie',
+    garden: 'Gärten',
     decoration: 'Dekoration',
   } satisfies Record<BuildCategory, string>,
 
@@ -495,6 +523,25 @@ export const TEXTS = {
 
   info: {
     close: 'Schließen (Esc)',
+    garden: 'Wachstum',
+    gardenStages: [
+      'Frisch gesät',
+      'Erste Triebe',
+      'Wächst kräftig',
+      'Blüht',
+      'Reif – bald wird geerntet',
+    ],
+    gardenRemaining: (left: string) => `nächste Ernte in ${left} s`,
+    gardenBees: 'Bienen in der Nähe: wächst anderthalbmal so schnell',
+    gardenNoBees: 'Tipp: Ein Bienenstock in der Nähe lässt den Garten schneller wachsen.',
+    harvests: (n: number) => `Schon ${n.toLocaleString('de-DE')}-mal geerntet`,
+    cozy: 'Gemütlichkeit',
+    cozyBonus: (pct: string) => `+${pct} % Tempo durch Gärten und Deko in der Nähe`,
+    cozyNone: 'Gärten und Deko in der Nähe machen diese Maschine bis zu 10 % schneller.',
+    cozySource: (pct: string) =>
+      `Macht Maschinen in der Nähe ${pct} % schneller (zusammen höchstens 10 %).`,
+    beehive: (gardens: number) =>
+      gardens === 1 ? 'Bestäubt 1 Garten in der Nähe.' : `Bestäubt ${gardens} Gärten in der Nähe.`,
     states: [
       'Bereit',
       'Arbeitet',

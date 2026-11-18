@@ -109,3 +109,12 @@ export const SOLAR = {
   setStart: 0.7,
   setEnd: 0.82,
 } as const;
+
+/**
+ * Gemütlichkeit (Ausbaurunde Gemütlichkeit): Gärten und Dekoration machen Maschinen in ihrer
+ * Nähe schneller. Nur Bonus, nie Strafe. Die Werte je Gebäude stehen in `cozy` (`buildings.ts`).
+ */
+export const COZY = {
+  /** Höchster Tempo-Bonus in Tausendsteln (100 = +10 %). */
+  maxBonus: 100,
+} as const;

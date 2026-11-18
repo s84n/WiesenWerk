@@ -42,8 +42,16 @@ const WORKERS_PER_HUT = 2;
 const WORKER_SCALE = 1.4;
 
 /** Was ein Arbeiter in der Hand hat. */
-type WorkerKind = 'axe' | 'plain' | 'log' | 'crate' | 'plank';
-const WORKER_KINDS: readonly WorkerKind[] = ['axe', 'plain', 'log', 'crate', 'plank'];
+type WorkerKind = 'axe' | 'plain' | 'log' | 'crate' | 'plank' | 'can' | 'basket';
+const WORKER_KINDS: readonly WorkerKind[] = [
+  'axe',
+  'plain',
+  'log',
+  'crate',
+  'plank',
+  'can',
+  'basket',
+];
 
 /**
  * Arbeitsweg an einem Gebäude (Punkte in Gebäudekoordinaten, x und z, ungedreht; vorne = +z).
@@ -235,6 +243,62 @@ const ROUTES: Record<string, readonly Route[]> = {
       offset: 0.5,
     },
   ],
+  // Gärtner gießen die Beete und tragen die Ernte heim
+  vegetableBed: [
+    {
+      points: [
+        [0.88, 0.95],
+        [0.88, -0.75],
+        [-0.6, -0.92],
+      ],
+      carryOut: 'can',
+      cycle: 11,
+    },
+  ],
+  flowerMeadow: [
+    {
+      points: [
+        [1.05, 0.3],
+        [0.2, 0.15],
+        [-0.4, -0.35],
+      ],
+      carryOut: 'can',
+      cycle: 13,
+    },
+  ],
+  orchard: [
+    {
+      points: [
+        [0, 1.65],
+        [0, 0.5],
+        [-0.4, -0.35],
+      ],
+      carryBack: 'basket',
+      cycle: 12,
+    },
+    {
+      points: [
+        [0.3, 1.65],
+        [0.3, 1.0],
+        [0.75, 0.15],
+      ],
+      carryOut: 'can',
+      cycle: 14,
+      offset: 0.5,
+    },
+  ],
+  greenhouse: [
+    {
+      points: [
+        [0, 1.6],
+        [0, 0.9],
+        [0, -0.9],
+      ],
+      carryOut: 'can',
+      carryBack: 'basket',
+      cycle: 12,
+    },
+  ],
   // stapelt Kisten vor dem Lager
   storage: [
     {
@@ -275,6 +339,21 @@ function worker(kind: WorkerKind): BufferGeometry {
     // Kiste vor dem Bauch
     parts.push(box(0.16, 0.12, 0.12, 0, 0.18, 0.1, PALETTE.wood));
     parts.push(box(0.17, 0.02, 0.13, 0, 0.25, 0.1, PALETTE.woodDark));
+  } else if (kind === 'can') {
+    // Gießkanne in der rechten Hand
+    parts.push(
+      colored(
+        new CylinderGeometry(0.045, 0.05, 0.09, 7).translate(0.12, 0.1, 0.04),
+        PALETTE.patina,
+      ),
+    );
+    parts.push(box(0.02, 0.02, 0.09, 0.12, 0.13, 0.11, PALETTE.patina));
+  } else if (kind === 'basket') {
+    // Erntekorb mit Äpfeln vor dem Bauch
+    parts.push(
+      colored(new CylinderGeometry(0.09, 0.07, 0.09, 8).translate(0, 0.2, 0.1), PALETTE.strawDark),
+    );
+    parts.push(box(0.12, 0.03, 0.1, 0, 0.25, 0.1, PALETTE.apple));
   } else if (kind === 'plank') {
     // Bretter auf der Schulter
     parts.push(box(0.05, 0.03, 0.4, 0.07, 0.33, 0, PALETTE.itemPlank));
@@ -473,7 +552,8 @@ export class MachineAnimations {
     const def = BUILDINGS[type];
     const ms = sim.machines;
     const working = ms.state[id] === MachineState.Working;
-    if (working) this.workingInView++;
+    // Gärten klappern nicht (Arbeitsgeräusche nur für Maschinen)
+    if (working && def.behavior.kind !== 'garden') this.workingInView++;
     buildingMatrix(type, x, y, b.rot[id], mB);
 
     // Drehende Teile: dauerhaft sichtbar, drehen nur bei der Arbeit (Windrad je nach Wind)
