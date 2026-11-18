@@ -1,10 +1,14 @@
 import { ITEMS, ITEM_COUNT, ITEM_ID } from '../data/items';
 import { PALETTE } from '../data/palette';
-import { RENDER_CONFIG, SIM_CONFIG } from '../data/config';
+import { DAY_CONFIG, RENDER_CONFIG, SEASON_CONFIG, SIM_CONFIG } from '../data/config';
 import { TEXTS } from '../data/texts';
 import type { Simulation } from '../sim/simulation';
 import { el, formatNumber, hex, itemIcon } from './dom';
 import { icon, type IconName } from './icons';
+
+/** Spielminuten je Jahreszeit (bei 1-facher Geschwindigkeit). */
+const SEASON_MINUTES = (SEASON_CONFIG.daysPerSeason * DAY_CONFIG.daySeconds) / 60;
+const SEASON_ICONS: readonly IconName[] = ['blossom', 'sun', 'leaf', 'snowflake'];
 
 export interface SpeedControl {
   isPaused(): boolean;
@@ -71,6 +75,9 @@ export class Hud {
     this.powerChip.title = TEXTS.hud.powerTooltip;
     this.powerText = el('span', 'hud-value', TEXTS.hud.noPower);
     this.powerChip.append(icon('bolt', 20), this.powerText);
+
+    // Jahreszeit: kleines rundes Symbol, Name und Restzeit im Tooltip
+    this.seasonChip = el('span', 'hud-season');
 
     const speeds = el('div', 'hud-speed');
     this.pauseButton = el('button', 'hud-button');
@@ -143,12 +150,35 @@ export class Hud {
     bar.append(items);
     const controls = el('div', 'panel hud-controls');
     const row = el('div', 'hud-row');
-    row.append(this.powerChip, speeds);
+    row.append(this.seasonChip, this.powerChip, speeds);
     controls.append(row, extra);
     parent.append(bar, controls);
   }
 
-  update(sim: Simulation, now: number): void {
+  private readonly seasonChip: HTMLElement;
+  private shownSeason = -1;
+  private shownSeasonMinutes = -1;
+
+  /** Jahreszeit (`seasonAt`) im runden Feld; Tooltip mit Restzeit bis zur nächsten. */
+  private updateSeason(season: number, enabled: boolean): void {
+    const i = Math.floor(season) % 4;
+    const left = (1 - (season - Math.floor(season))) * SEASON_MINUTES;
+    const minutes = enabled ? Math.ceil(left) : -2;
+    if (i === this.shownSeason && minutes === this.shownSeasonMinutes) return;
+    if (i !== this.shownSeason) {
+      this.seasonChip.replaceChildren(icon(SEASON_ICONS[i], 20));
+      this.seasonChip.dataset.season = String(i);
+    }
+    this.shownSeason = i;
+    this.shownSeasonMinutes = minutes;
+    const names = TEXTS.seasons.names;
+    this.seasonChip.title = enabled
+      ? TEXTS.seasons.tooltip(names[i], names[(i + 1) % 4], minutes)
+      : TEXTS.seasons.fixed;
+  }
+
+  update(sim: Simulation, now: number, season = 1.5, seasons = false): void {
+    this.updateSeason(season, seasons);
     const paused = this.speed.isPaused();
     const speed = this.speed.getSpeed();
     if (paused !== this.shownPaused || speed !== this.shownSpeed) {

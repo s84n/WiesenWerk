@@ -16,6 +16,13 @@ const PATHS = {
   close: '<path d="M6 6l12 12 M18 6L6 18"/>',
   camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
   gauge: '<path d="M4 17a8 8 0 1 1 16 0 M12 17l4-5 M4 17h16"/>',
+  // Jahreszeiten
+  blossom:
+    '<circle cx="12" cy="12" r="2.2"/><path d="M12 9.8a3 3 0 1 1 2.6-4.5 3 3 0 1 1 1.4 5.1 3 3 0 1 1-2.2 4.8 3 3 0 1 1-3.6 0 3 3 0 1 1-2.2-4.8 3 3 0 1 1 1.4-5.1A3 3 0 0 1 12 9.8z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5 M12 19.5V22 M2 12h2.5 M19.5 12H22 M4.9 4.9l1.8 1.8 M17.3 17.3l1.8 1.8 M4.9 19.1l1.8-1.8 M17.3 6.7l1.8-1.8"/>',
+  leaf: '<path d="M5 19C5 10 11 5 20 4c-1 9-6 15-15 15z M5 19l8-8"/>',
+  snowflake:
+    '<path d="M12 2v20 M3.3 7l17.4 10 M3.3 17L20.7 7 M9.5 3.5L12 6l2.5-2.5 M9.5 20.5L12 18l2.5 2.5"/>',
 } as const;
 
 export type IconName = keyof typeof PATHS;

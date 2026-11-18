@@ -522,6 +522,41 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.hud-season {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: var(--line) solid var(--ink);
+  border-radius: 999px;
+  box-shadow: var(--drop-small);
+  background: var(--meadow-light);
+}
+
+.hud-season[data-season='0'] {
+  background: var(--rose);
+}
+.hud-season[data-season='1'] {
+  background: var(--sun);
+}
+.hud-season[data-season='2'] {
+  background: var(--clay);
+}
+.hud-season[data-season='3'] {
+  background: #dcecf6;
+}
+
+.photo-select {
+  font: inherit;
+  font-weight: 700;
+  padding: 3px 6px;
+  border: var(--line-thin) solid var(--ink);
+  border-radius: var(--radius-small);
+  background: var(--paper);
+  color: var(--ink);
+}
+
 .hud-power .ui-icon .fill {
   fill: var(--paper);
 }

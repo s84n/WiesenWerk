@@ -222,6 +222,9 @@ export const PALETTE = {
 
   // Wetter und Nacht
   rain: 0xd8eaf6,
+  snow: 0xffffff,
+  /** Lichtfarbe im Winter (wird dem Tageslicht beigemischt). */
+  winterLight: 0xdfeaff,
   rainFog: 0xb8c8d2,
   firefly: 0xe0ff8a,
   lanternLight: 0xffc070,

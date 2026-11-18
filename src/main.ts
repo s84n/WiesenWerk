@@ -50,6 +50,7 @@ function start(): void {
   const settings = new SettingsStore();
   const view = new GameRenderer(canvas, QUALITY_PRESETS[settings.value.quality]);
   view.dayNight = settings.value.dayNight;
+  view.seasons = settings.value.seasons;
   let sim!: Simulation;
   /** Läuft ein echtes Spiel (sonst: Hintergrundwelt hinter dem Startmenü)? */
   let inGame = false;
@@ -84,6 +85,7 @@ function start(): void {
     sound.configure(s.soundVolume, s.muted);
     music.setVolume(s.muted ? 0 : s.musicVolume);
     view.dayNight = s.dayNight;
+    view.seasons = s.seasons;
     // Sonnenstand für Solarfelder folgt der Einstellung
     if (sim) sim.enqueue({ type: 'setDayCycle', on: s.dayNight });
   };
@@ -290,6 +292,7 @@ function start(): void {
     } else {
       photoBar.hide();
       view.photoTime = null;
+      view.photoSeason = null;
     }
   };
 
@@ -416,7 +419,7 @@ function start(): void {
       minimap.handleEvents(sim.events);
       sim.clearEvents();
 
-      hud.update(sim, now);
+      hud.update(sim, now, view.atmosphere.season, view.seasons);
       buildBar.update(sim, now);
       info.update(sim, now);
       research.update(sim, now);
@@ -435,6 +438,7 @@ function start(): void {
         tools.mode === 'build' && BUILDINGS[tools.buildType].behavior.kind === 'belt',
       );
       view.photoTime = photo ? photoBar.time : null;
+      view.photoSeason = photo ? photoBar.season : null;
       view.render(loop.paused ? 0 : loop.alpha, now);
       if (photo) photoBar.capture(canvas);
       debug.frame(now, tickMs, ticks, view, sim, loop.paused);

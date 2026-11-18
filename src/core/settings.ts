@@ -8,6 +8,8 @@ export interface Settings {
   /** Stufe wurde beim ersten Start automatisch gemessen (noch nicht von Hand gewählt). */
   qualityChosen: boolean;
   dayNight: boolean;
+  /** Jahreszeiten wechseln (sonst immer Sommer). */
+  seasons: boolean;
   /** Lautstärke der Klänge und der Musik (0..1). */
   soundVolume: number;
   musicVolume: number;
@@ -18,6 +20,7 @@ const DEFAULTS: Settings = {
   quality: 'high',
   qualityChosen: false,
   dayNight: true,
+  seasons: true,
   soundVolume: 0.7,
   musicVolume: 0.5,
   muted: false,

@@ -16,6 +16,9 @@ export class PhotoBar {
   private readonly liveButton: HTMLButtonElement;
   /** Gewählte Tageszeit (0..1) oder null = Spielzeit. */
   time: number | null = null;
+  /** Gewählte Jahreszeit (0..3) oder null = wie im Spiel. */
+  season: number | null = null;
+  private readonly seasonSelect: HTMLSelectElement;
   private captureWanted = false;
   private barHidden = false;
 
@@ -51,6 +54,24 @@ export class PhotoBar {
       this.liveButton.blur();
     });
 
+    // Jahreszeit frei wählen (für Fotos im Schnee oder im Herbstlaub)
+    const seasonBox = el('label', 'photo-time');
+    this.seasonSelect = el('select', 'photo-select');
+    const live = el('option', '', TEXTS.photo.seasonLive);
+    live.value = '';
+    this.seasonSelect.append(live);
+    TEXTS.seasons.names.forEach((name, k) => {
+      const o = el('option', '', name);
+      o.value = String(k);
+      this.seasonSelect.append(o);
+    });
+    this.seasonSelect.addEventListener('change', () => {
+      const v = this.seasonSelect.value;
+      this.season = v === '' ? null : Number(v);
+      this.seasonSelect.blur();
+    });
+    seasonBox.append(el('span', 'photo-time-caption', TEXTS.photo.season), this.seasonSelect);
+
     const shot = el('button', 'photo-button primary');
     shot.append(icon('camera', 16), el('span', '', TEXTS.photo.save));
     shot.title = TEXTS.photo.saveTooltip;
@@ -67,7 +88,7 @@ export class PhotoBar {
 
     const hint = el('div', 'photo-hint', TEXTS.photo.hint);
     const row = el('div', 'photo-row');
-    row.append(title, timeBox, this.liveButton, shot, done);
+    row.append(title, timeBox, this.liveButton, seasonBox, shot, done);
     this.bar.append(row, hint);
     this.bar.style.display = 'none';
     parent.append(this.bar);
@@ -76,6 +97,8 @@ export class PhotoBar {
   /** Beim Öffnen: Regler auf die aktuelle Tageszeit stellen. */
   open(currentTime: number): void {
     this.time = null;
+    this.season = null;
+    this.seasonSelect.value = '';
     this.barHidden = false;
     this.slider.value = String(Math.round(currentTime * DAY_MINUTES));
     this.refreshTime(currentTime);

@@ -12,13 +12,12 @@ import {
   Points,
   PointsMaterial,
   Vector3,
-  type Material,
   type MeshLambertMaterial,
   type WebGLProgramParametersWithUniforms,
 } from 'three';
-import { SIM_CONFIG, WEATHER_CONFIG, type QualityPreset } from '../data/config';
+import { SEASON_CONFIG, SIM_CONFIG, WEATHER_CONFIG, type QualityPreset } from '../data/config';
 import { PALETTE } from '../data/palette';
-import { dayTimeAt } from '../sim/daylight';
+import { dayTimeAt, seasonWeights } from '../sim/daylight';
 import { hash3Float } from '../sim/rng';
 import { anchored, anchorPeriod } from './world-anchor';
 
@@ -160,6 +159,12 @@ const MOON_DIR = new Vector3(0.35, 1, 0.55).normalize();
 /** Gemeinsame Shader-Bausteine: Rauschen für Wolkenschatten und Wasser. */
 const NOISE = /* glsl */ `
 float wwHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// ohne sin: auch bei großen Weltkoordinaten gleichmäßig (für die feine Gras-Struktur)
+float wwHash2(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
 float wwNoise(vec2 p) {
   vec2 i = floor(p); vec2 f = fract(p);
   vec2 u = f * f * (3.0 - 2.0 * f);
@@ -190,7 +195,14 @@ export class Atmosphere {
     uLeafC: { value: new Color(PALETTE.leafDark) },
     uLeafD: { value: new Color(PALETTE.meadowDark) },
     uFlag: { value: new Color(PALETTE.flag) },
+    uSpring: { value: 0 },
+    uAutumn: { value: 0 },
+    uWinter: { value: 0 },
+    uView: { value: 30 },
   };
+  /** Jahreszeit (fortlaufend 0..4) und Anteile Frühling, Sommer, Herbst, Winter. */
+  season = 1.5;
+  readonly seasonMix = [0, 1, 0, 0];
   /** Aktuelle Tageszeit (0..1) und Regenstärke (0..1) – für Klang und Anzeige. */
   dayTime = 0;
   rain = 0;
@@ -252,11 +264,13 @@ uniform float uTime; uniform float uSway;
 uniform vec3 uLeafA; uniform vec3 uLeafB; uniform vec3 uLeafC; uniform vec3 uLeafD;
 uniform vec3 uFlag;
 varying vec3 vWPos;
+varying float vLeaf;
 ` +
         shader.vertexShader
           .replace(
             '#include <begin_vertex>',
             /* glsl */ `#include <begin_vertex>
+  vLeaf = 0.0;
 #if defined(USE_INSTANCING) && defined(USE_COLOR)
   {
     vec3 c = color.rgb;
@@ -267,6 +281,7 @@ varying vec3 vWPos;
     float sw = sin(uTime * 1.6 + ph) * 0.6 + sin(uTime * 2.7 + ph * 1.7) * 0.4;
     transformed.x += leaf * uSway * sw * 0.05 * transformed.y;
     transformed.z += leaf * uSway * sw * 0.03 * transformed.y;
+    vLeaf = leaf;
     // Fahne weht: Welle entlang der Fahne, am Mast fest
     float flag = step(distance(c, uFlag), 0.01);
     transformed.z += flag * sin(uTime * 7.0 + transformed.x * 14.0 + ph) * 0.12 * max(0.0, transformed.x);
@@ -286,10 +301,64 @@ varying vec3 vWPos;
         /* glsl */ `
 uniform float uTime; uniform float uGlow; uniform float uCloud; uniform float uWet;
 uniform vec3 uGlowA; uniform vec3 uGlowB;
+uniform float uSpring; uniform float uAutumn; uniform float uWinter; uniform float uView;
 varying vec3 vWPos;
+varying float vLeaf;
 ${NOISE}
 ` +
         shader.fragmentShader
+          .replace(
+            '#include <color_fragment>',
+            /* glsl */ `#include <color_fragment>
+  // Ausrichtung der Fläche aus den Bildschirmableitungen (das Gelände hat keine Normalen)
+  float wwUp = abs(normalize(cross(dFdx(vWPos), dFdy(vWPos))).y);
+#if defined(USE_COLOR) && !defined(USE_INSTANCING)
+  {
+    // Gras-Struktur auf Wiesen und Waldboden (nur Gelände, rein im Shader: keine Geometrie).
+    // Feine Anteile blenden beim Herauszoomen aus, damit nichts flimmert.
+    vec3 c = diffuseColor.rgb;
+    float green = clamp((c.g - max(c.r, c.b)) * 5.0, 0.0, 1.0) * step(0.6, wwUp);
+    if (green > 0.0) {
+      vec2 p = vWPos.xz;
+      float near = 1.0 - smoothstep(30.0, 75.0, uView);
+      float close = 1.0 - smoothstep(14.0, 30.0, uView);
+      float big = wwNoise(p * 0.55) - 0.5;
+      float k = big * 0.14 + (wwNoise(p * 2.1 + 9.0) - 0.5) * 0.10 * near;
+      // Grasbüschel: je Zelle ein Punkt mit heller Spitze und dunklem Fuß
+      vec2 q = p * 4.0;
+      vec2 cell = floor(q);
+      vec2 r = vec2(wwHash2(cell), wwHash2(cell + 17.3));
+      vec2 d = fract(q) - (0.2 + r * 0.6);
+      float tuft = 1.0 - smoothstep(0.05, 0.34, length(d * vec2(1.0, 0.6)));
+      k += tuft * (d.y < 0.0 ? 0.13 : -0.16) * near;
+      k += (wwHash2(floor(p * 16.0)) - 0.5) * 0.10 * close;
+      // große Flecken leicht gelblich bzw. bläulich-grün
+      vec3 tint = vec3(1.0 + big * 0.12, 1.0, 1.0 - big * 0.16);
+      diffuseColor.rgb = mix(c, c * tint * (1.0 + k), green);
+    }
+  }
+#endif
+#ifdef USE_COLOR
+  if (uSpring + uAutumn + uWinter > 0.001) {
+    // Jahreszeiten: Grüntöne färben sich (Laub stark, Wiesen schwach), im Winter Schnee obenauf
+    vec3 c = diffuseColor.rgb;
+    float glowC = max(step(distance(c, uGlowA), 0.012), step(distance(c, uGlowB), 0.012));
+    float green = clamp((c.g - max(c.r, c.b)) * 5.0, 0.0, 1.0);
+    float n1 = wwNoise(vWPos.xz * 0.45);
+    float n2 = wwNoise(vWPos.xz * 1.7 + 3.1);
+    float lum = dot(c, vec3(0.3, 0.55, 0.15));
+    c = mix(c, c * vec3(0.97, 1.05, 0.93) + vec3(0.0, 0.01, 0.0), uSpring * green);
+    vec3 fall = mix(vec3(0.93, 0.55, 0.16), vec3(0.95, 0.78, 0.25), n1);
+    fall = mix(fall, vec3(0.80, 0.30, 0.16), step(0.68, n2));
+    c = mix(c, fall * (0.55 + lum * 0.9), uAutumn * green * max(vLeaf * 0.9, 0.13));
+    c = mix(c, vec3(lum) * vec3(0.92, 0.97, 1.02), uWinter * green * 0.45);
+    float up = smoothstep(0.45, 0.85, wwUp);
+    float patchy = smoothstep(0.12, 0.42, n1 * 0.7 + n2 * 0.3 + 0.15);
+    c = mix(c, vec3(0.97, 0.99, 1.04), uWinter * up * patchy * 0.93 * (1.0 - glowC));
+    diffuseColor.rgb = c;
+  }
+#endif`,
+          )
           .replace(
             '#include <emissivemap_fragment>',
             /* glsl */ `#include <emissivemap_fragment>
@@ -365,7 +434,11 @@ ${NOISE}
     view: number,
     /** Fotomodus: fest gewählte Tageszeit (0..1) statt der Spielzeit. */
     timeOverride: number | null = null,
+    /** Jahreszeit als fortlaufende Zahl 0..4 (`seasonAt`). */
+    season = SEASON_CONFIG.fixedSeason + 0.5,
   ): void {
+    this.season = season;
+    const mix = seasonWeights(season, this.seasonMix);
     // dieselbe Rechnung wie für die Solarfelder in der Simulation
     const t = timeOverride ?? dayTimeAt(simTicks, dayNight);
     this.dayTime = t;
@@ -388,6 +461,14 @@ ${NOISE}
     hemi.intensity = lerp(a.hemiI, b.hemiI, f) * (1 - this.rain * 0.12);
     lerpColor(fog.color, a.fog, b.fog, f);
     if (this.rain > 0) fog.color.lerp(ca.setHex(PALETTE.rainFog), this.rain * 0.55);
+    // Winter: kühleres, klareres Licht (sonst wirkt der Schnee beige)
+    const winter = this.seasonMix[3];
+    if (winter > 0) {
+      ca.setHex(PALETTE.winterLight);
+      sun.color.lerp(ca, winter * 0.45);
+      hemi.color.lerp(ca, winter * 0.35);
+      fog.color.lerp(ca, winter * 0.3);
+    }
     background.copy(fog.color);
     this.glow = lerp(a.glow, b.glow, f);
 
@@ -403,7 +484,12 @@ ${NOISE}
     u.uGlow.value = this.glow;
     u.uSway.value = preset.sway ? 1 + this.rain * 0.8 : 0;
     u.uCloud.value = preset.clouds ? 1 : 0;
-    u.uWet.value = this.rain;
+    // im Winter fällt Schnee statt Regen: kein nasser Boden
+    u.uWet.value = this.rain * (1 - mix[3]);
+    u.uView.value = view;
+    u.uSpring.value = mix[0];
+    u.uAutumn.value = mix[2];
+    u.uWinter.value = mix[3];
     u.uSun.value = (1 - this.glow) * dry;
 
     this.updateRain(now, cx, cz, view);
@@ -414,8 +500,13 @@ ${NOISE}
     const show = this.rain > 0.01;
     this.rainLines.visible = show;
     if (!show) return;
-    const mat = this.rainLines.material as Material & { opacity: number };
-    mat.opacity = 0.3 * this.rain;
+    const mat = this.rainLines.material as LineBasicMaterial;
+    // Winter: dicke, langsame Flocken statt Regenstriche
+    const snow = this.seasonMix[3] > 0.5;
+    mat.opacity = (snow ? 0.8 : 0.3) * this.rain;
+    mat.color.setHex(snow ? PALETTE.snow : PALETTE.rain);
+    const speed = snow ? 16 / SEASON_CONFIG.snowSlowdown : 16;
+    const len = snow ? 0.07 : 0.3;
     const n = WEATHER_CONFIG.drops;
     const period = anchorPeriod(view * 2.2);
     const top = 14;
@@ -425,13 +516,15 @@ ${NOISE}
     for (let i = 0; i < n; i++) {
       const x = anchored(s[i * 3], cx, period);
       const z = anchored(s[i * 3 + 1], cz, period);
-      const y = top - ((t * 16 + s[i * 3 + 2] * top) % top);
+      const y = top - ((t * speed + s[i * 3 + 2] * top) % top);
+      // Flocken taumeln seitlich
+      const drift = snow ? Math.sin(t * 1.3 + s[i * 3] * 40) * 0.25 : 0;
       const o = i * 6;
-      pos[o] = x;
+      pos[o] = x + drift;
       pos[o + 1] = y;
       pos[o + 2] = z;
-      pos[o + 3] = x - 0.04;
-      pos[o + 4] = y - 0.3;
+      pos[o + 3] = x + drift - 0.04 * (snow ? 0.5 : 1);
+      pos[o + 4] = y - len;
       pos[o + 5] = z + 0.02;
     }
     this.rainLines.geometry.getAttribute('position').needsUpdate = true;

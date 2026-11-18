@@ -21,7 +21,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { BUILDINGS } from '../data/buildings';
-import { CAMERA_CONFIG, RENDER_CONFIG, type QualityPreset } from '../data/config';
+import { CAMERA_CONFIG, RENDER_CONFIG, SEASON_CONFIG, type QualityPreset } from '../data/config';
+import { seasonAt } from '../sim/daylight';
 import { PALETTE } from '../data/palette';
 import { footprintH, footprintW } from '../sim/buildings';
 import type { SimEvent } from '../sim/events';
@@ -75,6 +76,11 @@ export class GameRenderer {
   private preset: QualityPreset;
   /** Tag-Nacht-Wechsel an (sonst fester goldener Nachmittag). */
   dayNight = true;
+  /** Jahreszeiten wechseln (Einstellung), sonst immer Sommer. */
+  seasons = true;
+  /** Fotomodus: fest gewählte Jahreszeit (0..3) oder null = wie im Spiel. */
+  photoSeason: number | null = null;
+  private nextLeaves = 0;
   private composer: EffectComposer | null = null;
   private bloom: UnrealBloomPass | null = null;
   private readonly water: Mesh;
@@ -414,7 +420,19 @@ export class GameRenderer {
       rig.z,
       rig.viewHeight,
       this.photoTime,
+      this.photoSeason !== null
+        ? this.photoSeason + 0.5
+        : seasonAt(this.sim ? this.sim.tick + alpha : 0, this.seasons),
     );
+    // Herbst: ab und zu wehen ein paar Blätter durchs Bild
+    const autumn = this.atmosphere.seasonMix[2];
+    if (autumn > 0.3 && this.sim && now >= this.nextLeaves) {
+      this.nextLeaves = now + 1000 / (SEASON_CONFIG.leavesPerSecond * autumn);
+      if (rig.viewHeight <= RENDER_CONFIG.lodViewHeight) {
+        const r = rig.viewHeight * 0.6;
+        this.effects.leaves(rig.x + (Math.random() - 0.5) * r, rig.z + (Math.random() - 0.5) * r);
+      }
+    }
 
     // Sonne und Schattenbereich folgen dem Bildausschnitt
     this.sun.target.position.set(rig.x, 0, rig.z);

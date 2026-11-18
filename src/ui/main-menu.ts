@@ -346,6 +346,7 @@ export class MainMenu {
     const toggles = el('div', 'menu-section');
     toggles.append(
       this.checkbox(TEXTS.settings.dayNight, s.dayNight, (v) => a.setSetting('dayNight', v)),
+      this.checkbox(TEXTS.settings.seasons, s.seasons, (v) => a.setSetting('seasons', v)),
       this.checkbox(TEXTS.settings.muted, s.muted, (v) => a.setSetting('muted', v)),
     );
 

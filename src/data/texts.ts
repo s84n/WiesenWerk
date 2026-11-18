@@ -386,6 +386,7 @@ export const TEXTS = {
     autoChosen:
       'Die Stufe wurde beim ersten Start automatisch passend zu deinem Rechner gewählt. Kantenglättung ändert sich erst nach dem Neuladen der Seite.',
     dayNight: 'Tag-Nacht-Wechsel (ein Tag dauert 20 Minuten)',
+    seasons: 'Jahreszeiten (jede dauert zwei Tage, sonst immer Sommer)',
     muted: 'Ton aus',
     soundVolume: 'Klänge',
     musicVolume: 'Musik',
@@ -773,10 +774,21 @@ export const TEXTS = {
     ['F3', 'Debug-Anzeige'],
   ] as const,
 
+  seasons: {
+    names: ['Frühling', 'Sommer', 'Herbst', 'Winter'],
+    tooltip: (name: string, next: string, minutes: number) =>
+      minutes <= 1
+        ? `${name} – bald beginnt der ${next}`
+        : `${name} – noch etwa ${minutes} Minuten bis zum ${next}`,
+    fixed: 'Sommer (Jahreszeiten sind in den Einstellungen aus)',
+  },
+
   photo: {
     title: 'Fotomodus',
     tooltip: 'Fotomodus (P): Oberfläche aus, Tageszeit wählen, Bild speichern',
     time: 'Uhrzeit',
+    season: 'Jahreszeit',
+    seasonLive: 'wie im Spiel',
     clock: (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
     live: 'Spielzeit',
     liveLabel: 'wie im Spiel',

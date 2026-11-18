@@ -174,6 +174,23 @@ export const DAY_CONFIG = {
   fixedTime: 0.55,
 } as const;
 
+/**
+ * Jahreszeiten (rein optisch, Ausbaurunde Gemütlichkeit Schritt 4): Frühling, Sommer, Herbst,
+ * Winter nacheinander, jede `daysPerSeason` Spieltage lang, mit weichem Übergang am Ende.
+ */
+export const SEASON_CONFIG = {
+  /** So viele Tage (je `DAY_CONFIG.daySeconds`) dauert eine Jahreszeit. */
+  daysPerSeason: 2,
+  /** Anteil am Ende einer Jahreszeit, in dem sie in die nächste übergeht. */
+  blend: 0.15,
+  /** Jahreszeit, wenn der Wechsel abgeschaltet ist: Sommer. */
+  fixedSeason: 1,
+  /** Herbst: so oft je Sekunde wehen ein paar Blätter durchs Bild (höchstens). */
+  leavesPerSecond: 1.5,
+  /** Winter: Schneeflocken fallen so viel langsamer als Regentropfen. */
+  snowSlowdown: 7,
+} as const;
+
 /** Wetter (nur Ultra): leichte Regenschauer, gleich für jeden Spielstand mit gleicher Spielzeit. */
 export const WEATHER_CONFIG = {
   /** Länge eines Wetterabschnitts in Sekunden Spielzeit. */
