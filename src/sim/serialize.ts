@@ -18,7 +18,7 @@ import { generateWorld } from './worldgen';
 
 export const SAVE_FORMAT = 'wiesenwerk';
 /** Bei jeder Änderung am Format erhöhen und eine Migration in `MIGRATIONS` ergänzen. */
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 
 /**
  * Werte pro Maschine in `machines.data`:
@@ -56,7 +56,8 @@ export interface SaveData {
   /** Geänderte Felder: [Feld, Art, …] */
   tiles: number[];
   trees: { wood: number[]; queue: number[] };
-  buildings: { highWater: number; free: number[]; list: number[] };
+  /** `built` (ab Version 9): Bau-Tick je Eintrag in `list`, in derselben Reihenfolge. */
+  buildings: { highWater: number; free: number[]; list: number[]; built: number[] };
   machines: {
     crafters: number[];
     extractors: number[];
@@ -79,6 +80,8 @@ export interface SaveData {
   goals: { done: string[]; hidden: boolean };
   /** Ab Version 7: Uhrturm (fertige Abschnitte, Geliefertes für den aktuellen nach Item-Schlüssel). */
   landmark: { stage: number; delivered: Record<string, number> };
+  /** Ab Version 9: Hecken und Rosenbögen über Bändern: [Feld, Gebäudetyp, …]. */
+  covers: number[];
 }
 
 /** Verständlicher Fehler beim Laden. `code` wählt den Text in `TEXTS.save.errors`. */
@@ -111,6 +114,7 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
   }
 
   const list: number[] = [];
+  const built: number[] = [];
   const data: number[] = [];
   const treeLists: number[][] = [];
   const lg = sim.logistics;
@@ -119,6 +123,7 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
   for (let id = 0; id < b.highWater; id++) {
     if (!b.alive[id]) continue;
     list.push(id, b.type[id], b.x[id], b.y[id], b.rot[id]);
+    built.push(b.built[id]);
     const kind = BUILDINGS[b.type[id]].behavior.kind;
     if (kind === 'belt' || kind === 'decor' || kind === 'beehive') continue;
     if (LogisticsSystem.handles(kind)) {
@@ -149,6 +154,10 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
     if (tl) treeLists.push([id, ...tl]);
   }
 
+  const covers: number[] = [];
+  for (let t = 0; t < sim.covers.length; t++)
+    if (sim.covers[t] > 0) covers.push(t, sim.covers[t] - 1);
+
   const segments: number[][] = [];
   belts.segments.forEach((seg, id) => {
     if (!seg) return;
@@ -173,7 +182,7 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
     inventory: Array.from(sim.inventory.amounts),
     tiles,
     trees: { wood, queue: trees.queueEntries() },
-    buildings: { highWater: b.highWater, free: [...b.free], list },
+    buildings: { highWater: b.highWater, free: [...b.free], list, built },
     machines: {
       crafters: [...m.crafters],
       extractors: [...m.extractors],
@@ -196,6 +205,7 @@ export function serialize(sim: Simulation, meta: SaveMeta, camera: number[]): Sa
     },
     goals: { done: sim.goals.doneKeys(), hidden: sim.goals.hidden },
     landmark: { stage: sim.landmark.stage, delivered: sim.landmark.deliveredMap() },
+    covers,
   };
 }
 
@@ -210,7 +220,19 @@ const MIGRATIONS: Record<number, (data: Record<string, unknown>) => Record<strin
   5: migrate5to6,
   6: migrate6to7,
   7: migrate7to8,
+  8: migrate8to9,
 };
+
+/**
+ * Version 8 → 9: Gebäude merken sich ihren Bau-Tick (sie bewachsen mit der Zeit), neu sind
+ * Hecken und Rosenbögen über Bändern. Ältere Gebäude gelten als zu Spielbeginn gebaut.
+ */
+function migrate8to9(d: Record<string, unknown>): Record<string, unknown> {
+  const buildings = d.buildings as { list?: unknown } | undefined;
+  if (!buildings || !Array.isArray(buildings.list)) throw new SaveError('damaged', 'Migration 8');
+  const built = new Array<number>(buildings.list.length / 5).fill(0);
+  return { ...d, buildings: { ...buildings, built }, covers: [] };
+}
 
 /**
  * Version 7 → 8: Bänder rechnen in 240 statt 120 Einheiten je Feld (damit Mk1 0,75 Felder/s
@@ -365,6 +387,9 @@ function validate(d: Record<string, unknown>): void {
     num(d.buildings.highWater) &&
     nums(d.buildings.free) &&
     nums(d.buildings.list) &&
+    nums(d.buildings.built) &&
+    (d.buildings.built as number[]).length * 5 === (d.buildings.list as number[]).length &&
+    nums(d.covers) &&
     obj(d.machines) &&
     nums(d.machines.crafters) &&
     nums(d.machines.extractors) &&
@@ -452,7 +477,7 @@ function restore(d: SaveData): Simulation {
     const [id, type, x, y, rot] = list.slice(k, k + 5);
     const def = BUILDINGS[type];
     if (!def) throw new SaveError('damaged', 'Gebäudetyp');
-    b.restore(id, type, x, y, rot);
+    b.restore(id, type, x, y, rot, d.buildings.built[k / 5]);
     for (let ty = y; ty < y + footprintH(def, rot); ty++) {
       for (let tx = x; tx < x + footprintW(def, rot); tx++) {
         if (!world.inBounds(tx, ty)) throw new SaveError('damaged', 'Gebäudeposition');
@@ -562,5 +587,14 @@ function restore(d: SaveData): Simulation {
     items += count;
   }
   belts.itemCount = items;
+
+  // Hecken und Rosenbögen (nur über Bändern)
+  for (let k = 0; k < d.covers.length; k += 2) {
+    const t = d.covers[k];
+    const type = d.covers[k + 1];
+    if (!tileOk(t) || BUILDINGS[type]?.behavior.kind !== 'cover' || sim.belts.beltAt(t) < 0)
+      throw new SaveError('damaged', 'Hecke');
+    sim.covers[t] = type + 1;
+  }
   return sim;
 }

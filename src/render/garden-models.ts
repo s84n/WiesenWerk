@@ -448,3 +448,99 @@ export const GARDEN_GROUND: Record<string, number> = {
   orchard: 0.04,
   greenhouse: 0.44,
 };
+
+// ------------------------------------------------------------------ Hecken und Rosenbögen über Bändern
+
+/**
+ * Hecke an der Nordkante eines Bandfeldes (wird je offener Seite gedreht eingesetzt):
+ * niedriger Heckenstreifen mit runden Büschen obenauf.
+ */
+function hedgeSide(): BufferGeometry {
+  const parts = [box(1.0, 0.36, 0.2, 0, 0, -0.4, PALETTE.hedge)];
+  for (let k = 0; k < 4; k++) {
+    const x = -0.375 + k * 0.25;
+    parts.push(
+      colored(
+        new IcosahedronGeometry(0.13, 0)
+          .scale(1, 0.75, 0.85)
+          .translate(x, 0.36, -0.4 + (k % 2 ? 0.01 : -0.01)),
+        k % 2 ? PALETTE.hedge : PALETTE.leafDark,
+      ),
+    );
+  }
+  // ein paar weiße Blüten in der Hecke
+  parts.push(
+    colored(new IcosahedronGeometry(0.035, 0).translate(-0.2, 0.3, -0.29), PALETTE.flowerWhite),
+  );
+  parts.push(
+    colored(new IcosahedronGeometry(0.035, 0).translate(0.28, 0.22, -0.29), PALETTE.flowerWhite),
+  );
+  return merge(parts);
+}
+
+/** Rosenbogen-Seite an der Nordkante: zwei Pfosten mit Ranken und Rosen. */
+function roseSide(): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  for (const x of [-0.42, 0.42]) {
+    parts.push(box(0.06, 0.8, 0.06, x, 0, -0.42, PALETTE.wood));
+    for (let k = 0; k < 4; k++) {
+      const y = 0.12 + k * 0.17;
+      parts.push(
+        colored(
+          new IcosahedronGeometry(0.07, 0).translate(x + (k % 2 ? 0.04 : -0.04), y, -0.42),
+          k % 2 ? PALETTE.leaf : PALETTE.leafDark,
+        ),
+      );
+      if (k % 2 === 0)
+        parts.push(
+          colored(
+            new IcosahedronGeometry(0.04, 0).translate(x + 0.05, y + 0.06, -0.37),
+            k === 2 ? PALETTE.roseLight : PALETTE.rose,
+          ),
+        );
+    }
+  }
+  // Längsbalken oben
+  parts.push(box(1.0, 0.05, 0.06, 0, 0.8, -0.42, PALETTE.woodDark));
+  return merge(parts);
+}
+
+/** Dach des Rosenbogens quer zur Laufrichtung (ungedreht: Band läuft nach Norden). */
+function roseRoof(): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  for (const z of [-0.25, 0.25]) {
+    parts.push(box(0.92, 0.05, 0.06, 0, 0.84, z, PALETTE.wood));
+    for (let k = 0; k < 3; k++) {
+      const x = -0.28 + k * 0.28;
+      parts.push(
+        colored(
+          new IcosahedronGeometry(0.075, 0).scale(1, 0.6, 1).translate(x, 0.9, z),
+          k % 2 ? PALETTE.leafLight : PALETTE.leaf,
+        ),
+      );
+    }
+    parts.push(
+      colored(new IcosahedronGeometry(0.045, 0).translate(0.14, 0.93, z + 0.03), PALETTE.rose),
+    );
+  }
+  return merge(parts);
+}
+
+/** Teile einer Verkleidung: Seite (Nordkante, je geschlossener Seite gedreht) und optional Dach. */
+export interface CoverModel {
+  side: () => BufferGeometry;
+  roof?: () => BufferGeometry;
+}
+
+export const COVER_MODELS: Record<string, CoverModel> = {
+  hedgeCover: { side: hedgeSide },
+  roseArch: { side: roseSide, roof: roseRoof },
+};
+
+/** Ganzes Stück für Bilder und Vorschau: beide Seiten eines geraden Bandes (Ost und West). */
+export function coverPreview(name: string): BufferGeometry {
+  const def = COVER_MODELS[name];
+  const parts = [def.side().rotateY(-Math.PI / 2), def.side().rotateY(Math.PI / 2)];
+  if (def.roof) parts.push(def.roof());
+  return merge(parts);
+}

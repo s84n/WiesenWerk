@@ -38,6 +38,11 @@ export class Simulation {
   readonly cozy: CozySystem;
   readonly stats = new StatsSystem();
   readonly goals = new GoalSystem();
+  /**
+   * Verkleidung je Feld (Hecke, Rosenbogen): Gebäudetyp + 1, 0 = keine. Nur auf Bandfeldern,
+   * belegt kein Feld und ändert nichts am Warenfluss.
+   */
+  readonly covers: Uint16Array;
   /** Anzahl lebender Gebäude je Typ. */
   readonly typeCount = new Int32Array(BUILDINGS.length);
   /** Ereignisse seit dem letzten Abholen. */
@@ -45,6 +50,7 @@ export class Simulation {
   private readonly pending: Command[] = [];
 
   constructor(readonly world: World) {
+    this.covers = new Uint16Array(world.size * world.size);
     this.trees = new TreeSystem(world);
     this.machines = new MachineSystem(
       world,
@@ -238,6 +244,10 @@ export class Simulation {
   private buildLine(type: number, path: readonly BeltStep[]): void {
     const def = BUILDINGS[type];
     if (!def?.line) return;
+    if (def.behavior.kind === 'cover') {
+      this.coverLine(type, path);
+      return;
+    }
     const isBelt = def.behavior.kind === 'belt';
     let failed = -1;
     for (const step of path) {
@@ -267,6 +277,28 @@ export class Simulation {
       this.events.push({ type: 'commandFailed', reason: failed, buildingType: type });
   }
 
+  /** Hecken oder Rosenbögen über einen Bandweg; Felder ohne Band werden still übersprungen. */
+  private coverLine(type: number, path: readonly BeltStep[]): void {
+    let missing = false;
+    for (const step of path) {
+      const result = checkPlacement(this, type, step.x, step.y, 0);
+      if (result === PlaceResult.Ok) this.setCover(this.world.index(step.x, step.y), type);
+      else if (result === PlaceResult.Cost) missing = true;
+    }
+    if (missing)
+      this.events.push({ type: 'commandFailed', reason: PlaceResult.Cost, buildingType: type });
+  }
+
+  /** Setzt eine Verkleidung (−1 = entfernen); die alte wird erstattet, die neue bezahlt. */
+  private setCover(tile: number, type: number): void {
+    const old = this.covers[tile] - 1;
+    if (old === type) return;
+    if (old >= 0) this.inventory.refund(BUILDING_COSTS[old]);
+    if (type >= 0) this.inventory.pay(BUILDING_COSTS[type]);
+    this.covers[tile] = type + 1;
+    this.events.push({ type: 'coverChanged', tile });
+  }
+
   /** Ersetzt ein Bandfeld durch eine andere Bandstufe; Items bleiben liegen. */
   private replaceBelt(id: number, type: number, rot: number): PlaceResult {
     if (!this.research.buildingUnlocked[type]) return PlaceResult.Locked;
@@ -294,8 +326,12 @@ export class Simulation {
       return;
     }
     const def = BUILDINGS[type];
+    if (def.behavior.kind === 'cover') {
+      this.setCover(this.world.index(x, y), type);
+      return;
+    }
     this.inventory.pay(BUILDING_COSTS[type]);
-    const id = this.buildings.add(type, x, y, rot);
+    const id = this.buildings.add(type, x, y, rot, this.tick);
     const { world } = this;
     const w = footprintW(def, rot);
     const h = footprintH(def, rot);
@@ -353,6 +389,8 @@ export class Simulation {
       for (let tx = x; tx < x + w; tx++) this.world.building[this.world.index(tx, ty)] = 0;
     }
     if (def.behavior.kind === 'belt') {
+      // Hecke oder Rosenbogen gehen mit dem Band (erstattet)
+      if (this.covers[this.world.index(x, y)] > 0) this.setCover(this.world.index(x, y), -1);
       this.belts.beltRemoved(this.world.index(x, y), (item) => this.inventory.add(item, 1));
     } else {
       this.belts.buildingChanged();
@@ -370,6 +408,14 @@ export class Simulation {
     const maxX = Math.min(this.world.size - 1, Math.max(x0, x1));
     const minY = Math.max(0, Math.min(y0, y1));
     const maxY = Math.min(this.world.size - 1, Math.max(y0, y1));
+    // Einzelklick auf ein verkleidetes Band: erst nur die Hecke bzw. den Rosenbogen entfernen
+    if (minX === maxX && minY === maxY) {
+      const tile = this.world.index(minX, minY);
+      if (this.covers[tile] > 0) {
+        this.setCover(tile, -1);
+        return;
+      }
+    }
     for (let y = minY; y <= maxY; y++) {
       for (let x = minX; x <= maxX; x++) {
         const id = this.buildingAt(x, y);

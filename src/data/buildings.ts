@@ -71,6 +71,11 @@ export type Behavior =
    * geerntet; danach beginnt es von vorn. Braucht keinen Strom.
    */
   | { kind: 'garden'; growSeconds: number; ripeSeconds: number }
+  /**
+   * Bandverkleidung (Hecke, Rosenbogen): wird über vorhandene Bänder gezogen, belegt kein Feld
+   * und ändert nichts am Warenfluss (`Simulation.covers`).
+   */
+  | { kind: 'cover' }
   /** Bienenstock: Gärten, deren Grundfläche das Quadrat ± `radius` berührt, wachsen schneller. */
   | { kind: 'beehive'; radius: number; growthBoost: number }
   /**
@@ -100,9 +105,9 @@ export interface BuildingDef {
   /**
    * 'ground' = freie Wiese oder gefällter Wald, 'deposit' = mindestens ein Feld auf einem Vorkommen,
    * 'groundOrDeposit' = beides erlaubt (Bänder), 'shore' = wie 'ground', aber die Vorderseite
-   * (ungedreht Süden) grenzt an Wasser.
+   * (ungedreht Süden) grenzt an Wasser, 'belt' = über ein vorhandenes Band (Verkleidungen).
    */
-  placement: 'ground' | 'deposit' | 'groundOrDeposit' | 'shore';
+  placement: 'ground' | 'deposit' | 'groundOrDeposit' | 'shore' | 'belt';
   behavior: Behavior;
   /** Stromverbrauch in kW bei der Arbeit (wartend: 10 %). 0 = braucht keinen Strom. */
   power: number;
@@ -733,6 +738,33 @@ export const BUILDINGS: readonly BuildingDef[] = [
     ports: [],
     model: 'greenhouse',
     availableFromStart: false,
+  },
+  // Verkleidungen für Bänder: machen aus Bandstraßen grüne Alleen
+  {
+    key: 'hedgeCover',
+    power: 0,
+    size: [1, 1],
+    category: 'garden',
+    cost: { wood: 1 },
+    placement: 'belt',
+    behavior: { kind: 'cover' },
+    ports: [],
+    model: 'hedgeCover',
+    availableFromStart: true,
+    line: true,
+  },
+  {
+    key: 'roseArch',
+    power: 0,
+    size: [1, 1],
+    category: 'garden',
+    cost: { plank: 1, wood: 1 },
+    placement: 'belt',
+    behavior: { kind: 'cover' },
+    ports: [],
+    model: 'roseArch',
+    availableFromStart: false,
+    line: true,
   },
 ];
 

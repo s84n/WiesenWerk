@@ -212,6 +212,16 @@ export const TEXTS = {
       description:
         'Apfelbäume blühen erst rosa, dann hängen rote Äpfel daran. Macht eine große Umgebung besonders gemütlich.',
     },
+    hedgeCover: {
+      name: 'Hecke',
+      description:
+        'Über ein vorhandenes Band ziehen: Hecken säumen das Band, die Ware läuft darunter weiter. Macht aus Bandstraßen grüne Alleen.',
+    },
+    roseArch: {
+      name: 'Rosenbogen',
+      description:
+        'Über ein vorhandenes Band ziehen: Rosenranken an Holzbögen, ein Laubengang für die Ware.',
+    },
     greenhouse: {
       name: 'Gewächshaus',
       description:
@@ -513,6 +523,7 @@ export const TEXTS = {
     unique: 'Davon kann es nur eine geben.',
     locked: 'Das musst du erst erforschen (Taste T).',
     needsWater: 'Das Wasserrad muss mit der Radseite an Wasser stehen (R dreht).',
+    needsBelt: 'Hecken und Rosenbögen kommen über ein vorhandenes Förderband.',
     undone: (n: number) =>
       n === 1 ? 'Rückgängig gemacht' : `Rückgängig gemacht (${n} Änderungen)`,
     nothingToUndo: 'Nichts mehr rückgängig zu machen',

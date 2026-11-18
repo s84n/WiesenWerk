@@ -37,6 +37,7 @@ import { CameraRig } from './camera-rig';
 import { renderIcons } from './icons';
 import { itemGeometries } from './item-models';
 import { GardenView } from './garden-view';
+import { OvergrowthView } from './overgrowth';
 import { MachineAnimations, type ViewRect } from './machine-animations';
 import { PortMarkers } from './port-markers';
 import { BottleneckView } from './bottleneck-view';
@@ -87,6 +88,7 @@ export class GameRenderer {
   private ports: PortMarkers | null = null;
   readonly animations: MachineAnimations;
   private readonly gardens: GardenView;
+  private readonly overgrowth: OvergrowthView;
   private readonly viewRect: ViewRect = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
   private readonly status = new StatusIcons();
   private readonly powerView = new PowerView();
@@ -161,6 +163,8 @@ export class GameRenderer {
     this.animations = new MachineAnimations(this.material);
     this.gardens = new GardenView(this.material);
     this.scene.add(this.gardens.group);
+    this.overgrowth = new OvergrowthView(this.material);
+    this.scene.add(this.overgrowth.group);
     this.effects = new Effects(this.material);
     this.life = new AmbientLife(this.material);
     this.scene.add(this.life.group);
@@ -275,6 +279,13 @@ export class GameRenderer {
               (e.tile % sim.world.size) + 0.5,
               Math.floor(e.tile / sim.world.size) + 0.5,
             );
+          break;
+        case 'coverChanged':
+          this.belts?.refreshTile(sim, e.tile);
+          this.effects.leaves(
+            (e.tile % sim.world.size) + 0.5,
+            Math.floor(e.tile / sim.world.size) + 0.5,
+          );
           break;
         case 'buildingAdded':
           this.onAdded(sim, e.id, true);
@@ -466,6 +477,12 @@ export class GameRenderer {
           rig.viewHeight <= RENDER_CONFIG.lodViewHeight,
           1 - this.atmosphere.glow,
           this.effects,
+        );
+        this.overgrowth.update(
+          this.sim,
+          now,
+          this.viewRect,
+          rig.viewHeight <= RENDER_CONFIG.lodViewHeight,
         );
         this.status.update(this.sim, now);
         this.powerView.update(this.sim, now, this.showPower && !this.photoMode);

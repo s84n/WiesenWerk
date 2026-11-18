@@ -9,6 +9,7 @@ import { BELT_SURFACE, beltCurve, beltDirectionMark, beltStraight } from './belt
 import { FrameInstances } from './frame-instances';
 import { buildingMatrix } from './buildings-view';
 import { DynamicChunkedInstances } from './dynamic-instances';
+import { COVER_MODELS } from './garden-models';
 import { itemGeometries } from './item-models';
 
 const m = new Matrix4();
@@ -36,6 +37,11 @@ export class BeltView {
   /** Deutliche Laufrichtung auf allen sichtbaren Bändern, solange Bänder gebaut werden. */
   showDirections = false;
   private readonly directionMarks: FrameInstances;
+  /** Hecken und Rosenbögen je Verkleidungs-Gebäudetyp: Seiten (Schlüssel id·4 + Seite) und Dach. */
+  private readonly coverSides = new Map<number, DynamicChunkedInstances>();
+  private readonly coverRoofs = new Map<number, DynamicChunkedInstances>();
+  /** Band-ID, deren Verkleidung auf dem Feld gerade gezeigt wird (−1 = keine). */
+  private readonly coverId: Int32Array;
 
   constructor(
     private readonly world: World,
@@ -49,6 +55,19 @@ export class BeltView {
         this.shapes.push(new DynamicChunkedInstances(g, material, chunks, false));
     }
     for (const s of this.shapes) this.group.add(s.group);
+    BUILDINGS.forEach((def, type) => {
+      const cover = COVER_MODELS[def.model];
+      if (def.behavior.kind !== 'cover' || !cover) return;
+      const side = new DynamicChunkedInstances(cover.side(), material, chunks);
+      this.coverSides.set(type, side);
+      this.group.add(side.group);
+      if (cover.roof) {
+        const roof = new DynamicChunkedInstances(cover.roof(), material, chunks);
+        this.coverRoofs.set(type, roof);
+        this.group.add(roof.group);
+      }
+    });
+    this.coverId = new Int32Array(world.size * world.size).fill(-1);
     this.tileId = new Int32Array(world.size * world.size).fill(-1);
     this.tileShape = new Int8Array(world.size * world.size);
     this.directionMarks = new FrameInstances(
@@ -74,10 +93,12 @@ export class BeltView {
       this.shapes[this.tileShape[tile]].remove(old);
       this.tileId[tile] = -1;
     }
+    this.removeCover(tile);
     const id = sim.belts.beltAt(tile);
     if (id < 0) return;
     const exit = sim.belts.dirAt(tile);
-    const turn = (exit - sim.belts.entryDir(tile)) & 3;
+    const entry = sim.belts.entryDir(tile);
+    const turn = (exit - entry) & 3;
     const b = sim.buildings;
     const beh = BUILDINGS[b.type[id]].behavior;
     const tier = beh.kind === 'belt' ? beh.tier : 1;
@@ -87,6 +108,37 @@ export class BeltView {
     this.shapes[shape].add(id, this.world.chunkOf(b.x[id], b.y[id]), m);
     this.tileId[tile] = id;
     this.tileShape[tile] = shape;
+    if (sim.covers[tile] > 0) this.addCover(sim, tile, id, exit, entry);
+  }
+
+  /** Verkleidung: Seiten überall außer Aus- und Eingangsseite, Dach quer zur Laufrichtung. */
+  private addCover(sim: Simulation, tile: number, id: number, exit: number, entry: number): void {
+    const type = sim.covers[tile] - 1;
+    const sides = this.coverSides.get(type);
+    if (!sides) return;
+    const b = sim.buildings;
+    const chunk = this.world.chunkOf(b.x[id], b.y[id]);
+    const back = (entry + 2) & 3;
+    for (let side = 0; side < 4; side++) {
+      if (side === exit || side === back) continue;
+      buildingMatrix(type, b.x[id], b.y[id], side, m);
+      sides.add(id * 4 + side, chunk, m);
+    }
+    const roof = this.coverRoofs.get(type);
+    if (roof) {
+      buildingMatrix(type, b.x[id], b.y[id], exit, m);
+      roof.add(id, chunk, m);
+    }
+    this.coverId[tile] = id;
+  }
+
+  private removeCover(tile: number): void {
+    const id = this.coverId[tile];
+    if (id < 0) return;
+    for (const sides of this.coverSides.values())
+      for (let side = 0; side < 4; side++) sides.remove(id * 4 + side);
+    for (const roof of this.coverRoofs.values()) roof.remove(id);
+    this.coverId[tile] = -1;
   }
 
   /** Feld und seine vier Nachbarn. */
@@ -113,6 +165,8 @@ export class BeltView {
 
   apply(visible: Uint16Array, count: number, force: boolean): void {
     for (const s of this.shapes) s.apply(visible, count, force);
+    for (const s of this.coverSides.values()) s.apply(visible, count, force);
+    for (const s of this.coverRoofs.values()) s.apply(visible, count, force);
   }
 
   /**
@@ -229,6 +283,8 @@ export class BeltView {
   dispose(): void {
     this.directionMarks.dispose();
     for (const s of this.shapes) s.dispose();
+    for (const s of this.coverSides.values()) s.dispose();
+    for (const s of this.coverRoofs.values()) s.dispose();
     for (const mesh of this.itemMeshes) mesh.dispose();
     this.group.clear();
   }

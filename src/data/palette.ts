@@ -243,6 +243,10 @@ export const PALETTE = {
   greenhouseFrame: 0xf1ede2,
   /** Bauvorschau: Bereich, den ein Garten oder eine Deko gemütlich macht. */
   cozyArea: 0xf6b26b,
+  /** Rosen an Rosenbögen und ausgetretene Trampelpfade. */
+  rose: 0xe2667e,
+  roseLight: 0xf29aac,
+  trail: 0xbcae80,
 } as const;
 
 export type PaletteKey = keyof typeof PALETTE;

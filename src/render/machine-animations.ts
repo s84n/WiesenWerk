@@ -58,7 +58,7 @@ const WORKER_KINDS: readonly WorkerKind[] = [
  * Ablauf je Durchgang: hinlaufen (mit `carryOut`), am Ziel arbeiten, zurück (mit `carryBack`),
  * kurz verschnaufen. Steht das Gebäude still, wartet der Arbeiter am Startpunkt.
  */
-interface Route {
+export interface Route {
   points: readonly (readonly [number, number])[];
   carryOut?: WorkerKind;
   carryBack?: WorkerKind;
@@ -68,7 +68,7 @@ interface Route {
   offset?: number;
 }
 
-const ROUTES: Record<string, readonly Route[]> = {
+export const ROUTES: Record<string, readonly Route[]> = {
   // schaufelt Erz in die glühende Öffnung
   furnace: [
     {

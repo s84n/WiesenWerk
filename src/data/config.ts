@@ -197,3 +197,20 @@ export const VILLAGE_CONFIG = {
   /** Neuberechnung nach Bauänderungen höchstens so oft (ms). */
   refreshMs: 500,
 } as const;
+
+/**
+ * Natur erobert zurück (rein optisch): Gebäude bewachsen mit der Spielzeit seit dem Bau
+ * (Gras, Blumen, Efeu am Sockel), wo Arbeiter laufen, entsteht ein Trampelpfad.
+ */
+export const RECLAIM_CONFIG = {
+  /** Ab so vielen Spielminuten nach dem Bau sprießt das erste Grün. */
+  startMinutes: 6,
+  /** Nach so vielen Spielminuten ist ein Gebäude voll bewachsen. */
+  fullMinutes: 40,
+  /** Ab diesem Anteil (0..1) wachsen Efeubüsche an den Ecken. */
+  ivyFrom: 0.4,
+  /** Ab diesem Anteil (0..1) sind Trampelpfade zu sehen. */
+  trailFrom: 0.1,
+  /** So oft je Sekunde werden die Pflanzen neu gesetzt (wachsen langsam). */
+  updatesPerSecond: 2,
+} as const;

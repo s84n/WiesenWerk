@@ -233,7 +233,7 @@ export const RESEARCH: readonly ResearchDef[] = [
     key: 'gardening',
     requires: [],
     cost: { wood: 60, stone: 40, plank: 20 },
-    buildings: ['beehive', 'orchard'],
+    buildings: ['beehive', 'orchard', 'roseArch'],
     area: 'beauty',
     pos: [0, 1],
   },

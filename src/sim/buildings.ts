@@ -11,6 +11,8 @@ export class BuildingStore {
   y: Int16Array;
   rot: Uint8Array;
   alive: Uint8Array;
+  /** Tick, in dem das Gebäude gebaut wurde (für das Zuwachsen mit der Zeit). */
+  built: Int32Array;
   /** Höchste je vergebene ID + 1 (Schleifen laufen bis hier). */
   highWater = 0;
   /** Anzahl lebender Gebäude. */
@@ -25,9 +27,10 @@ export class BuildingStore {
     this.y = new Int16Array(capacity);
     this.rot = new Uint8Array(capacity);
     this.alive = new Uint8Array(capacity);
+    this.built = new Int32Array(capacity);
   }
 
-  add(type: number, x: number, y: number, rot: number): number {
+  add(type: number, x: number, y: number, rot: number, tick = 0): number {
     let id = this.free.pop();
     if (id === undefined) {
       if (this.highWater === this.capacity) this.grow();
@@ -38,6 +41,7 @@ export class BuildingStore {
     this.y[id] = y;
     this.rot[id] = rot;
     this.alive[id] = 1;
+    this.built[id] = tick;
     this.count++;
     return id;
   }
@@ -50,20 +54,21 @@ export class BuildingStore {
   }
 
   /** Stellt ein Gebäude mit fester ID wieder her (beim Laden). */
-  restore(id: number, type: number, x: number, y: number, rot: number): void {
+  restore(id: number, type: number, x: number, y: number, rot: number, built = 0): void {
     while (id >= this.capacity) this.grow();
     this.type[id] = type;
     this.x[id] = x;
     this.y[id] = y;
     this.rot[id] = rot;
     this.alive[id] = 1;
+    this.built[id] = built;
     this.count++;
     if (id >= this.highWater) this.highWater = id + 1;
   }
 
   private grow(): void {
     const cap = this.capacity * 2;
-    const grow = <T extends Uint16Array | Int16Array | Uint8Array>(
+    const grow = <T extends Uint16Array | Int16Array | Uint8Array | Int32Array>(
       old: T,
       make: (n: number) => T,
     ): T => {
@@ -76,6 +81,7 @@ export class BuildingStore {
     this.y = grow(this.y, (n) => new Int16Array(n));
     this.rot = grow(this.rot, (n) => new Uint8Array(n));
     this.alive = grow(this.alive, (n) => new Uint8Array(n));
+    this.built = grow(this.built, (n) => new Int32Array(n));
     this.capacity = cap;
   }
 }

@@ -13,7 +13,14 @@ import {
 import { PALETTE } from '../data/palette';
 import { BELT_LIFT, beltStraight } from './belt-models';
 import { colored, merge } from './geometry';
-import { beehive, flowerMeadow, greenhouse, orchard, vegetableBed } from './garden-models';
+import {
+  beehive,
+  coverPreview,
+  flowerMeadow,
+  greenhouse,
+  orchard,
+  vegetableBed,
+} from './garden-models';
 import { bandstand, clockTowerFull, clockTowerSite, fountain } from './landmark-models';
 
 /**
@@ -1075,6 +1082,8 @@ const MODELS: Record<string, () => BufferGeometry> = {
   beehive,
   orchard,
   greenhouse,
+  hedgeCover: () => coverPreview('hedgeCover'),
+  roseArch: () => coverPreview('roseArch'),
   // Uhrturm: als Gebäude-Instanz nur der Bauplatz, den Turm selbst zeichnet `LandmarkView`
   clockTower: clockTowerSite,
   fountain,

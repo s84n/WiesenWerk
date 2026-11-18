@@ -15,6 +15,8 @@ export const PlaceResult = {
   Locked: 6,
   /** Wasserrad: Vorderseite liegt nicht am Wasser. */
   NeedsWater: 7,
+  /** Hecke/Rosenbogen: kein Band auf dem Feld. */
+  NeedsBelt: 8,
 } as const;
 export type PlaceResult = (typeof PlaceResult)[keyof typeof PlaceResult];
 
@@ -35,6 +37,17 @@ export function checkPlacement(
   if (def.unique && sim.typeCount[type] > 0) return PlaceResult.Unique;
 
   const { world } = sim;
+  if (def.placement === 'belt') {
+    // Verkleidung: über ein Band, das noch nicht genau diese Verkleidung trägt
+    if (!world.inBounds(x, y)) return PlaceResult.OutOfBounds;
+    const i = world.index(x, y);
+    const id = world.building[i] - 1;
+    if (id < 0 || BUILDINGS[sim.buildings.type[id]].behavior.kind !== 'belt')
+      return PlaceResult.NeedsBelt;
+    if (sim.covers[i] === type + 1) return PlaceResult.Blocked;
+    if (!sim.inventory.canAfford(BUILDING_COSTS[type])) return PlaceResult.Cost;
+    return PlaceResult.Ok;
+  }
   const w = footprintW(def, rot);
   const h = footprintH(def, rot);
   let deposits = 0;

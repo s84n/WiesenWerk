@@ -17,6 +17,8 @@ export type SimEvent =
   /** Bandfeld gedreht; `oldRot` = Richtung vorher (für „Rückgängig“). */
   | { type: 'buildingRotated'; id: number; oldRot: number }
   | { type: 'treeChanged'; tile: number }
+  /** Hecke oder Rosenbogen über einem Band gebaut oder entfernt. */
+  | { type: 'coverChanged'; tile: number }
   | { type: 'harvested'; item: number; amount: number }
   | { type: 'commandFailed'; reason: number; buildingType: number }
   /** Bandfeld durch eine andere Bandstufe ersetzt. */

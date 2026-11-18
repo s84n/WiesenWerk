@@ -337,8 +337,11 @@ export class ToolController {
     const path = this.leftDown
       ? this.computeBeltPath(sim, this.dragX, this.dragY, this.hoverX, this.hoverY)
       : [{ x: this.hoverX, y: this.hoverY, dir: this.rot }];
+    const cover = BUILDINGS[this.buildType].behavior.kind === 'cover';
     const valid = path.map((p) => {
       const id = sim.buildingAt(p.x, p.y);
+      // Hecken und Rosenbögen: nur über Bänder (Prüfung in `checkPlacement`)
+      if (cover) return checkPlacement(sim, this.buildType, p.x, p.y, p.dir) === PlaceResult.Ok;
       if (id >= 0) {
         // Bänder dürfen vorhandene Bänder drehen oder aufwerten, Wege überspringen Gleiche
         if (this.isBelt) return sim.isBelt(id);

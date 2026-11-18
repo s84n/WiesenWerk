@@ -112,6 +112,8 @@ export class Toasts {
         return TEXTS.messages.locked;
       case PlaceResult.NeedsWater:
         return TEXTS.messages.needsWater;
+      case PlaceResult.NeedsBelt:
+        return TEXTS.messages.needsBelt;
       case PlaceResult.Cost: {
         const missing = BUILDING_COSTS[type]
           .map((c) => ({ item: c.item, amount: c.amount - sim.inventory.get(c.item) }))
