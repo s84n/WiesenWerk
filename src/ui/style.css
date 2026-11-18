@@ -1064,6 +1064,25 @@ body {
   box-shadow: none;
 }
 
+.recipe.locked {
+  flex-wrap: wrap;
+  opacity: 0.6;
+  border-style: dashed;
+  box-shadow: none;
+  cursor: default;
+}
+
+.recipe.locked:hover {
+  background: var(--paper);
+}
+
+.recipe-lock {
+  flex-basis: 100%;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
 .recipe.selected {
   background: var(--meadow-pale);
   box-shadow: 0 0 0 3px var(--meadow);

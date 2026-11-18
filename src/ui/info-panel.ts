@@ -11,6 +11,7 @@ import {
   RECIPE_INPUTS,
   RECIPE_OUTPUTS,
 } from '../data/recipes';
+import { RESEARCH } from '../data/research';
 import { TEXTS } from '../data/texts';
 import type { ToolController } from '../input/tools';
 import { footprintH, footprintW } from '../sim/buildings';
@@ -406,9 +407,24 @@ export class InfoPanel {
     const section = el('div', 'info-section');
     section.append(el('div', 'info-label', TEXTS.info.recipe));
     const current = sim.machines.recipe[id];
+    const locked: HTMLElement[] = [];
     for (let r = 0; r < RECIPES.length; r++) {
       const def = RECIPES[r];
-      if (def.machine !== machine || !sim.research.recipeUnlocked[r]) continue;
+      if (def.machine !== machine) continue;
+      if (!sim.research.recipeUnlocked[r]) {
+        // Noch nicht erforscht: ausgegraut zeigen, mit der nötigen Forschung (sonst sucht man es)
+        const node = RESEARCH.find((n) => n.recipes?.includes(def.key));
+        const row = el('div', 'recipe locked');
+        for (const a of RECIPE_INPUTS[r]) row.append(amountChip(a.item, a.amount));
+        row.append(el('span', 'recipe-arrow', '→'));
+        for (const a of RECIPE_OUTPUTS[r]) row.append(amountChip(a.item, a.amount));
+        if (node)
+          row.append(
+            el('span', 'recipe-lock', TEXTS.info.recipeLocked(TEXTS.research.nodes[node.key])),
+          );
+        locked.push(row);
+        continue;
+      }
       const button = el('button', `recipe${r === current ? ' selected' : ''}`);
       for (const a of RECIPE_INPUTS[r]) button.append(amountChip(a.item, a.amount));
       button.append(el('span', 'recipe-arrow', '→'));
@@ -424,6 +440,7 @@ export class InfoPanel {
       });
       section.append(button);
     }
+    section.append(...locked);
     if (current < 0) section.append(el('p', 'info-text soft', TEXTS.info.recipeHint));
     this.body.append(section);
 

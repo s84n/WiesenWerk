@@ -157,3 +157,24 @@ describe('Endprodukte aus Eisen, Glas und Stahl', () => {
     expect(RECIPE_OUTPUTS.length).toBe(RECIPES.length);
   });
 });
+
+describe('Glas aus dem Schmelzofen', () => {
+  it('erst nach „Glasbläserei“ wählbar, dann macht der Ofen aus Sand Glas', () => {
+    const sim = makePoweredSim();
+    const glass = RECIPES.findIndex((r) => r.key === 'glass');
+    build(sim, B.furnace, 4, 4);
+    const furnace = sim.buildingAt(4, 4);
+    // vorher: Rezept gesperrt, Sand wird nicht angenommen
+    expect(sim.research.recipeUnlocked[glass]).toBe(0);
+    expect(sim.machines.accept(furnace, ITEM_ID.sand)).toBe(false);
+    sim.enqueue({ type: 'research', node: RESEARCH_ID.glassmaking });
+    sim.flushCommands();
+    expect(sim.research.recipeUnlocked[glass]).toBe(1);
+    // Sand wählt das Rezept automatisch
+    expect(sim.machines.accept(furnace, ITEM_ID.sand)).toBe(true);
+    expect(sim.machines.recipe[furnace]).toBe(glass);
+    expect(sim.machines.accept(furnace, ITEM_ID.sand)).toBe(true);
+    for (let t = 0; t < 4 * SIM_CONFIG.ticksPerSecond; t++) sim.step();
+    expect(sim.stats.totalProduced[ITEM_ID.glass]).toBe(1);
+  });
+});

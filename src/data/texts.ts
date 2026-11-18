@@ -600,6 +600,7 @@ export const TEXTS = {
     ],
     recipe: 'Rezept',
     recipeHint: 'Kommt das erste passende Item an, wird das Rezept automatisch gewählt.',
+    recipeLocked: (node: string) => `erst „${node}“ erforschen (T)`,
     input: 'Eingang',
     output: 'Ausgang',
     utilization: 'Auslastung',
